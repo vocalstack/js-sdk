@@ -1,0 +1,14 @@
+{
+  "compilerOptions": {
+    "strict": true,
+    "declaration": true,
+    "target": "es6",
+    "module": "commonjs",
+    "moduleResolution": "node",
+    "outDir": "dist",
+    "typeRoots": ["node_modules/@types"],
+    "lib": ["ESNext", "DOM"],
+    "esModuleInterop": true
+  },
+  "exclude": ["dist", "node_modules"]
+}

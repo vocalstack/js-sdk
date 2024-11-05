@@ -1,0 +1,48 @@
+{
+  "name": "@vocalstack/js-sdk",
+  "version": "1.0.13",
+  "description": "A JavaScript API Client and SDK for VocalStack",
+  "author": "VocalStack",
+  "repository": {
+    "type": "git",
+    "url": "git+ssh://git@github.com/vocalstack/js-sdk.git"
+  },
+  "engines": {
+    "node": ">=16.20.2",
+    "npm": ">=8.19.4"
+  },
+  "main": "./dist/index.js",
+  "typings": "./dist/index.d.ts",
+  "module": "./dist/esm/index.js",
+  "scripts": {
+    "lint": "eslint",
+    "build": "rm -rf ./dist && npm i && npm run version && tsc && tsc -p tsconfig.esm.json",
+    "version": "node ./scripts/generate-version.js",
+    "docs": "rm -rf ./documentation && npm run --prefix ./../website script:docs -- $(node -e \"console.log(process.cwd())\")",
+    "prepublish": "npm run docs",
+    "prepare": "tsc -p tsconfig.esm.json"
+  },
+  "dependencies": {
+    "ws": "^8.18.0",
+    "zod": "^3.23.8"
+  },
+  "devDependencies": {
+    "@types/node": "^22.9.0",
+    "eslint": "^8.57.0",
+    "eslint-config-prettier": "^9.1.0",
+    "eslint-plugin-prettier": "^5.1.3",
+    "typescript": "^5.3.3"
+  },
+  "publishConfig": {
+    "access": "restricted"
+  },
+  "keywords": [
+    "vocalstack",
+    "api",
+    "sdk",
+    "transcription",
+    "livestream",
+    "ASR",
+    "speech-to-text"
+  ]
+}

@@ -1,0 +1,21 @@
+VocalStack Proprietary License
+
+Copyright (C) 2024 VocalStack
+
+Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to use the Software solely in connection with the VocalStack service, subject to the following conditions:
+
+## Usage Limitations
+
+1. **Compliance with Terms of Service**: The Software must be used in a manner that does not violate the VocalStack terms of service ([https://www.vocalstack.com/terms-of-service](https://www.vocalstack.com/terms-of-service)).
+
+2. **Commercial Use Allowed**: The Licensed Work may be used for commercial purposes, provided the user has a valid API key and an active subscription to the VocalStack service. Unauthorized use is strictly prohibited.
+
+3. **Modification and Contributions**: You may view and modify the Licensed Work for internal use only. Contributions to the Licensed Work may be made through pull requests. By submitting a contribution, you agree to assign the rights of the contribution to VocalStack.
+
+4. **Redistribution Allowed**: Redistribution of the Software, in whole or in part, whether modified or unmodified, is permitted, provided that it does not violate the company's terms of service.
+
+5. **Termination**: VocalStack reserves the right to terminate your access to and use of the Software at any time if you fail to comply with these terms.
+
+## Disclaimer
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE, AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES, OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT, OR OTHERWISE, ARISING FROM, OUT OF, OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
