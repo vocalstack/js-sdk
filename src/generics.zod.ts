@@ -34,6 +34,8 @@ const zTimelineItem = z.object({
   start: z.number(),
   end: z.number(),
   text: z.string(),
+  latest: z.boolean().optional(),
+  pending: z.boolean().optional(),
   language: zLanguage.optional(),
   language_probability: z.number().optional(),
   translations: z.record(zLanguage, z.string()).optional(),
