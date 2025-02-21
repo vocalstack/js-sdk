@@ -1,6 +1,6 @@
-[![](/logo.svg 'VocalStack')](https://vocalstack.com)
+[![](/logo.svg 'VocalStack')](https://www.vocalstack.com)
 
-[Back to Documentation Index](/README.md#documentation-index) | [Read on vocalstack.com](https://vocalstack.com/documentation/get-transcription-data)
+[Back to Documentation Index](/README.md#documentation-index) | [Read on vocalstack.com](https://www.vocalstack.com/documentation/get-transcription-data)
 
 # Get Transcription Data
 
@@ -118,5 +118,5 @@ Review the response object returned with each transcription:
 
 
 
-[Back to Documentation Index](/README.md#documentation-index) | [Read on vocalstack.com](https://vocalstack.com/documentation/get-transcription-data)
+[Back to Documentation Index](/README.md#documentation-index) | [Read on vocalstack.com](https://www.vocalstack.com/documentation/get-transcription-data)
 

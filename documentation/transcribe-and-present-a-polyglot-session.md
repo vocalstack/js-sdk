@@ -1,6 +1,6 @@
-[![](/logo.svg 'VocalStack')](https://vocalstack.com)
+[![](/logo.svg 'VocalStack')](https://www.vocalstack.com)
 
-[Back to Documentation Index](/README.md#documentation-index) | [Read on vocalstack.com](https://vocalstack.com/documentation/transcribe-and-present-a-polyglot-session)
+[Back to Documentation Index](/README.md#documentation-index) | [Read on vocalstack.com](https://www.vocalstack.com/documentation/transcribe-and-present-a-polyglot-session)
 
 # Transcribe and Present a Polyglot Session
 
@@ -117,5 +117,5 @@ Translations to Polyglot transcriptions can be added by anyone with access to th
 
 
 
-[Back to Documentation Index](/README.md#documentation-index) | [Read on vocalstack.com](https://vocalstack.com/documentation/transcribe-and-present-a-polyglot-session)
+[Back to Documentation Index](/README.md#documentation-index) | [Read on vocalstack.com](https://www.vocalstack.com/documentation/transcribe-and-present-a-polyglot-session)
 

@@ -1,6 +1,6 @@
-[![](/logo.svg 'VocalStack')](https://vocalstack.com)
+[![](/logo.svg 'VocalStack')](https://www.vocalstack.com)
 
-[Back to Documentation Index](/README.md#documentation-index) | [Read on vocalstack.com](https://vocalstack.com/documentation/translate-transcription-to-another-language)
+[Back to Documentation Index](/README.md#documentation-index) | [Read on vocalstack.com](https://www.vocalstack.com/documentation/translate-transcription-to-another-language)
 
 # Translate a Transcription
 
@@ -35,13 +35,10 @@ const sdk = new Transcriptions({ apiKey: 'YOUR-API-KEY' });
 
 const translation = await sdk.addTranslationAsync({
   id: 'TRANSCRIPTION-ID',
-  language: 'de',
+  languages: ['de'],
 });
 
 translation.onData((response) => {
-  // 'waiting', 'processing', 'done', or 'error'
-  console.log(response.status);
-
   // the translated timeline
   console.log(response.data?.timeline);
 });
@@ -64,7 +61,7 @@ import { Transcriptions } from '@vocalstack/js-sdk';
 const sdk = new Transcriptions({ apiKey: 'YOUR-API-KEY' });
 
 // This is a synchronous request, so we cannot listen for the response
-sdk.addTranslation({ id: 'TRANSCRIPTION-ID', language: 'de' });
+sdk.addTranslations({ id: 'TRANSCRIPTION-ID', languages: ['de', 'fr'] });
 
 ```
 
@@ -79,5 +76,5 @@ This also means that you will only need to issue one translation request per lan
 
 
 
-[Back to Documentation Index](/README.md#documentation-index) | [Read on vocalstack.com](https://vocalstack.com/documentation/translate-transcription-to-another-language)
+[Back to Documentation Index](/README.md#documentation-index) | [Read on vocalstack.com](https://www.vocalstack.com/documentation/translate-transcription-to-another-language)
 

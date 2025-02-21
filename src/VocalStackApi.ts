@@ -57,10 +57,20 @@ export class VocalStackApi {
     };
   }
 
-  protected buildQueryString(params: Record<string, undefined | string | number | boolean>) {
+  protected buildQueryString(
+    params: Record<string, undefined | string | number | boolean | Array<string | number | boolean>>,
+  ): string {
     return Object.entries(params)
-      .filter(([, value]) => value !== undefined && value !== null && value !== '')
-      .map(([key, value]) => `${key}=${encodeURIComponent(value as string)}`)
+      .flatMap(([key, value]) => {
+        if (value === undefined || value === null) return [];
+        if (Array.isArray(value)) {
+          return value
+            .filter((v) => v !== undefined && v !== null && v !== '')
+            .map((v) => `${key}=${encodeURIComponent(String(v))}`);
+        }
+        if (value === '') return [];
+        return [`${key}=${encodeURIComponent(String(value))}`];
+      })
       .join('&');
   }
 }

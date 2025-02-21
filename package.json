@@ -1,6 +1,6 @@
 {
   "name": "@vocalstack/js-sdk",
-  "version": "1.0.13",
+  "version": "1.1.0",
   "description": "A JavaScript API Client and SDK for VocalStack",
   "author": "VocalStack",
   "repository": {
@@ -16,8 +16,7 @@
   "module": "./dist/esm/index.js",
   "scripts": {
     "lint": "eslint",
-    "build": "rm -rf ./dist && npm i && npm run version && tsc && tsc -p tsconfig.esm.json",
-    "version": "node ./scripts/generate-version.js",
+    "build": "rm -rf ./dist && npm i && tsc && tsc -p tsconfig.esm.json",
     "docs": "rm -rf ./documentation && npm run --prefix ./../website script:docs -- $(node -e \"console.log(process.cwd())\")",
     "prepublish": "npm run docs",
     "prepare": "tsc -p tsconfig.esm.json"
@@ -43,6 +42,7 @@
     "transcription",
     "livestream",
     "ASR",
-    "speech-to-text"
+    "speech-to-text",
+    "speech-to-speech"
   ]
 }

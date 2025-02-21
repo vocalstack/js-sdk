@@ -1,6 +1,6 @@
-[![](/logo.svg 'VocalStack')](https://vocalstack.com)
+[![](/logo.svg 'VocalStack')](https://www.vocalstack.com)
 
-[Back to Documentation Index](/README.md#documentation-index) | [Read on vocalstack.com](https://vocalstack.com/documentation/transcribe-on-the-front-end-with-auth-tokens)
+[Back to Documentation Index](/README.md#documentation-index) | [Read on vocalstack.com](https://www.vocalstack.com/documentation/transcribe-on-the-front-end-with-auth-tokens)
 
 # Client Side Authentication Tokens
 
@@ -89,5 +89,5 @@ To help secure your implementation, consider the following best practices:
   - Enable One-Time Use Tokens: If possible, use one-time tokens for especially sensitive actions to ensure they cannot be reused.
 
 
-[Back to Documentation Index](/README.md#documentation-index) | [Read on vocalstack.com](https://vocalstack.com/documentation/transcribe-on-the-front-end-with-auth-tokens)
+[Back to Documentation Index](/README.md#documentation-index) | [Read on vocalstack.com](https://www.vocalstack.com/documentation/transcribe-on-the-front-end-with-auth-tokens)
 

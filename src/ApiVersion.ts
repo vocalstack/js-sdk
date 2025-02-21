@@ -1,4 +1,4 @@
-export const EXPECTED_VOCALSTACK_API_VERSION = '1.0.7';
+export const EXPECTED_VOCALSTACK_API_VERSION = '1.1.0';
 
 export const verifyApiVersion = (actualVersion: string | null, discontinued: boolean = false) => {
   if (!actualVersion) {

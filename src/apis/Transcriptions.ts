@@ -42,7 +42,7 @@ export type FinishedTranscriptionResponse = ApiResponse<FinishedTranscription>;
 
 export type AllTranscriptionsResponse = ApiResponse<SummaryTranscriptions>;
 
-export type AddTranscriptionTranslationRequest = { id: string; language: Language };
+export type AddTranscriptionTranslationRequest = { id: string; languages: Language[] };
 export type AddTranslationResponse = ApiResponse<{ timeline: Timeline }>;
 
 export type RemoveTranscriptionTranslationRequest = { id: string; language: Language };
@@ -60,17 +60,18 @@ export class Transcriptions extends VocalStackApi {
     return this._rest().get<SummaryTranscriptions>('/transcriptions');
   }
 
-  async addTranslation({ id, language }: AddTranscriptionTranslationRequest): Promise<AddTranslationResponse> {
-    return this._rest().post<{ timeline: Timeline }>(`/transcription/${id}/language/${language}`);
+  async addTranslations({ id, languages }: AddTranscriptionTranslationRequest): Promise<AddTranslationResponse> {
+    return this._rest().post<{ timeline: Timeline }>(
+      `/transcription/${id}/translate?${this.buildQueryString({ languages })}`,
+    );
   }
 
-  async removeTranslation(req: RemoveTranscriptionTranslationRequest): Promise<RemoveTranslationResponse> {
-    return this._rest().delete<null>(`/transcription/${req.id}/language/${req.language}`);
-  }
-
-  async addTranslationAsync(req: AddTranscriptionTranslationRequest): Promise<AddTranscriptionTranslationConnection> {
+  async addTranslationAsync({
+    id,
+    languages,
+  }: AddTranscriptionTranslationRequest): Promise<AddTranscriptionTranslationConnection> {
     return this._ws().connect<AddTranscriptionTranslationAsyncResponse>({
-      path: `/async/transcription/${req.id}/language/${req.language}`,
+      path: `/async/transcription/${id}/translate?${this.buildQueryString({ languages })}`,
     });
   }
 }
