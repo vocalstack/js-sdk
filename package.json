@@ -1,0 +1,44 @@
+{
+  "name": "@vocalstack/sdk",
+  "version": "1.0.0-alpha.0",
+  "description": "VocalStack speech API SDK for Node and browsers: one client (VocalStack) grouped by resource, typed from the generated contract, with realtime WebSocket streaming.",
+  "license": "MIT",
+  "type": "module",
+  "engines": {
+    "node": ">=20"
+  },
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./mic": {
+      "types": "./dist/mic.d.ts",
+      "default": "./dist/mic.js"
+    }
+  },
+  "files": [
+    "dist",
+    "SKILL.md",
+    "skills"
+  ],
+  "scripts": {
+    "build": "npm run build --prefix contract && tsc -p tsconfig.json",
+    "test": "node --test test/*.test.mjs"
+  },
+  "dependencies": {
+    "@vocalstack/contract": "file:contract",
+    "ws": "^8.18.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "@types/ws": "^8.5.0",
+    "typescript": "^5.6.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/vocalstack/js-sdk.git"
+  }
+}
