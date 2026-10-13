@@ -1,0 +1,30 @@
+{
+  "name": "@vocalstack/contract",
+  "version": "1.0.0-alpha.0",
+  "description": "Generated contract for the VocalStack API (/v1): zod schemas and WebSocket frame types. Source of truth is contract.json, generated from the Rust server.",
+  "license": "MIT",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "contract.json",
+    "CHANGELOG.md"
+  ],
+  "scripts": {
+    "generate": "node tools/generate.mjs",
+    "build": "npm run generate && tsc -p tsconfig.json"
+  },
+  "dependencies": {
+    "zod": "^3.25.0"
+  },
+  "devDependencies": {
+    "typescript": "^5.6.0"
+  }
+}
