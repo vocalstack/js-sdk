@@ -19,7 +19,7 @@ A realtime session is gone when its socket closes. To keep what is said, and let
 
 ## 1. Create a live transcription
 
-`POST /v1/transcriptions/live` with a `name` and optional `settings` (`spokenLanguage`, `speakerLabels`, `latencyMode`…) creates it idle. Nothing is recorded until a recording starts. Its `source` can also be a stream the server pulls itself (a YouTube live, an internet radio address), in which case there is no audio for you to send.
+`POST /v1/transcriptions/live` with a `name` and optional `settings` (`spokenLanguage`, `speakerLabels`, `latencyMode`…) creates it idle. Nothing is recorded until a recording starts. Its `source` can also be a stream the server pulls itself (a YouTube live, an internet radio address), in which case there is no audio for you to send. Or an RTMP encoder (OBS, vMix…): the `source.url` is the `serverUrl` of `GET /v1/rtmp`, and the encoder publishes there with a stream key. An app that drives the encoder (a plugin in it, say) makes a key of its own with `POST /v1/rtmp/keys` rather than taking the account's, which another encoder may be using: every key of the account feeds the same source.
 
 ## 2. Put it on a broadcast
 

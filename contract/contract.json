@@ -191,6 +191,43 @@
           ],
           "type": "object"
         },
+        "AppStreamKey": {
+          "description": "An app stream key as it is listed: never in full.",
+          "properties": {
+            "audio": {
+              "description": "What it sends, e.g. \"48 kHz AAC\" — or, with `live` false, why an\nencoder connected on it cannot be used.",
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "createdAt": {
+              "type": "string"
+            },
+            "id": {
+              "type": "string"
+            },
+            "live": {
+              "description": "An encoder is publishing audio on this key right now.",
+              "type": "boolean"
+            },
+            "maskedStreamKey": {
+              "description": "Its prefix and last four characters, e.g. `vs_rtmp_…k7xq`.",
+              "type": "string"
+            },
+            "name": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "id",
+            "name",
+            "maskedStreamKey",
+            "live",
+            "createdAt"
+          ],
+          "type": "object"
+        },
         "AudioCapabilities": {
           "properties": {
             "channels": {
@@ -1605,6 +1642,20 @@
           ],
           "type": "object"
         },
+        "CreateAppStreamKey": {
+          "additionalProperties": false,
+          "description": "`POST /v1/rtmp/keys`.",
+          "properties": {
+            "name": {
+              "description": "What the key is for, shown in the VocalStack app beside it (e.g.\n\"OBS on the studio PC\"): at most 100 characters.",
+              "type": "string"
+            }
+          },
+          "required": [
+            "name"
+          ],
+          "type": "object"
+        },
         "CreateAudioSource": {
           "additionalProperties": false,
           "description": "`POST /v1/broadcasts/{id}/audio-sources`.",
@@ -1983,6 +2034,41 @@
             "recordingId",
             "speaker",
             "name"
+          ],
+          "type": "object"
+        },
+        "CreatedAppStreamKey": {
+          "description": "The answer that made an app stream key: the one time it is in full.",
+          "properties": {
+            "createdAt": {
+              "type": "string"
+            },
+            "id": {
+              "type": "string"
+            },
+            "maskedStreamKey": {
+              "description": "The key as it is shown afterwards, e.g. `vs_rtmp_…k7xq`.",
+              "type": "string"
+            },
+            "name": {
+              "type": "string"
+            },
+            "serverUrl": {
+              "description": "The encoder's server URL, as `GET /v1/rtmp` gives it.",
+              "type": "string"
+            },
+            "streamKey": {
+              "description": "The key in full, to paste into the encoder (or set in it): only in\nthis answer.  It is kept as a hash; a lost key is deleted and a new\none made.",
+              "type": "string"
+            }
+          },
+          "required": [
+            "id",
+            "name",
+            "streamKey",
+            "maskedStreamKey",
+            "serverUrl",
+            "createdAt"
           ],
           "type": "object"
         },
@@ -2982,6 +3068,15 @@
             },
             "retentionTranscriptionsDays": {
               "description": "Days a transcription stays in the library before it is archived.",
+              "format": "int32",
+              "type": [
+                "integer",
+                "null"
+              ]
+            },
+            "retentionVideoDays": {
+              "default": null,
+              "description": "Days the video of an uploaded or linked video is kept beside its\naudio; 0: the video is not stored (only its audio is).",
               "format": "int32",
               "type": [
                 "integer",
@@ -4406,7 +4501,7 @@
           "description": "`GET /v1/rtmp`: what the setup panel shows.",
           "properties": {
             "audio": {
-              "description": "What it sends, e.g. \"48 kHz AAC\" — or, with `live` false, why an\nencoder that is connected cannot be used (\"Speex audio is not\nsupported — set the encoder to AAC\").",
+              "description": "What it sends, e.g. \"48 kHz AAC\" — or, with `live` false, why an\nencoder that is connected cannot be used (\"Speex audio is not\nsupported — set the encoder to AAC\").  Of the newest publisher when\nseveral keys are sending.",
               "type": [
                 "string",
                 "null"
@@ -4417,7 +4512,7 @@
               "type": "boolean"
             },
             "live": {
-              "description": "An encoder is publishing audio on this key right now.",
+              "description": "An encoder is publishing audio to the account right now: on this\nkey or on any of its app keys (`GET /v1/rtmp/keys` says which).",
               "type": "boolean"
             },
             "maskedStreamKey": {
@@ -7376,6 +7471,11 @@
             },
             "hasAudio": {
               "description": "Whether `GET /v1/recordings/{recordingId}/audio` has audio to play:\nthe delivery artifact — the engine's encode of exactly what it\ntranscribed — is sealed.  True once the job is `done` (the job is not\nreported done before its audio is sealed); false while it runs, after\na failure, and for a job whose engine could not persist audio.",
+              "type": "boolean"
+            },
+            "hasVideo": {
+              "default": false,
+              "description": "Whether the source's video is stored beside its audio\n(`GET /v1/recordings/{recordingId}/audio?kind=video`, for the owner\nor a share link that allows downloads, as `kind=source`): a\nvideo upload or link on a plan that keeps source video, until its\nretention ends.",
               "type": "boolean"
             },
             "peaks": {
@@ -11572,7 +11672,7 @@
       },
       "/v1/recordings/{id}/audio": {
         "get": {
-          "description": "302 to a freshly signed URL. kind=delivery (owner + listeners, 1 h), voice (a rendered spoken track, needs lang=, owner + listeners, 1 h; through a share link a language other than the spoken one needs the link's `allowTranslate`), source (owner or a link that allows downloads) or master (owner, 5 min). Through a share link EVERY kind needs the link's `allowDownload` — streaming a file and saving it are the same request, so a link with audio off plays nothing either. The delivery is Opus in two containers: format=ogg (default) and format=caf, the one Safari/iOS plays (WebKit rejects or mis-times Ogg); pick by canPlayType('audio/x-caf; codecs=opus'). format=mp3 is for SAVING (delivery and voice): the one container every player opens, encoded on first request and kept (kinds delivery_mp3, voice_mp3:<lang>). The recording's `media` lists which renditions are sealed (kinds delivery, delivery_caf, delivery_mp3); the CAF is remuxed on first request when it is not there yet.",
+          "description": "302 to a freshly signed URL. kind=delivery (owner + listeners, 1 h), voice (a rendered spoken track, needs lang=, owner + listeners, 1 h; through a share link a language other than the spoken one needs the link's `allowTranslate`), source (owner or a link that allows downloads), video (the source's video as it came, kept beside its audio on a plan that stores source video, Job.hasVideo; owner or a link that allows downloads) or master (owner, 5 min). Through a share link EVERY kind needs the link's `allowDownload` — streaming a file and saving it are the same request, so a link with audio off plays nothing either. The delivery is Opus in two containers: format=ogg (default) and format=caf, the one Safari/iOS plays (WebKit rejects or mis-times Ogg); pick by canPlayType('audio/x-caf; codecs=opus'). format=mp3 is for SAVING (delivery and voice): the one container every player opens, encoded on first request and kept (kinds delivery_mp3, voice_mp3:<lang>). The recording's `media` lists which renditions are sealed (kinds delivery, delivery_caf, delivery_mp3); the CAF is remuxed on first request when it is not there yet.",
           "operationId": "recordings.audio",
           "parameters": [
             {
@@ -11591,6 +11691,7 @@
                   "delivery",
                   "voice",
                   "source",
+                  "video",
                   "master"
                 ],
                 "type": "string"
@@ -13579,7 +13680,7 @@
       },
       "/v1/rtmp": {
         "get": {
-          "description": "The account's RTMP server URL and stream key for an encoder, whether one is sending audio on it right now and what (`audio`, e.g. \"48 kHz AAC\"), and a signed link to listen to it (`monitorUrl`, an hour). The server URL is RTMPS (TLS) where the server has it; the plain `rtmp://` form on the same host works for encoders without TLS. A live transcription takes it as its source with `source.url` = `serverUrl`. The key is made on first ask, and that answer is the only one with the key in full (`streamKey`): it is kept as a hash, and later answers show `maskedStreamKey`. A lost key is replaced by a reset in the VocalStack app, which revokes the audio links issued before it.",
+          "description": "The account's RTMP server URL and stream key for an encoder, whether one is sending audio right now and what (`audio`, e.g. \"48 kHz AAC\"), and a signed link to listen to it (`monitorUrl`, an hour). `live` and `audio` cover every key of the account: this key and its app keys (`GET /v1/rtmp/keys` says which one is sending). The server URL is RTMPS (TLS) where the server has it; the plain `rtmp://` form on the same host works for encoders without TLS. A live transcription takes it as its source with `source.url` = `serverUrl`. The key is made on first ask, and that answer is the only one with the key in full (`streamKey`): it is kept as a hash, and later answers show `maskedStreamKey`. A lost key is replaced by a reset in the VocalStack app, which revokes the audio links issued before it. An app that streams (a plugin in the encoder, say) makes a key of its own with `POST /v1/rtmp/keys` rather than using this one.",
           "operationId": "rtmp.status",
           "responses": {
             "200": {
@@ -13628,6 +13729,190 @@
           "x-vocalstack-auth": "userOrKey",
           "x-vocalstack-scopes": [
             "read"
+          ]
+        }
+      },
+      "/v1/rtmp/keys": {
+        "get": {
+          "description": "The account's app stream keys, oldest first: masked (`maskedStreamKey`), never in full, each with whether an encoder is sending on it now (`live`, `audio`). A key whose API key no longer works (revoked, expired or suspended, with no replacement from a rotation) is not listed: it no longer publishes. An API key whose reach is `own` lists the keys it made.",
+          "operationId": "rtmp.listKeys",
+          "responses": {
+            "200": {
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "properties": {
+                      "keys": {
+                        "items": {
+                          "$ref": "#/components/schemas/AppStreamKey"
+                        },
+                        "type": "array"
+                      }
+                    },
+                    "type": "object"
+                  }
+                }
+              },
+              "description": "OK",
+              "headers": {
+                "RateLimit-Limit": {
+                  "$ref": "#/components/headers/RateLimit-Limit"
+                },
+                "RateLimit-Remaining": {
+                  "$ref": "#/components/headers/RateLimit-Remaining"
+                },
+                "RateLimit-Reset": {
+                  "$ref": "#/components/headers/RateLimit-Reset"
+                },
+                "X-Request-Id": {
+                  "$ref": "#/components/headers/X-Request-Id"
+                }
+              }
+            },
+            "429": {
+              "$ref": "#/components/responses/RateLimited"
+            },
+            "503": {
+              "$ref": "#/components/responses/Unavailable"
+            }
+          },
+          "security": [
+            {
+              "bearerAuth": []
+            }
+          ],
+          "summary": "List app stream keys",
+          "tags": [
+            "rtmp"
+          ],
+          "x-errors": [
+            "forbidden"
+          ],
+          "x-vocalstack-auth": "userOrKey",
+          "x-vocalstack-scopes": [
+            "read"
+          ]
+        },
+        "post": {
+          "description": "A stream key of the app's own, so it can stream to the account without the account's key (`GET /v1/rtmp`), which an encoder may already be using. Audio sent on it reaches the account's RTMP source exactly as on the account's key: the same `serverUrl`, the same live transcriptions, the same monitor; the newest publisher on any of the account's keys is the one heard. The answer is the only one with the key in full (`streamKey`); it is kept as a hash. Made with an API key, it works while that key does (or its replacement, after a rotation): revoking that API key (in the VocalStack app: Developers, API keys) stops whatever streams on it within seconds. At most 20 working keys per account (`409 conflict` past that).",
+          "operationId": "rtmp.createKey",
+          "requestBody": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CreateAppStreamKey"
+                }
+              }
+            },
+            "required": true
+          },
+          "responses": {
+            "201": {
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "$ref": "#/components/schemas/CreatedAppStreamKey"
+                  }
+                }
+              },
+              "description": "Created",
+              "headers": {
+                "RateLimit-Limit": {
+                  "$ref": "#/components/headers/RateLimit-Limit"
+                },
+                "RateLimit-Remaining": {
+                  "$ref": "#/components/headers/RateLimit-Remaining"
+                },
+                "RateLimit-Reset": {
+                  "$ref": "#/components/headers/RateLimit-Reset"
+                },
+                "X-Request-Id": {
+                  "$ref": "#/components/headers/X-Request-Id"
+                }
+              }
+            },
+            "429": {
+              "$ref": "#/components/responses/RateLimited"
+            },
+            "503": {
+              "$ref": "#/components/responses/Unavailable"
+            }
+          },
+          "security": [
+            {
+              "bearerAuth": []
+            }
+          ],
+          "summary": "Create an app stream key",
+          "tags": [
+            "rtmp"
+          ],
+          "x-errors": [
+            "invalid_options",
+            "conflict",
+            "forbidden"
+          ],
+          "x-vocalstack-auth": "userOrKey",
+          "x-vocalstack-scopes": [
+            "write"
+          ]
+        }
+      },
+      "/v1/rtmp/keys/{id}": {
+        "delete": {
+          "description": "The key stops working: an encoder publishing on it is disconnected within seconds. The account's key and its other app keys are not affected.",
+          "operationId": "rtmp.deleteKey",
+          "parameters": [
+            {
+              "in": "path",
+              "name": "id",
+              "required": true,
+              "schema": {
+                "type": "string"
+              }
+            }
+          ],
+          "responses": {
+            "204": {
+              "description": "Deleted.",
+              "headers": {
+                "RateLimit-Limit": {
+                  "$ref": "#/components/headers/RateLimit-Limit"
+                },
+                "RateLimit-Remaining": {
+                  "$ref": "#/components/headers/RateLimit-Remaining"
+                },
+                "RateLimit-Reset": {
+                  "$ref": "#/components/headers/RateLimit-Reset"
+                },
+                "X-Request-Id": {
+                  "$ref": "#/components/headers/X-Request-Id"
+                }
+              }
+            },
+            "429": {
+              "$ref": "#/components/responses/RateLimited"
+            },
+            "503": {
+              "$ref": "#/components/responses/Unavailable"
+            }
+          },
+          "security": [
+            {
+              "bearerAuth": []
+            }
+          ],
+          "summary": "Delete an app stream key",
+          "tags": [
+            "rtmp"
+          ],
+          "x-errors": [
+            "not_found",
+            "forbidden"
+          ],
+          "x-vocalstack-auth": "userOrKey",
+          "x-vocalstack-scopes": [
+            "write"
           ]
         }
       },

@@ -1,4 +1,5 @@
 import type {
+  AppStreamKey,
   AudioSourceCheck,
   AutoTopUpSettings,
   AutoTopUpView,
@@ -23,12 +24,14 @@ import type {
   Correction,
   CorrectionBatch,
   CorrectionPage,
+  CreateAppStreamKey,
   CreateAudioSource,
   CreateLiveTranscription,
   CreateBroadcast,
   CreateShareLink,
   CreateTranscription,
   CreateVoiceFromSpeaker,
+  CreatedAppStreamKey,
   ChargePage,
   ExportFormat,
   Health,
@@ -349,7 +352,7 @@ export class Recordings {
   }
   /** The signed media URL the server redirects to.  `kind`: `delivery`
    * (default), `master`, or `source` (a transcription's original upload). */
-  async audioUrl(id: string, opts: { kind?: 'delivery' | 'master' | 'source'; lang?: string; format?: string } & ReadAs = {}): Promise<string> {
+  async audioUrl(id: string, opts: { kind?: 'delivery' | 'master' | 'source' | 'video'; lang?: string; format?: string } & ReadAs = {}): Promise<string> {
     const res = await this.#t.raw('GET', this.#p(id, '/audio'), {
       query: { ...listenerQuery(opts), kind: opts.kind, lang: opts.lang, format: opts.format },
     });
@@ -836,6 +839,19 @@ export class Rtmp {
   /** The account's RTMP ingest: server URL (RTMPS where available), the stream key (in full only in the answer that made it, `maskedStreamKey` after), and whether an encoder is sending. */
   status(): Promise<RtmpStatus> {
     return this.#t.json('GET', '/v1/rtmp');
+  }
+  /** A stream key of the app's own, beside the account's: `streamKey` is in full in this answer only. It works while the API key that made it does. */
+  createKey(req: CreateAppStreamKey): Promise<CreatedAppStreamKey> {
+    return this.#t.json('POST', '/v1/rtmp/keys', { body: req });
+  }
+  /** The account's app stream keys, oldest first: masked, each with whether an encoder is sending on it (`live`, `audio`). */
+  async listKeys(): Promise<AppStreamKey[]> {
+    const r = await this.#t.json<{ keys?: AppStreamKey[] }>('GET', '/v1/rtmp/keys');
+    return r.keys ?? [];
+  }
+  /** Delete an app stream key: an encoder publishing on it is dropped within seconds. */
+  async deleteKey(id: string): Promise<void> {
+    await this.#t.json('DELETE', `/v1/rtmp/keys/${seg(id)}`);
   }
 }
 

@@ -59,6 +59,16 @@ export const ApiErrorBodySchema = z.object({
 });
 export type ApiErrorBody = z.infer<typeof ApiErrorBodySchema>;
 
+export const AppStreamKeySchema = z.object({
+  "audio": z.union([z.string(), z.null()]).optional(),
+  "createdAt": z.string(),
+  "id": z.string(),
+  "live": z.boolean(),
+  "maskedStreamKey": z.string(),
+  "name": z.string(),
+});
+export type AppStreamKey = z.infer<typeof AppStreamKeySchema>;
+
 export const AudioEncodingSchema = z.enum(['pcm_f32le']);
 export type AudioEncoding = z.infer<typeof AudioEncodingSchema>;
 
@@ -195,6 +205,7 @@ export const Limits2Schema = z.object({
   "requestsPerMin": z.union([z.number().int(), z.null()]).optional(),
   "retentionAudioDays": z.union([z.number().int(), z.null()]).optional(),
   "retentionTranscriptionsDays": z.union([z.number().int(), z.null()]).optional(),
+  "retentionVideoDays": z.union([z.number().int(), z.null()]).optional(),
   "retentionVoicesDays": z.union([z.number().int(), z.null()]).optional(),
 });
 export type Limits2 = z.infer<typeof Limits2Schema>;
@@ -611,6 +622,11 @@ export const CorrectionPageSchema = z.object({
 });
 export type CorrectionPage = z.infer<typeof CorrectionPageSchema>;
 
+export const CreateAppStreamKeySchema = z.object({
+  "name": z.string(),
+});
+export type CreateAppStreamKey = z.infer<typeof CreateAppStreamKeySchema>;
+
 export const CreateAudioSourceSchema = z.object({
   "name": z.union([z.string(), z.null()]).optional(),
   "url": z.string(),
@@ -705,6 +721,16 @@ export const CreateVoiceFromSpeakerSchema = z.object({
   "speaker": z.number().int(),
 });
 export type CreateVoiceFromSpeaker = z.infer<typeof CreateVoiceFromSpeakerSchema>;
+
+export const CreatedAppStreamKeySchema = z.object({
+  "createdAt": z.string(),
+  "id": z.string(),
+  "maskedStreamKey": z.string(),
+  "name": z.string(),
+  "serverUrl": z.string(),
+  "streamKey": z.string(),
+});
+export type CreatedAppStreamKey = z.infer<typeof CreatedAppStreamKeySchema>;
 
 export const CropRangeSchema = z.object({
   "endS": z.union([z.number(), z.null()]).optional(),
@@ -1551,6 +1577,7 @@ export const TranscriptionJobSchema = z.object({
   "errorCode": z.union([z.string(), z.null()]).optional(),
   "finishedAt": z.union([z.string(), z.null()]).optional(),
   "hasAudio": z.boolean(),
+  "hasVideo": z.boolean().optional(),
   "peaks": z.union([z.array(z.number()), z.null()]).optional(),
   "preview": z.boolean().optional(),
   "progress": JobProgressSchema,

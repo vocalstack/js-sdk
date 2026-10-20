@@ -20,6 +20,20 @@ One line per change, naming the operation (`METHOD /path`, its
 
 ## [Unreleased]
 
+### Source video and plan retention (2026-10-20, still `1.0.0-alpha.0`)
+
+- **Added**: `Job.hasVideo` (on `GET /v1/transcriptions/{id}` and the job frames): the source's video is stored beside its audio, on a plan that keeps source video.
+- **Added**: `GET /v1/recordings/{id}/audio` (`recordings.audio`) takes `kind=video`: the stored video as it came, for the owner or a share link that allows downloads, like `kind=source`; `404` once its retention ended.
+- **Added**: `Limits.retentionVideoDays` (`GET /v1/billing/plans`, the account's plan): days the source video is kept; `0` is not stored (only its audio), `null` unlimited.
+- **Changed**: plan figures from the pricing page of 2026-10-20 (data, not shape): Pay as you go keeps source audio and voices 30 days and transcriptions for good; Enterprise has no minimum per transcription (`rates.minimumSeconds` 0).
+
+### App stream keys (2026-10-20, still `1.0.0-alpha.0`)
+
+- **Added**: `POST /v1/rtmp/keys` (`rtmp.createKey`): an RTMP stream key of an app's own (`CreateAppStreamKey` → `201 CreatedAppStreamKey`, the key in full in this answer only), beside the account's key; it works while the API key that made it does, at most 20 per account (`409 conflict`).
+- **Added**: `GET /v1/rtmp/keys` (`rtmp.listKeys`): the account's app stream keys (`{ keys: AppStreamKey[] }`), masked, each with `live` and `audio`; an `own`-reach key lists the keys it made.
+- **Added**: `DELETE /v1/rtmp/keys/{id}` (`rtmp.deleteKey`): `204`; an encoder on the key is dropped within seconds.
+- **Changed**: `live` and `audio` on `GET /v1/rtmp` (`rtmp.status`) cover the account's app keys too, not only the account's key.
+
 ### API key reach (2026-10-19, still `1.0.0-alpha.0`)
 
 - **Added**: `reach` on `GET /v1/me` (`me.get`): `own` for an API key that reaches only what it created (its transcriptions and broadcasts, and everything in them), `account` otherwise.

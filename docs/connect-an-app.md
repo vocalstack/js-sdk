@@ -31,7 +31,7 @@ Make a random `state` and a PKCE verifier (43 to 128 characters of `A-Z a-z 0-9 
 | `state` | Your random value; it comes back unchanged. |
 | `code_challenge` | `BASE64URL(SHA256(verifier))`, without padding (43 characters). |
 | `code_challenge_method` | `S256` |
-| `scope` | `read`, `write` or `read write`. Keys with `recordings:publish` or full access are made by hand in the dashboard. |
+| `scope` | `read`, `write` or `read write`. An app on the person's computer (a `localhost` / `127.0.0.1` redirect) may add `recordings:publish`, with `write`, to start and stop recordings. Keys with full access, or a web app's key with `recordings:publish`, are made by hand in the dashboard. |
 | `reach` | Optional. `own` (the default with `write`): the key reaches only what your app creates with it, its transcriptions and broadcasts and everything in them; the account's other ones answer `404`. `account`: everything on the account, whoever made it (the default, and the only reach, without `write`). |
 
 A link that breaks a rule gets an error page and never redirects, so check it while you build.
@@ -50,7 +50,7 @@ A code works once. A second redemption, a wrong verifier, a different `redirect_
 
 ## 4. Afterwards
 
-The key is listed in Developers → API keys under your `client_name`, marked as a connected app, where the person can revoke it. Use it like any key: `GET /v1/me` says who it is. Connecting again makes a new key and leaves the old one working until it is revoked, so revoke the key you replace, or let the person do it.
+The key is listed in Developers → API keys under your `client_name`, marked as a connected app, where the person can revoke it. Use it like any key: `GET /v1/me` says who it is. Connecting again makes a new key and leaves the old one working until it is revoked, so revoke the key you replace, or let the person do it. An app that streams to the account over RTMP makes a stream key of its own with `POST /v1/rtmp/keys`; it works while the app's key does, so revoking the app stops its stream too.
 
 ## Complete code
 
