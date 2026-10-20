@@ -34,14 +34,12 @@ Before the package is published, any account installs
 the private build its environment serves: the API reference's Install section
 (`<base>/docs`, or Developers -> API reference in the app) and `<base>/sdk/latest`
 give the exact commands, which send `VOCALSTACK_API_KEY` to that host only.
-Or install it from a local checkout of the repository. Build the two
-packages first unless both `sdks/typescript/dist` and `sdks/typescript/node_modules` already exist (a `dist` without its
-`node_modules` fails with `ERR_MODULE_NOT_FOUND @vocalstack/contract`):
+Or install it from a clone of https://github.com/vocalstack/js-sdk. Build it
+first (`npm run build` also builds the bundled `contract/` package):
 
 ```sh
-(cd /absolute/path/to/transcribe/packages/contract && npm install && npm run build)
-(cd /absolute/path/to/transcribe/sdks/typescript && npm install && npm run build)
-npm i /absolute/path/to/transcribe/sdks/typescript
+git clone https://github.com/vocalstack/js-sdk && (cd js-sdk && npm install && npm run build)
+npm i ./js-sdk
 ```
 
 Use ESM (`"type": "module"` in package.json, or `.mjs` files).
@@ -60,8 +58,7 @@ for that transcription, so print the text without a speaker.
 - Scopes: `read` (read transcripts, search, export), `write` and
   `recordings:publish` (create transcriptions, stream live audio), or `*`.
 - Base URL: `https://api.vocalstack.com` (the default). Override it with
-  `VOCALSTACK_BASE_URL`: `http://127.0.0.1:8090` for a local server,
-  `https://api.e2e.vocalstack.com` for e2e.
+  `VOCALSTACK_BASE_URL` (for example, a local or staging server).
 
 Every program below starts like this:
 
