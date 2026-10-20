@@ -28,6 +28,7 @@ Not on npm yet. The API serves its own builds to every account: [https://api.voc
 - [Quickstart](https://github.com/vocalstack/js-sdk/blob/main/docs/quickstart.md): An API key, the SDK, and your first transcript in a dozen lines.
 - [Transcribe a file](https://github.com/vocalstack/js-sdk/blob/main/docs/transcribe-a-file.md): Upload a file, wait for its job, read the transcript and export it. Asynchronous; nothing to keep open.
 - [Transcribe a link](https://github.com/vocalstack/js-sdk/blob/main/docs/transcribe-a-link.md): The server fetches a public URL or a YouTube video, then transcribes it like a file. Asynchronous, with a fetch phase first.
+- [Transcribe a batch of files](https://github.com/vocalstack/js-sdk/blob/main/docs/transcribe-a-batch.md): Send many files or links as one batch, start it once, and read every transcript when it is done. Cheaper than one transcription per file.
 - [Stream a microphone](https://github.com/vocalstack/js-sdk/blob/main/docs/stream-a-microphone.md): Live audio in, transcript events out, over one WebSocket. Drafts replace the live tail; commits append.
 - [Stream a file at full speed](https://github.com/vocalstack/js-sdk/blob/main/docs/stream-a-file.md): Send a file's bytes through a realtime session and read the transcript as fast as the server makes it. Nothing is stored.
 - [Go live](https://github.com/vocalstack/js-sdk/blob/main/docs/go-live.md): Publish live audio to a stored transcription, and put it on a broadcast link listeners open. Control is HTTP; audio is one WebSocket.
@@ -47,6 +48,7 @@ Not on npm yet. The API serves its own builds to every account: [https://api.voc
 | transcription | a file, link, microphone or stream, transcribed and stored (`live: true` for a microphone or stream) | `vs.transcriptions` |
 | recording | one take inside a broadcast or a transcription | `vs.recordings` |
 | job | a file or link recording's transcription work | `vs.jobs` |
+| batch | many files transcribed together, for less than one transcription each | `vs.batches` |
 
 The other groups: `vs.corrections`, `vs.shareLinks`, `vs.voices`,
 `vs.search`, `vs.me`, `vs.languages`, `vs.rtmp`, `vs.events`, `vs.meta`.

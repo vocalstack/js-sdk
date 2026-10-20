@@ -46,7 +46,7 @@ With `sentences: { enabled: true }`, the server also assembles commits into sent
 
 ## 5. For a recording's listeners
 
-A listener on the subscribe socket asks with `lang=es` (translations filtered to Spanish) and `voice=<voice id>` ([Listen](listen.md)); a clip reaches every listener on that language and voice, synthesised once. On a recording, `transcript.voice` carries a `url` instead of `audio`: fetch it with `GET /v1/recordings/{id}/voice/{sentence}?lang=es` (Ogg/Opus; `format=caf` for Apple). `transcript.voiceStatus` says when a voice is still `preparing` (its clips are held and will come) or `unavailable`. After the recording, `GET /v1/recordings/{id}/voice` lists every clip left behind, language by language.
+A listener on the subscribe socket asks with `lang=es` (translations filtered to Spanish) and `voice=<voice id>` ([Listen](listen.md)); a clip reaches every listener on that language and voice, synthesised once. A recording speaks only when its settings ask for it: `settings: { voice: true }` on the broadcast or transcription it is made in (spoken translations are off unless asked for). On a recording, `transcript.voice` carries a `url` instead of `audio`: fetch it with `GET /v1/recordings/{id}/voice/{sentence}?lang=es` (Ogg/Opus; `format=caf` for Apple). `transcript.voiceStatus` says when a voice is still `preparing` (its clips are held and will come) or `unavailable`. After the recording, `GET /v1/recordings/{id}/voice` lists every clip left behind, language by language.
 
 ## Complete code
 

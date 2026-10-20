@@ -17,6 +17,7 @@
 import { Transport, type ClientOptions } from './http.js';
 import { Realtime } from './realtime.js';
 import {
+  Batches,
   Billing,
   Broadcasts,
   Connect,
@@ -47,6 +48,7 @@ export { Subscription } from './subscription.js';
 export type { SubscribeOptions, SubscriptionEvent } from './subscription.js';
 export type { WsLike } from './ws.js';
 export {
+  Batches,
   Broadcasts,
   Connect,
   Corrections,
@@ -62,7 +64,7 @@ export {
   Transcriptions,
   Voices,
 } from './resources.js';
-export type { ConnectToken, ConnectTokenInput, CreateTranscriptionInput, LifecycleFilter, Me, PageOptions, RecordingPageOptions, SearchOptions, Upload, UsageChargesOptions, UsageOptions } from './resources.js';
+export type { AddBatchFileInput, ConnectToken, ConnectTokenInput, CreateTranscriptionInput, LifecycleFilter, Me, PageOptions, RecordingPageOptions, SearchOptions, Upload, UsageChargesOptions, UsageOptions } from './resources.js';
 // Every schema type of the contract (Broadcast, Transcription, Recording,
 // TranscriptSnapshot, ServerFrame, ...), generated from /v1/openapi.json.
 export type * from '@vocalstack/contract';
@@ -74,6 +76,7 @@ export class VocalStack {
   readonly realtime: Realtime;
   readonly broadcasts: Broadcasts;
   readonly transcriptions: Transcriptions;
+  readonly batches: Batches;
   readonly recordings: Recordings;
   readonly jobs: Jobs;
   readonly corrections: Corrections;
@@ -94,6 +97,7 @@ export class VocalStack {
     this.realtime = new Realtime(t);
     this.broadcasts = new Broadcasts(t);
     this.transcriptions = new Transcriptions(t);
+    this.batches = new Batches(t);
     this.recordings = new Recordings(t);
     this.jobs = new Jobs(t);
     this.corrections = new Corrections(t);

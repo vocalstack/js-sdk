@@ -553,6 +553,158 @@
           ],
           "type": "object"
         },
+        "Batch": {
+          "description": "A batch of files.",
+          "properties": {
+            "counts": {
+              "$ref": "#/components/schemas/BatchCounts"
+            },
+            "createdAt": {
+              "type": "string"
+            },
+            "createdByApiKeyId": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "fileCount": {
+              "description": "Files added.",
+              "format": "int64",
+              "type": "integer"
+            },
+            "files": {
+              "description": "The batch's files, in the order they were added\n(`GET /v1/batches/{id}` only).",
+              "items": {
+                "$ref": "#/components/schemas/Transcription"
+              },
+              "type": [
+                "array",
+                "null"
+              ]
+            },
+            "filesPerBatch": {
+              "description": "The plan's files per batch (`Limits.filesPerBatch`); absent: no limit.",
+              "format": "int64",
+              "type": [
+                "integer",
+                "null"
+              ]
+            },
+            "finishedAt": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "id": {
+              "type": "string"
+            },
+            "name": {
+              "type": "string"
+            },
+            "settings": {
+              "$ref": "#/components/schemas/BatchSettings"
+            },
+            "startedAt": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "state": {
+              "description": "`open` (files are added), `running` (started: no more files),\n`done` (every file finished or failed), `stopped`.",
+              "type": "string"
+            }
+          },
+          "required": [
+            "id",
+            "name",
+            "state",
+            "settings",
+            "fileCount",
+            "counts",
+            "createdAt"
+          ],
+          "type": "object"
+        },
+        "BatchCounts": {
+          "description": "How many of a batch's files are in each state.",
+          "properties": {
+            "done": {
+              "format": "int64",
+              "type": "integer"
+            },
+            "failed": {
+              "format": "int64",
+              "type": "integer"
+            },
+            "queued": {
+              "format": "int64",
+              "type": "integer"
+            },
+            "running": {
+              "format": "int64",
+              "type": "integer"
+            },
+            "stopped": {
+              "format": "int64",
+              "type": "integer"
+            }
+          },
+          "required": [
+            "queued",
+            "running",
+            "done",
+            "failed",
+            "stopped"
+          ],
+          "type": "object"
+        },
+        "BatchPage": {
+          "description": "`GET /v1/batches`: one page, newest first.",
+          "properties": {
+            "batches": {
+              "items": {
+                "$ref": "#/components/schemas/Batch"
+              },
+              "type": "array"
+            },
+            "nextCursor": {
+              "type": [
+                "string",
+                "null"
+              ]
+            }
+          },
+          "required": [
+            "batches"
+          ],
+          "type": "object"
+        },
+        "BatchSettings": {
+          "additionalProperties": false,
+          "description": "What every file of a batch runs with.  Summary, title, voices and the\nshare link are never made for a batch file, so they are not here.",
+          "properties": {
+            "latencyMode": {
+              "$ref": "#/components/schemas/LatencyMode",
+              "default": "auto"
+            },
+            "speakerLabels": {
+              "$ref": "#/components/schemas/SpeakerLabels",
+              "default": "off",
+              "description": "`off` (default), `auto` or `on`: speaker labels for every file.\nNever on a file under a minute."
+            },
+            "spokenLanguage": {
+              "description": "Whisper language code; absent = auto-detect per file.",
+              "type": [
+                "string",
+                "null"
+              ]
+            }
+          },
+          "type": "object"
+        },
         "BillingDetails": {
           "description": "`GET / PUT /v1/billing/details`.",
           "properties": {
@@ -1678,6 +1830,32 @@
           ],
           "type": "object"
         },
+        "CreateBatch": {
+          "additionalProperties": false,
+          "description": "`POST /v1/batches`.",
+          "properties": {
+            "name": {
+              "default": null,
+              "description": "Shown in the dashboard; \"Batch of <date>\" when absent.",
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "settings": {
+              "anyOf": [
+                {
+                  "$ref": "#/components/schemas/BatchSettings"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null
+            }
+          },
+          "type": "object"
+        },
         "CreateBroadcast": {
           "additionalProperties": false,
           "description": "`POST /v1/broadcasts`.",
@@ -1942,7 +2120,7 @@
             },
             "shareLink": {
               "default": null,
-              "description": "Whether the transcription is created with its default share link\n(download, export and translation on).  Default true, as it has\nalways been; `false` creates none, and links are added later with\n`POST /v1/broadcasts/{id}/share-links`.",
+              "description": "Whether the transcription is created with its default share link\n(download, export and translation on).  Opt-in (2026-10-20): absent\nor `false` creates none, and links are added later with\n`POST /v1/transcriptions/{id}/share-links`; the dashboard asks for it.",
               "type": [
                 "boolean",
                 "null"
@@ -3028,6 +3206,15 @@
             },
             "createsPerHourUnpaid": {
               "description": "Transcriptions created per rolling hour before the first payment.",
+              "format": "int32",
+              "type": [
+                "integer",
+                "null"
+              ]
+            },
+            "filesPerBatch": {
+              "default": null,
+              "description": "Files in one batch (`POST /v1/batches`); None: no limit.  Absent\nfrom a stored or sent object it reads as None — the publish route\nfills it from the current version first.",
               "format": "int32",
               "type": [
                 "integer",
@@ -5931,9 +6118,24 @@
                 "null"
               ]
             },
+            "summary": {
+              "default": false,
+              "description": "The language model's summary of a finished recording.  Opt-in\n(2026-10-20): off unless asked for; the dashboard asks.  Never for\na recording under a minute (`SHORT_RECORDING_S`).",
+              "type": "boolean"
+            },
+            "summaryTranslations": {
+              "default": false,
+              "description": "The summary and title translated into each language the audience\nused (`summary_translations`).  Opt-in like `summary`.",
+              "type": "boolean"
+            },
+            "title": {
+              "default": false,
+              "description": "The language model's title for a finished recording (made by the\nsame call as the summary).  Opt-in like `summary`; without it the\nrecording keeps its name.",
+              "type": "boolean"
+            },
             "voice": {
-              "default": true,
-              "description": "(`transcript.voice` clips).  On by default: the design offers the\nhost no switch for it, and marks a language as spoken purely by\nwhether the engine has a voice for it, so a recording that could\nspeak does.  Synthesis is still only paid for languages a\nlistener actually chose; set it false to keep a recording silent.",
+              "default": false,
+              "description": "(`transcript.voice` clips).  Opt-in (2026-10-20): off unless the\nrequest asks for it; the dashboard asks.  Synthesis is still only\npaid for languages a listener actually chose.  Off also skips the\nEnglish pivot finalize writes for the voice tracks.",
               "title": "48: speak each audience language's translation as it lands",
               "type": "boolean"
             },
@@ -6016,6 +6218,27 @@
               "default": null,
               "type": [
                 "string",
+                "null"
+              ]
+            },
+            "summary": {
+              "default": null,
+              "type": [
+                "boolean",
+                "null"
+              ]
+            },
+            "summaryTranslations": {
+              "default": null,
+              "type": [
+                "boolean",
+                "null"
+              ]
+            },
+            "title": {
+              "default": null,
+              "type": [
+                "boolean",
                 "null"
               ]
             },
@@ -7193,7 +7416,7 @@
               ]
             },
             "state": {
-              "description": "`ready`: the recording carries a title and summary.  `pending`: the\npass is queued or running; read the recording again shortly.\n`unavailable`: this server has no summariser configured.",
+              "description": "`ready`: the recording carries a title and summary.  `pending`: the\npass is queued or running; read the recording again shortly.\n`unavailable`: this server has no summariser configured.\n`not_requested`: the recording was made without `summary` (or is\nshorter than a minute, which never gets one); `POST .../summarize`\nasks for it.",
               "type": "string"
             },
             "summary": {
@@ -7304,6 +7527,13 @@
           "description": "A transcription: a file, a link (with its `transcription` job), or\nsomething captured as it is spoken (`live: true`: a microphone, a\nstream, an RTMP encoder), which may feed broadcasts (`broadcasts`).",
           "properties": {
             "archivedAt": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "batchId": {
+              "description": "The batch this file was sent in (`POST /v1/batches`); absent for a\ntranscription made on its own.  A batch's files are listed by the\nbatch (`GET /v1/batches/{id}`), not by `transcriptions.list`.",
               "type": [
                 "string",
                 "null"
@@ -8363,6 +8593,596 @@
     "jsonSchemaDialect": "https://json-schema.org/draft/2020-12/schema",
     "openapi": "3.1.0",
     "paths": {
+      "/v1/batches": {
+        "get": {
+          "description": "The acting principal's batches of files, newest first (by `createdAt`), a page at a time: follow `nextCursor` (absent on the last page) as `cursor`. Each batch carries its counts, not its files (`batches.get`).",
+          "operationId": "batches.list",
+          "parameters": [
+            {
+              "description": "The `nextCursor` of the previous page; omit for the first.",
+              "in": "query",
+              "name": "cursor",
+              "schema": {
+                "type": "string"
+              }
+            },
+            {
+              "description": "Items on the page; a larger value is read as the maximum.",
+              "in": "query",
+              "name": "limit",
+              "schema": {
+                "default": 100,
+                "maximum": 200,
+                "minimum": 1,
+                "type": "integer"
+              }
+            }
+          ],
+          "responses": {
+            "200": {
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "$ref": "#/components/schemas/BatchPage"
+                  }
+                }
+              },
+              "description": "OK",
+              "headers": {
+                "RateLimit-Limit": {
+                  "$ref": "#/components/headers/RateLimit-Limit"
+                },
+                "RateLimit-Remaining": {
+                  "$ref": "#/components/headers/RateLimit-Remaining"
+                },
+                "RateLimit-Reset": {
+                  "$ref": "#/components/headers/RateLimit-Reset"
+                },
+                "X-Request-Id": {
+                  "$ref": "#/components/headers/X-Request-Id"
+                }
+              }
+            },
+            "429": {
+              "$ref": "#/components/responses/RateLimited"
+            },
+            "503": {
+              "$ref": "#/components/responses/Unavailable"
+            }
+          },
+          "security": [
+            {
+              "bearerAuth": []
+            }
+          ],
+          "summary": "List batches",
+          "tags": [
+            "batches"
+          ],
+          "x-errors": [
+            "invalid_options"
+          ],
+          "x-vocalstack-auth": "userOrKey",
+          "x-vocalstack-scopes": [
+            "read"
+          ]
+        },
+        "post": {
+          "description": "Start a batch of files: several files transcribed together for less than a transcription each. Add each file or link with `batches.addFile`, then `batches.start`. The batch counts once against the plan's transcriptions created per hour, and is billed by the second of audio with one minimum charge for the whole batch, not one per file (topped up when the batch is done, if its audio came to less). Its files get the transcript, paragraphs, the audio and the exports, and speaker labels when `settings.speakerLabels` asks; never a summary, a title, a share link or spoken translations. Files per batch is a plan limit (`limits.filesPerBatch`).",
+          "operationId": "batches.create",
+          "parameters": [
+            {
+              "description": "Makes a retry safe: a request repeated with the same key and the same body within 24 hours returns the first response (with `Idempotent-Replayed: true`) instead of running again. The same key with a different request is 422 `idempotency_key_reused`; a retry while the first is still running is 409 `conflict`. Only a successful (2xx) response is remembered. Keys are per account.",
+              "in": "header",
+              "name": "Idempotency-Key",
+              "required": false,
+              "schema": {
+                "maxLength": 255,
+                "minLength": 1,
+                "type": "string"
+              }
+            }
+          ],
+          "requestBody": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CreateBatch"
+                }
+              }
+            },
+            "required": false
+          },
+          "responses": {
+            "201": {
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "$ref": "#/components/schemas/Batch"
+                  }
+                }
+              },
+              "description": "Created",
+              "headers": {
+                "RateLimit-Limit": {
+                  "$ref": "#/components/headers/RateLimit-Limit"
+                },
+                "RateLimit-Remaining": {
+                  "$ref": "#/components/headers/RateLimit-Remaining"
+                },
+                "RateLimit-Reset": {
+                  "$ref": "#/components/headers/RateLimit-Reset"
+                },
+                "X-Request-Id": {
+                  "$ref": "#/components/headers/X-Request-Id"
+                }
+              }
+            },
+            "429": {
+              "$ref": "#/components/responses/RateLimited"
+            },
+            "503": {
+              "$ref": "#/components/responses/Unavailable"
+            }
+          },
+          "security": [
+            {
+              "bearerAuth": []
+            }
+          ],
+          "summary": "Create a batch",
+          "tags": [
+            "batches"
+          ],
+          "x-errors": [
+            "invalid_options",
+            "invalid_state",
+            "insufficient_credit",
+            "rate_limited",
+            "usage_cap_reached",
+            "idempotency_key_reused"
+          ],
+          "x-vocalstack-auth": "userOrKey",
+          "x-vocalstack-scopes": [
+            "write",
+            "recordings:publish"
+          ]
+        }
+      },
+      "/v1/batches/{id}": {
+        "delete": {
+          "description": "Discard a batch that was never started, with its files. Nothing was charged. A started batch is stopped instead (`batches.stop`).",
+          "operationId": "batches.delete",
+          "parameters": [
+            {
+              "in": "path",
+              "name": "id",
+              "required": true,
+              "schema": {
+                "type": "string"
+              }
+            }
+          ],
+          "responses": {
+            "204": {
+              "description": "Deleted",
+              "headers": {
+                "RateLimit-Limit": {
+                  "$ref": "#/components/headers/RateLimit-Limit"
+                },
+                "RateLimit-Remaining": {
+                  "$ref": "#/components/headers/RateLimit-Remaining"
+                },
+                "RateLimit-Reset": {
+                  "$ref": "#/components/headers/RateLimit-Reset"
+                },
+                "X-Request-Id": {
+                  "$ref": "#/components/headers/X-Request-Id"
+                }
+              }
+            },
+            "429": {
+              "$ref": "#/components/responses/RateLimited"
+            },
+            "503": {
+              "$ref": "#/components/responses/Unavailable"
+            }
+          },
+          "security": [
+            {
+              "bearerAuth": []
+            }
+          ],
+          "summary": "Delete an unstarted batch",
+          "tags": [
+            "batches"
+          ],
+          "x-errors": [
+            "invalid_state",
+            "not_found"
+          ],
+          "x-vocalstack-auth": "userOrKey",
+          "x-vocalstack-scopes": [
+            "write"
+          ]
+        },
+        "get": {
+          "description": "A batch with its files (`files`, each a transcription with its job), in the order they were added.",
+          "operationId": "batches.get",
+          "parameters": [
+            {
+              "in": "path",
+              "name": "id",
+              "required": true,
+              "schema": {
+                "type": "string"
+              }
+            }
+          ],
+          "responses": {
+            "200": {
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "$ref": "#/components/schemas/Batch"
+                  }
+                }
+              },
+              "description": "OK",
+              "headers": {
+                "RateLimit-Limit": {
+                  "$ref": "#/components/headers/RateLimit-Limit"
+                },
+                "RateLimit-Remaining": {
+                  "$ref": "#/components/headers/RateLimit-Remaining"
+                },
+                "RateLimit-Reset": {
+                  "$ref": "#/components/headers/RateLimit-Reset"
+                },
+                "X-Request-Id": {
+                  "$ref": "#/components/headers/X-Request-Id"
+                }
+              }
+            },
+            "429": {
+              "$ref": "#/components/responses/RateLimited"
+            },
+            "503": {
+              "$ref": "#/components/responses/Unavailable"
+            }
+          },
+          "security": [
+            {
+              "bearerAuth": []
+            }
+          ],
+          "summary": "Get a batch",
+          "tags": [
+            "batches"
+          ],
+          "x-errors": [
+            "not_found"
+          ],
+          "x-vocalstack-auth": "userOrKey",
+          "x-vocalstack-scopes": [
+            "read"
+          ]
+        }
+      },
+      "/v1/batches/{id}/export": {
+        "get": {
+          "description": "Every finished file's transcript in one `format` (as `recordings.export` makes one), in one zip named for the batch. Files still running or failed are left out; `invalid_state` while none is finished.",
+          "operationId": "batches.export",
+          "parameters": [
+            {
+              "in": "path",
+              "name": "id",
+              "required": true,
+              "schema": {
+                "type": "string"
+              }
+            },
+            {
+              "in": "query",
+              "name": "format",
+              "required": true,
+              "schema": {
+                "type": "string"
+              }
+            }
+          ],
+          "responses": {
+            "200": {
+              "content": {
+                "application/zip": {
+                  "schema": {
+                    "format": "binary",
+                    "type": "string"
+                  }
+                }
+              },
+              "description": "The zip",
+              "headers": {
+                "RateLimit-Limit": {
+                  "$ref": "#/components/headers/RateLimit-Limit"
+                },
+                "RateLimit-Remaining": {
+                  "$ref": "#/components/headers/RateLimit-Remaining"
+                },
+                "RateLimit-Reset": {
+                  "$ref": "#/components/headers/RateLimit-Reset"
+                },
+                "X-Request-Id": {
+                  "$ref": "#/components/headers/X-Request-Id"
+                }
+              }
+            },
+            "429": {
+              "$ref": "#/components/responses/RateLimited"
+            },
+            "503": {
+              "$ref": "#/components/responses/Unavailable"
+            }
+          },
+          "security": [
+            {
+              "bearerAuth": []
+            }
+          ],
+          "summary": "Download a batch's transcripts",
+          "tags": [
+            "batches"
+          ],
+          "x-errors": [
+            "invalid_options",
+            "invalid_state",
+            "not_found"
+          ],
+          "x-vocalstack-auth": "userOrKey",
+          "x-vocalstack-scopes": [
+            "read"
+          ]
+        }
+      },
+      "/v1/batches/{id}/files": {
+        "post": {
+          "description": "Add one file or link to an open batch: multipart/form-data with a `file` part (+ optional `options` JSON part), or JSON with `url`, as `transcriptions.create` takes them, with only `name`, `startS`, `endS` and `durationS` among the options (the settings are the batch's). Each file is a transcription of its own (`batchId`), waiting for the batch's start. Refused once the batch has started, or when it already holds the plan's files per batch (`invalid_state`, `data.metric` `files_per_batch`).",
+          "operationId": "batches.addFile",
+          "parameters": [
+            {
+              "in": "path",
+              "name": "id",
+              "required": true,
+              "schema": {
+                "type": "string"
+              }
+            },
+            {
+              "description": "Makes a retry safe: a request repeated with the same key and the same body within 24 hours returns the first response (with `Idempotent-Replayed: true`) instead of running again. The same key with a different request is 422 `idempotency_key_reused`; a retry while the first is still running is 409 `conflict`. Only a successful (2xx) response is remembered. Keys are per account.",
+              "in": "header",
+              "name": "Idempotency-Key",
+              "required": false,
+              "schema": {
+                "maxLength": 255,
+                "minLength": 1,
+                "type": "string"
+              }
+            }
+          ],
+          "requestBody": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CreateTranscription"
+                }
+              },
+              "multipart/form-data": {
+                "schema": {
+                  "properties": {
+                    "file": {
+                      "format": "binary",
+                      "type": "string"
+                    },
+                    "options": {
+                      "$ref": "#/components/schemas/CreateTranscription"
+                    }
+                  },
+                  "required": [
+                    "file"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "required": true
+          },
+          "responses": {
+            "201": {
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "$ref": "#/components/schemas/Transcription"
+                  }
+                }
+              },
+              "description": "Created",
+              "headers": {
+                "RateLimit-Limit": {
+                  "$ref": "#/components/headers/RateLimit-Limit"
+                },
+                "RateLimit-Remaining": {
+                  "$ref": "#/components/headers/RateLimit-Remaining"
+                },
+                "RateLimit-Reset": {
+                  "$ref": "#/components/headers/RateLimit-Reset"
+                },
+                "X-Request-Id": {
+                  "$ref": "#/components/headers/X-Request-Id"
+                }
+              }
+            },
+            "429": {
+              "$ref": "#/components/responses/RateLimited"
+            },
+            "503": {
+              "$ref": "#/components/responses/Unavailable"
+            }
+          },
+          "security": [
+            {
+              "bearerAuth": []
+            }
+          ],
+          "summary": "Add a file to a batch",
+          "tags": [
+            "batches"
+          ],
+          "x-errors": [
+            "invalid_options",
+            "invalid_audio",
+            "invalid_state",
+            "not_found",
+            "idempotency_key_reused"
+          ],
+          "x-vocalstack-auth": "userOrKey",
+          "x-vocalstack-scopes": [
+            "write",
+            "recordings:publish"
+          ]
+        }
+      },
+      "/v1/batches/{id}/start": {
+        "post": {
+          "description": "Seal the batch and queue its files, longest first: the account's free transcriptions at once run that many files side by side, each engine going on to the next file as it finishes one. Needs credit for more than one minimum charge; each file's length is checked against the balance as it starts, as a single file's is.",
+          "operationId": "batches.start",
+          "parameters": [
+            {
+              "in": "path",
+              "name": "id",
+              "required": true,
+              "schema": {
+                "type": "string"
+              }
+            }
+          ],
+          "responses": {
+            "200": {
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "$ref": "#/components/schemas/Batch"
+                  }
+                }
+              },
+              "description": "OK",
+              "headers": {
+                "RateLimit-Limit": {
+                  "$ref": "#/components/headers/RateLimit-Limit"
+                },
+                "RateLimit-Remaining": {
+                  "$ref": "#/components/headers/RateLimit-Remaining"
+                },
+                "RateLimit-Reset": {
+                  "$ref": "#/components/headers/RateLimit-Reset"
+                },
+                "X-Request-Id": {
+                  "$ref": "#/components/headers/X-Request-Id"
+                }
+              }
+            },
+            "429": {
+              "$ref": "#/components/responses/RateLimited"
+            },
+            "503": {
+              "$ref": "#/components/responses/Unavailable"
+            }
+          },
+          "security": [
+            {
+              "bearerAuth": []
+            }
+          ],
+          "summary": "Start a batch",
+          "tags": [
+            "batches"
+          ],
+          "x-errors": [
+            "invalid_state",
+            "insufficient_credit",
+            "not_found"
+          ],
+          "x-vocalstack-auth": "userOrKey",
+          "x-vocalstack-scopes": [
+            "write",
+            "recordings:publish"
+          ]
+        }
+      },
+      "/v1/batches/{id}/stop": {
+        "post": {
+          "description": "Stop every file not finished yet: queued files never start, a running one is cancelled and billed for what it transcribed, with the batch's one minimum.",
+          "operationId": "batches.stop",
+          "parameters": [
+            {
+              "in": "path",
+              "name": "id",
+              "required": true,
+              "schema": {
+                "type": "string"
+              }
+            }
+          ],
+          "responses": {
+            "200": {
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "$ref": "#/components/schemas/Batch"
+                  }
+                }
+              },
+              "description": "OK",
+              "headers": {
+                "RateLimit-Limit": {
+                  "$ref": "#/components/headers/RateLimit-Limit"
+                },
+                "RateLimit-Remaining": {
+                  "$ref": "#/components/headers/RateLimit-Remaining"
+                },
+                "RateLimit-Reset": {
+                  "$ref": "#/components/headers/RateLimit-Reset"
+                },
+                "X-Request-Id": {
+                  "$ref": "#/components/headers/X-Request-Id"
+                }
+              }
+            },
+            "429": {
+              "$ref": "#/components/responses/RateLimited"
+            },
+            "503": {
+              "$ref": "#/components/responses/Unavailable"
+            }
+          },
+          "security": [
+            {
+              "bearerAuth": []
+            }
+          ],
+          "summary": "Stop a batch",
+          "tags": [
+            "batches"
+          ],
+          "x-errors": [
+            "invalid_state",
+            "not_found"
+          ],
+          "x-vocalstack-auth": "userOrKey",
+          "x-vocalstack-scopes": [
+            "write"
+          ]
+        }
+      },
       "/v1/billing": {
         "get": {
           "description": "The acting account's plan, rates (dollars an hour of audio, and the minimum a transcription is billed: `minimumSeconds`), credit balance, whether running transcriptions go on below zero (`belowZeroLimitOn`; `inBelowZero` while they do; never how far, and `belowZeroLimitChangesAt` when a limit held after a change stops), whether a new transcription would start now and what would refuse it (`canStart`, `startBlock` for a file; `canStartLive`, `startBlockLive` for a live transcription or realtime session, whose minimum costs more), the billing period and the one before, the monthly credit's use, the counted limits in use, the subscription (next payment, a scheduled interval switch, past due), auto top-up with its last attempt, the low-balance alert, a payment still being processed, the default card, a scheduled change with its refund deadline (`pendingChange`), a scheduled end or closure, the days data is kept after a downgrade (`downgradeKeepDays`, with any lowering told) and the auto top-up daily limit (`autoTopUp.autoTopupMaxPerDay`), the retention deadline after a downgrade, the plan's limits and whether it has paid. A creation that would overdraw the balance, or a new transcription when the balance does not cover its minimum, is refused 402 `insufficient_credit`; `topUpUrl` is where to add credit. `enabled: false` means this server does not bill.",
@@ -13100,7 +13920,7 @@
       },
       "/v1/recordings/{id}/summarize": {
         "post": {
-          "description": "Ask for the recording's AI title and summary. The engine writes them after finalize on its own; call this when a finished recording has none (or its pass failed) and poll the recording: `ready` carries them, `pending` means the pass is queued or running, `unavailable` means this server has no summariser.",
+          "description": "Ask for the recording's AI title and summary. A recording made with `summary` gets them after finalize on its own; asking turns `summary` and `title` on for one made without them. Call this when a finished recording has none (or its pass failed) and poll the recording: `ready` carries them, `pending` means the pass is queued or running, `not_requested` that the recording is under a minute or a file of a batch (never summarised), `unavailable` that this server has no summariser.",
           "operationId": "recordings.summarize",
           "parameters": [
             {
@@ -13177,7 +13997,7 @@
       },
       "/v1/recordings/{id}/summary": {
         "get": {
-          "description": "The title and summary as they stand — `ready` with both, `pending` while the engine is still writing them, `unavailable` on a server without a summariser. Nothing is queued (that is `summarize`), so a share-link viewer may ask too. `lang` reads them in that language: the one the reader picked on screen, which the transcript and the downloads follow. The engine translates the summary into every language the recording was listened to or read in as it writes it, so those are ready; any other language is translated once, on the first ask, and kept. `lang` in the answer says the translation was had. The spoken language, or no `lang`, is the summary as written. Through a share link a language other than the spoken one needs the link's `allowTranslate`.",
+          "description": "The title and summary as they stand — `ready` once there is a summary (the title is the recording's name when it was made without `title`), `pending` while the engine is still writing them, `not_requested` for a recording made without `summary`, shorter than a minute, or a file of a batch, `unavailable` on a server without a summariser. Nothing is queued (that is `summarize`), so a share-link viewer may ask too. `lang` reads them in that language, for a recording made with `summaryTranslations`: the one the reader picked on screen, which the transcript and the downloads follow. The engine translates the summary into every language the recording was listened to or read in as it writes it, so those are ready; any other language is translated once, on the first ask, and kept. `lang` in the answer says the translation was had. The spoken language, or no `lang`, is the summary as written. Through a share link a language other than the spoken one needs the link's `allowTranslate`.",
           "operationId": "recordings.summary",
           "parameters": [
             {
@@ -16135,6 +16955,11 @@
         "description": "Stored transcripts of a file, a link, or audio captured as it is spoken.",
         "name": "transcriptions",
         "x-displayName": "Transcriptions"
+      },
+      {
+        "description": "Several files transcribed together: one create and one minimum charge for the whole batch.",
+        "name": "batches",
+        "x-displayName": "Batches"
       },
       {
         "description": "The links listeners open, fed by live transcriptions or by the broadcast's own audio sources.",

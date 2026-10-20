@@ -20,6 +20,25 @@ One line per change, naming the operation (`METHOD /path`, its
 
 ## [Unreleased]
 
+### Batches of files (2026-10-20, still `1.0.0-alpha.0`)
+
+- **Added**: `POST /v1/batches` (`batches.create`), `GET /v1/batches` (`batches.list`), `GET /v1/batches/{id}` (`batches.get`), `DELETE /v1/batches/{id}` (`batches.delete`, an unstarted batch only), `POST /v1/batches/{id}/files` (`batches.addFile`), `POST /v1/batches/{id}/start` (`batches.start`), `POST /v1/batches/{id}/stop` (`batches.stop`); schemas `Batch`, `BatchPage`, `BatchSettings`, `BatchCounts`, `CreateBatch`. A batch is one create against `creates_per_hour` and pays one minimum between its files; its files run longest first on the account's free concurrency, with no summary, title, share link or voices.
+- **Added**: `GET /v1/batches/{id}/export` (`batches.export`): every finished file's transcript in one `format`, as one zip; `invalid_state` while none is finished.
+- **Added**: `Batch.filesPerBatch`: the plan's files per batch on the batch itself (absent: no limit), named as `Limits.filesPerBatch`.
+- **Changed**: `GET /v1/recordings/{id}/summary` and `POST .../summarize` answer `not_requested` for a batch's file too: batch files are never summarised.
+- **Changed**: a batch's file refuses a share link (`transcriptions.createShareLink`), a settings patch that turns on `summary`, `title`, `summaryTranslations` or `voice` (`transcriptions.update`, `recordings.settings`) and a recording (`transcriptions.startRecording`): `invalid_state`.
+- **Added**: `Transcription.batchId`: the batch a file was sent in. `GET /v1/transcriptions` (`transcriptions.list`) lists no batch's files; `batches.get` does.
+- **Added**: `Limits.filesPerBatch` (`GET /v1/billing/plans`, the account's plan): Pay as you go 100, Premium 1,000, Enterprise no limit (`null`).
+- **Changed**: `POST /v1/transcriptions/{id}/recordings/upload` (`transcriptions.uploadRecording`) holds a transcription to the plan's `filesPerBatch` uploaded recordings (they share its one minimum, as a batch's files do), and refuses a batch's file (`invalid_state`).
+
+### Opt-in features and short clips (2026-10-20, still `1.0.0-alpha.0`)
+
+- **Added**: `Settings.summary`, `Settings.title`, `Settings.summaryTranslations` (and the same in `SettingsPatch`), on broadcasts, transcriptions and recordings: the language model's summary, its title, and the summary's translations into the audience's languages. Off unless asked for; the dashboard asks.
+- **Changed**: `Settings.voice` (spoken translations) is off unless asked for (was on); `POST /v1/transcriptions` (`transcriptions.create`) makes its default share link only with `shareLink: true` (was on unless `false`). Everything made before keeps what it had.
+- **Changed**: a recording shorter than a minute (as trimmed) never gets speaker labels, a summary, a title or voices, whatever its settings say.
+- **Added**: `SummaryStatus.state` `not_requested` (`GET /v1/recordings/{id}/summary`, `recordings.summary`): the recording was made without `summary`, or is a clip under a minute; `POST /v1/recordings/{id}/summarize` (`recordings.summarize`) turns `summary` and `title` on for it, except on a short clip, which stays `not_requested`.
+- **Changed**: `GET /v1/recordings/{id}/summary` answers `ready` once a summary exists, with the recording's name as `title` when it has no model title; translated (`lang`) only for a recording made with `summaryTranslations`.
+
 ### Source video and plan retention (2026-10-20, still `1.0.0-alpha.0`)
 
 - **Added**: `Job.hasVideo` (on `GET /v1/transcriptions/{id}` and the job frames): the source's video is stored beside its audio, on a plan that keeps source video.

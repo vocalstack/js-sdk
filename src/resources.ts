@@ -1,6 +1,8 @@
 import type {
   AppStreamKey,
   AudioSourceCheck,
+  Batch,
+  BatchPage,
   AutoTopUpSettings,
   AutoTopUpView,
   BillingDetails,
@@ -26,6 +28,7 @@ import type {
   CorrectionPage,
   CreateAppStreamKey,
   CreateAudioSource,
+  CreateBatch,
   CreateLiveTranscription,
   CreateBroadcast,
   CreateShareLink,
@@ -262,6 +265,105 @@ export class Transcriptions extends ParentResource<Transcription, UpdateTranscri
   }
   detachBroadcast(id: string, broadcastId: string): Promise<Transcription> {
     return this.t.json('DELETE', this.p(id, `/broadcasts/${seg(broadcastId)}`));
+  }
+}
+
+/** What `batches.addFile` takes: a file (`file`) or a public link (`url`),
+ * and of the transcription options only these (the settings are the batch's). */
+export type AddBatchFileInput = Pick<CreateTranscription, 'url' | 'name' | 'startS' | 'endS' | 'durationS'> & {
+  /** The file to add; omit it and set `url` to have the server fetch a link. */
+  file?: Upload;
+  /** The upload's file name, when `file` does not carry one. */
+  fileName?: string;
+};
+
+/** `vs.batches`: several files transcribed together, for less than a
+ * transcription each (one create, one minimum charge).  Create a batch, add
+ * each file or link with `addFile`, then `start` it; `get` shows its files
+ * (each a transcription with its job) and their counts.  A batch's files get
+ * no summary, title, share link or spoken translations. */
+export class Batches {
+  readonly #t: Transport;
+  constructor(t: Transport) {
+    this.#t = t;
+  }
+  #p(id: string, rest = '') {
+    return `/v1/batches/${seg(id)}${rest}`;
+  }
+
+  /** An open batch, ready for files (`name` defaults to "Batch of <date>"). */
+  create(req: CreateBatch = {}, call: CallOptions = {}): Promise<Batch> {
+    return this.#t.json('POST', '/v1/batches', { body: req, ...call });
+  }
+  /** Every batch, newest first (every page of `listPage`); each with its counts, not its files. */
+  list(): Promise<Batch[]> {
+    return allPages(async (cursor) => {
+      const r = await this.listPage({ cursor });
+      return { items: r.batches, nextCursor: r.nextCursor };
+    });
+  }
+  /** One page of batches, newest first: pass its `nextCursor` as `cursor` for the next. */
+  listPage(opts: PageOptions = {}): Promise<BatchPage> {
+    return this.#t.json('GET', '/v1/batches', { query: { cursor: opts.cursor, limit: opts.limit } });
+  }
+  /** A batch with its files (`files`, each a transcription with its job), in the order they were added. */
+  get(id: string): Promise<Batch> {
+    return this.#t.json('GET', this.#p(id));
+  }
+  /** Discard a batch that was never started, with its files (nothing was charged). */
+  async delete(id: string): Promise<void> {
+    await this.#t.json('DELETE', this.#p(id));
+  }
+  /** Add one file (`file`) or link (`url`) to an open batch: a transcription
+   * of its own (`batchId`), waiting for the batch's `start`. */
+  async addFile(id: string, req: AddBatchFileInput, call: CallOptions = {}): Promise<Transcription> {
+    const { file, fileName, ...options } = req;
+    if (file === undefined) return this.#t.json('POST', this.#p(id, '/files'), { body: options, ...call });
+    const { blob, name } = await toBlob(file);
+    const fd = new FormData();
+    fd.append('options', JSON.stringify(options));
+    fd.append('file', blob, fileName ?? name ?? 'upload');
+    return this.#t.json('POST', this.#p(id, '/files'), { body: fd, ...call });
+  }
+  /** `addFile(id, { url, ...opts })`. */
+  addUrl(id: string, url: string, opts: Omit<AddBatchFileInput, 'url' | 'file' | 'fileName'> = {}, call: CallOptions = {}): Promise<Transcription> {
+    return this.addFile(id, { ...opts, url }, call);
+  }
+  /** Seal the batch and queue its files, longest first; `wait` follows it to the end. */
+  start(id: string, call: CallOptions = {}): Promise<Batch> {
+    return this.#t.json('POST', this.#p(id, '/start'), call);
+  }
+  /** Every finished file's transcript in one `format` (as `recordings.export`
+   * makes one), in one zip, as a `Response`: `.arrayBuffer()` it.  Files
+   * still running or failed are left out. */
+  export(id: string, format: ExportFormat): Promise<Response> {
+    return this.#t.raw('GET', this.#p(id, '/export'), { headers: { accept: '*/*' }, query: { format } });
+  }
+  /** Stop every file not finished yet: queued files never start, a running
+   * one is cancelled and billed for what it transcribed. */
+  stop(id: string): Promise<Batch> {
+    return this.#t.json('POST', this.#p(id, '/stop'));
+  }
+  /** Poll a started batch until it is `done` (every file finished or
+   * failed) or `stopped`, and return it with its files.  It does not throw
+   * on a failed file: check `counts.failed` and each file's `job.state`.
+   * `onProgress` sees every read, the last one included. */
+  async wait(
+    id: string,
+    opts: { intervalMs?: number; timeoutMs?: number; signal?: AbortSignal; onProgress?(batch: Batch): void } = {},
+  ): Promise<Batch> {
+    const interval = opts.intervalMs ?? 5000;
+    const deadline = opts.timeoutMs ? Date.now() + opts.timeoutMs : Infinity;
+    for (;;) {
+      const batch = await this.get(id);
+      opts.onProgress?.(batch);
+      // Closed: every file over (a stopped batch's running file too).
+      if ((batch.state === 'done' || batch.state === 'stopped') && batch.finishedAt) return batch;
+      if (batch.state === 'open') throw new VocalStackError('invalid_state', 'the batch is open: start it before waiting for it');
+      if (Date.now() + interval > deadline) throw new VocalStackError('timeout', `batch still ${batch.state} after ${opts.timeoutMs} ms`, { retryable: true });
+      if (opts.signal?.aborted) throw opts.signal.reason ?? new Error('aborted');
+      await new Promise((r) => setTimeout(r, interval));
+    }
   }
 }
 

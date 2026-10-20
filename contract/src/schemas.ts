@@ -170,6 +170,206 @@ export const AutoTopUpViewSchema = z.object({
 });
 export type AutoTopUpView = z.infer<typeof AutoTopUpViewSchema>;
 
+export const BatchCountsSchema = z.object({
+  "done": z.number().int(),
+  "failed": z.number().int(),
+  "queued": z.number().int(),
+  "running": z.number().int(),
+  "stopped": z.number().int(),
+});
+export type BatchCounts = z.infer<typeof BatchCountsSchema>;
+
+export const BroadcastRefSchema = z.object({
+  "access": AccessSchema,
+  "code": z.string(),
+  "id": z.string(),
+  "name": z.string(),
+  "shareUrl": z.string(),
+});
+export type BroadcastRef = z.infer<typeof BroadcastRefSchema>;
+
+export const RecordingStateSchema = z.enum(['pending', 'live', 'paused', 'processing', 'ended', 'finalized']);
+export type RecordingState = z.infer<typeof RecordingStateSchema>;
+
+export const CurrentRecordingSchema = z.object({
+  "recordingId": z.string(),
+  "startedAt": z.union([z.string(), z.null()]).optional(),
+  "state": RecordingStateSchema,
+  "transcriptionId": z.union([z.string(), z.null()]).optional(),
+});
+export type CurrentRecording = z.infer<typeof CurrentRecordingSchema>;
+
+export const CropWindowSchema = z.object({
+  "endS": z.union([z.number(), z.null()]).optional(),
+  "startS": z.number(),
+});
+export type CropWindow = z.infer<typeof CropWindowSchema>;
+
+export const JobProgressSchema = z.object({
+  "fetchTotalBytes": z.union([z.number().int(), z.null()]).optional(),
+  "fetchedBytes": z.union([z.number().int(), z.null()]).optional(),
+  "pct": z.number().int(),
+  "phase": z.union([z.string(), z.null()]).optional(),
+  "phasePct": z.union([z.number().int(), z.null()]).optional(),
+  "processedS": z.number(),
+  "segmentsDone": z.number().int(),
+  "segmentsTotal": z.union([z.number().int(), z.null()]).optional(),
+  "totalS": z.union([z.number(), z.null()]).optional(),
+});
+export type JobProgress = z.infer<typeof JobProgressSchema>;
+
+export const QueueReasonSchema = z.enum(['concurrency']);
+export type QueueReason = z.infer<typeof QueueReasonSchema>;
+
+export const JobQueueSchema = z.object({
+  "position": z.number().int(),
+  "reason": QueueReasonSchema,
+});
+export type JobQueue = z.infer<typeof JobQueueSchema>;
+
+export const SourceKindSchema = z.enum(['file', 'url']);
+export type SourceKind = z.infer<typeof SourceKindSchema>;
+
+export const SourceInfoSchema = z.object({
+  "bytes": z.union([z.number().int(), z.null()]).optional(),
+  "durationS": z.union([z.number(), z.null()]).optional(),
+  "format": z.union([z.string(), z.null()]).optional(),
+  "kind": SourceKindSchema,
+  "mime": z.union([z.string(), z.null()]).optional(),
+  "name": z.string(),
+  "url": z.union([z.string(), z.null()]).optional(),
+});
+export type SourceInfo = z.infer<typeof SourceInfoSchema>;
+
+export const JobStateSchema = z.union([z.literal("queued"), z.literal("fetching"), z.literal("transcribing"), z.literal("done"), z.literal("failed"), z.literal("cropping"), z.literal("stopped")]);
+export type JobState = z.infer<typeof JobStateSchema>;
+
+export const TranscriptionJobSchema = z.object({
+  "attempts": z.number().int(),
+  "createdAt": z.string(),
+  "crop": z.union([CropWindowSchema, z.null()]).optional(),
+  "error": z.union([z.string(), z.null()]).optional(),
+  "errorCode": z.union([z.string(), z.null()]).optional(),
+  "finishedAt": z.union([z.string(), z.null()]).optional(),
+  "hasAudio": z.boolean(),
+  "hasVideo": z.boolean().optional(),
+  "peaks": z.union([z.array(z.number()), z.null()]).optional(),
+  "preview": z.boolean().optional(),
+  "progress": JobProgressSchema,
+  "queue": z.union([JobQueueSchema, z.null()]).optional(),
+  "recordingId": z.string(),
+  "source": z.union([SourceInfoSchema, z.null()]).optional(),
+  "startedAt": z.union([z.string(), z.null()]).optional(),
+  "state": JobStateSchema,
+  "transcriptionId": z.string(),
+});
+export type TranscriptionJob = z.infer<typeof TranscriptionJobSchema>;
+
+export const LastRecordingSchema = z.object({
+  "durationS": z.union([z.number(), z.null()]).optional(),
+  "recordingId": z.string(),
+  "startedAt": z.union([z.string(), z.null()]).optional(),
+  "state": RecordingStateSchema,
+  "title": z.union([z.string(), z.null()]).optional(),
+  "transcriptionId": z.union([z.string(), z.null()]).optional(),
+});
+export type LastRecording = z.infer<typeof LastRecordingSchema>;
+
+export const LifecycleSchema = z.enum(['active', 'archived', 'purged']);
+export type Lifecycle = z.infer<typeof LifecycleSchema>;
+
+export const ConfidencePolicySchema = z.object({
+  "hideBelow": z.union([z.number(), z.null()]).optional(),
+  "lowThreshold": z.union([z.number(), z.null()]).optional(),
+  "suppressCount": z.union([z.number().int(), z.null()]).optional(),
+});
+export type ConfidencePolicy = z.infer<typeof ConfidencePolicySchema>;
+
+export const LatencyModeSchema = z.enum(['auto', 'fast', 'accuracy']);
+export type LatencyMode = z.infer<typeof LatencyModeSchema>;
+
+export const SpeakerLabelsSchema = z.enum(['auto', 'on', 'off']);
+export type SpeakerLabels = z.infer<typeof SpeakerLabelsSchema>;
+
+export const SettingsSchema = z.object({
+  "confidence": ConfidencePolicySchema.optional(),
+  "latencyMode": LatencyModeSchema.optional(),
+  "maxDurationS": z.number().int().optional(),
+  "maxPauseS": z.number().int().optional(),
+  "silenceAutoPauseS": z.union([z.number().int(), z.null()]).optional(),
+  "speakerLabels": SpeakerLabelsSchema.optional(),
+  "spokenLanguage": z.union([z.string(), z.null()]).optional(),
+  "summary": z.boolean().optional(),
+  "summaryTranslations": z.boolean().optional(),
+  "title": z.boolean().optional(),
+  "voice": z.boolean().optional(),
+  "voiceByLang": z.record(z.string(), z.string()).optional(),
+});
+export type Settings = z.infer<typeof SettingsSchema>;
+
+export const CaptureSourceSchema = z.discriminatedUnion('kind', [z.object({
+  "kind": z.literal("mic"),
+}), z.object({
+  "kind": z.literal("stream"),
+  "url": z.string(),
+})]);
+export type CaptureSource = z.infer<typeof CaptureSourceSchema>;
+
+export const TranscriptionSchema = z.object({
+  "archivedAt": z.union([z.string(), z.null()]).optional(),
+  "batchId": z.union([z.string(), z.null()]).optional(),
+  "broadcasts": z.array(BroadcastRefSchema).optional(),
+  "code": z.string(),
+  "createdAt": z.string(),
+  "createdByApiKeyId": z.union([z.string(), z.null()]).optional(),
+  "currentRecording": z.union([CurrentRecordingSchema, z.null()]).optional(),
+  "id": z.string(),
+  "job": z.union([TranscriptionJobSchema, z.null()]).optional(),
+  "kind": z.literal("transcription"),
+  "lastRecordedAt": z.union([z.string(), z.null()]).optional(),
+  "lastRecording": z.union([LastRecordingSchema, z.null()]).optional(),
+  "lifecycle": LifecycleSchema,
+  "live": z.boolean().optional(),
+  "name": z.string(),
+  "ownerPrincipalId": z.string(),
+  "purgeAfter": z.union([z.string(), z.null()]).optional(),
+  "recordingCount": z.number().int(),
+  "settings": SettingsSchema,
+  "shareUrl": z.string(),
+  "source": CaptureSourceSchema,
+  "updatedAt": z.string(),
+});
+export type Transcription = z.infer<typeof TranscriptionSchema>;
+
+export const BatchSettingsSchema = z.object({
+  "latencyMode": LatencyModeSchema.optional(),
+  "speakerLabels": SpeakerLabelsSchema.optional(),
+  "spokenLanguage": z.union([z.string(), z.null()]).optional(),
+});
+export type BatchSettings = z.infer<typeof BatchSettingsSchema>;
+
+export const BatchSchema = z.object({
+  "counts": BatchCountsSchema,
+  "createdAt": z.string(),
+  "createdByApiKeyId": z.union([z.string(), z.null()]).optional(),
+  "fileCount": z.number().int(),
+  "files": z.union([z.array(TranscriptionSchema), z.null()]).optional(),
+  "filesPerBatch": z.union([z.number().int(), z.null()]).optional(),
+  "finishedAt": z.union([z.string(), z.null()]).optional(),
+  "id": z.string(),
+  "name": z.string(),
+  "settings": BatchSettingsSchema,
+  "startedAt": z.union([z.string(), z.null()]).optional(),
+  "state": z.string(),
+});
+export type Batch = z.infer<typeof BatchSchema>;
+
+export const BatchPageSchema = z.object({
+  "batches": z.array(BatchSchema),
+  "nextCursor": z.union([z.string(), z.null()]).optional(),
+});
+export type BatchPage = z.infer<typeof BatchPageSchema>;
+
 export const BillingDetailsSchema = z.object({
   "city": z.string().optional(),
   "country": z.union([z.string(), z.null()]).optional(),
@@ -200,6 +400,7 @@ export const Limits2Schema = z.object({
   "concurrentTranscriptions": z.union([z.number().int(), z.null()]).optional(),
   "createsPerHour": z.union([z.number().int(), z.null()]).optional(),
   "createsPerHourUnpaid": z.union([z.number().int(), z.null()]).optional(),
+  "filesPerBatch": z.union([z.number().int(), z.null()]).optional(),
   "maxFileBytes": z.union([z.number().int(), z.null()]).optional(),
   "maxLiveSeconds": z.union([z.number().int(), z.null()]).optional(),
   "requestsPerMin": z.union([z.number().int(), z.null()]).optional(),
@@ -359,64 +560,6 @@ export const BillingViewSchema = z.object({
 });
 export type BillingView = z.infer<typeof BillingViewSchema>;
 
-export const RecordingStateSchema = z.enum(['pending', 'live', 'paused', 'processing', 'ended', 'finalized']);
-export type RecordingState = z.infer<typeof RecordingStateSchema>;
-
-export const CurrentRecordingSchema = z.object({
-  "recordingId": z.string(),
-  "startedAt": z.union([z.string(), z.null()]).optional(),
-  "state": RecordingStateSchema,
-  "transcriptionId": z.union([z.string(), z.null()]).optional(),
-});
-export type CurrentRecording = z.infer<typeof CurrentRecordingSchema>;
-
-export const LastRecordingSchema = z.object({
-  "durationS": z.union([z.number(), z.null()]).optional(),
-  "recordingId": z.string(),
-  "startedAt": z.union([z.string(), z.null()]).optional(),
-  "state": RecordingStateSchema,
-  "title": z.union([z.string(), z.null()]).optional(),
-  "transcriptionId": z.union([z.string(), z.null()]).optional(),
-});
-export type LastRecording = z.infer<typeof LastRecordingSchema>;
-
-export const LifecycleSchema = z.enum(['active', 'archived', 'purged']);
-export type Lifecycle = z.infer<typeof LifecycleSchema>;
-
-export const ConfidencePolicySchema = z.object({
-  "hideBelow": z.union([z.number(), z.null()]).optional(),
-  "lowThreshold": z.union([z.number(), z.null()]).optional(),
-  "suppressCount": z.union([z.number().int(), z.null()]).optional(),
-});
-export type ConfidencePolicy = z.infer<typeof ConfidencePolicySchema>;
-
-export const LatencyModeSchema = z.enum(['auto', 'fast', 'accuracy']);
-export type LatencyMode = z.infer<typeof LatencyModeSchema>;
-
-export const SpeakerLabelsSchema = z.enum(['auto', 'on', 'off']);
-export type SpeakerLabels = z.infer<typeof SpeakerLabelsSchema>;
-
-export const SettingsSchema = z.object({
-  "confidence": ConfidencePolicySchema.optional(),
-  "latencyMode": LatencyModeSchema.optional(),
-  "maxDurationS": z.number().int().optional(),
-  "maxPauseS": z.number().int().optional(),
-  "silenceAutoPauseS": z.union([z.number().int(), z.null()]).optional(),
-  "speakerLabels": SpeakerLabelsSchema.optional(),
-  "spokenLanguage": z.union([z.string(), z.null()]).optional(),
-  "voice": z.boolean().optional(),
-  "voiceByLang": z.record(z.string(), z.string()).optional(),
-});
-export type Settings = z.infer<typeof SettingsSchema>;
-
-export const CaptureSourceSchema = z.discriminatedUnion('kind', [z.object({
-  "kind": z.literal("mic"),
-}), z.object({
-  "kind": z.literal("stream"),
-  "url": z.string(),
-})]);
-export type CaptureSource = z.infer<typeof CaptureSourceSchema>;
-
 export const TranscriptionRefSchema = z.object({
   "id": z.string(),
   "lastRecordedAt": z.union([z.string(), z.null()]).optional(),
@@ -451,15 +594,6 @@ export const BroadcastSchema = z.object({
   "updatedAt": z.string(),
 });
 export type Broadcast = z.infer<typeof BroadcastSchema>;
-
-export const BroadcastRefSchema = z.object({
-  "access": AccessSchema,
-  "code": z.string(),
-  "id": z.string(),
-  "name": z.string(),
-  "shareUrl": z.string(),
-});
-export type BroadcastRef = z.infer<typeof BroadcastRefSchema>;
 
 export const LimitsSchema = z.object({
   "audioBufferS": z.number().int(),
@@ -633,6 +767,12 @@ export const CreateAudioSourceSchema = z.object({
 });
 export type CreateAudioSource = z.infer<typeof CreateAudioSourceSchema>;
 
+export const CreateBatchSchema = z.object({
+  "name": z.union([z.string(), z.null()]).optional(),
+  "settings": z.union([BatchSettingsSchema, z.null()]).optional(),
+});
+export type CreateBatch = z.infer<typeof CreateBatchSchema>;
+
 export const CreateBroadcastSchema = z.object({
   "access": z.union([AccessSchema, z.null()]).optional(),
   "code": z.union([z.string(), z.null()]).optional(),
@@ -686,6 +826,9 @@ export const SettingsPatchSchema = z.object({
   "silenceAutoPauseS": z.union([z.number().int(), z.null()]).optional(),
   "speakerLabels": z.union([SpeakerLabelsSchema, z.null()]).optional(),
   "spokenLanguage": z.union([z.string(), z.null()]).optional(),
+  "summary": z.union([z.boolean(), z.null()]).optional(),
+  "summaryTranslations": z.union([z.boolean(), z.null()]).optional(),
+  "title": z.union([z.boolean(), z.null()]).optional(),
   "voice": z.union([z.boolean(), z.null()]).optional(),
   "voiceByLang": z.union([z.record(z.string(), z.string()), z.null()]).optional(),
 });
@@ -738,12 +881,6 @@ export const CropRangeSchema = z.object({
 });
 export type CropRange = z.infer<typeof CropRangeSchema>;
 
-export const CropWindowSchema = z.object({
-  "endS": z.union([z.number(), z.null()]).optional(),
-  "startS": z.number(),
-});
-export type CropWindow = z.infer<typeof CropWindowSchema>;
-
 export const DoneReasonSchema = z.enum(['eof', 'max_duration', 'cancelled']);
 export type DoneReason = z.infer<typeof DoneReasonSchema>;
 
@@ -793,31 +930,6 @@ export const InputOptionsSchema = z.object({
   "url": z.union([z.string(), z.null()]).optional(),
 });
 export type InputOptions = z.infer<typeof InputOptionsSchema>;
-
-export const JobProgressSchema = z.object({
-  "fetchTotalBytes": z.union([z.number().int(), z.null()]).optional(),
-  "fetchedBytes": z.union([z.number().int(), z.null()]).optional(),
-  "pct": z.number().int(),
-  "phase": z.union([z.string(), z.null()]).optional(),
-  "phasePct": z.union([z.number().int(), z.null()]).optional(),
-  "processedS": z.number(),
-  "segmentsDone": z.number().int(),
-  "segmentsTotal": z.union([z.number().int(), z.null()]).optional(),
-  "totalS": z.union([z.number(), z.null()]).optional(),
-});
-export type JobProgress = z.infer<typeof JobProgressSchema>;
-
-export const QueueReasonSchema = z.enum(['concurrency']);
-export type QueueReason = z.infer<typeof QueueReasonSchema>;
-
-export const JobQueueSchema = z.object({
-  "position": z.number().int(),
-  "reason": QueueReasonSchema,
-});
-export type JobQueue = z.infer<typeof JobQueueSchema>;
-
-export const JobStateSchema = z.union([z.literal("queued"), z.literal("fetching"), z.literal("transcribing"), z.literal("done"), z.literal("failed"), z.literal("cropping"), z.literal("stopped")]);
-export type JobState = z.infer<typeof JobStateSchema>;
 
 export const KnownVoiceSchema = z.object({
   "color": z.union([z.string(), z.null()]).optional(),
@@ -1047,20 +1159,6 @@ export const PublisherInfoSchema = z.object({
   "machineId": z.union([z.string(), z.null()]).optional(),
 });
 export type PublisherInfo = z.infer<typeof PublisherInfoSchema>;
-
-export const SourceKindSchema = z.enum(['file', 'url']);
-export type SourceKind = z.infer<typeof SourceKindSchema>;
-
-export const SourceInfoSchema = z.object({
-  "bytes": z.union([z.number().int(), z.null()]).optional(),
-  "durationS": z.union([z.number(), z.null()]).optional(),
-  "format": z.union([z.string(), z.null()]).optional(),
-  "kind": SourceKindSchema,
-  "mime": z.union([z.string(), z.null()]).optional(),
-  "name": z.string(),
-  "url": z.union([z.string(), z.null()]).optional(),
-});
-export type SourceInfo = z.infer<typeof SourceInfoSchema>;
 
 export const RecordingSchema = z.object({
   "createdAt": z.string(),
@@ -1568,52 +1666,6 @@ export const TranscriptSnapshotSchema = z.object({
   "state": RecordingStateSchema,
 });
 export type TranscriptSnapshot = z.infer<typeof TranscriptSnapshotSchema>;
-
-export const TranscriptionJobSchema = z.object({
-  "attempts": z.number().int(),
-  "createdAt": z.string(),
-  "crop": z.union([CropWindowSchema, z.null()]).optional(),
-  "error": z.union([z.string(), z.null()]).optional(),
-  "errorCode": z.union([z.string(), z.null()]).optional(),
-  "finishedAt": z.union([z.string(), z.null()]).optional(),
-  "hasAudio": z.boolean(),
-  "hasVideo": z.boolean().optional(),
-  "peaks": z.union([z.array(z.number()), z.null()]).optional(),
-  "preview": z.boolean().optional(),
-  "progress": JobProgressSchema,
-  "queue": z.union([JobQueueSchema, z.null()]).optional(),
-  "recordingId": z.string(),
-  "source": z.union([SourceInfoSchema, z.null()]).optional(),
-  "startedAt": z.union([z.string(), z.null()]).optional(),
-  "state": JobStateSchema,
-  "transcriptionId": z.string(),
-});
-export type TranscriptionJob = z.infer<typeof TranscriptionJobSchema>;
-
-export const TranscriptionSchema = z.object({
-  "archivedAt": z.union([z.string(), z.null()]).optional(),
-  "broadcasts": z.array(BroadcastRefSchema).optional(),
-  "code": z.string(),
-  "createdAt": z.string(),
-  "createdByApiKeyId": z.union([z.string(), z.null()]).optional(),
-  "currentRecording": z.union([CurrentRecordingSchema, z.null()]).optional(),
-  "id": z.string(),
-  "job": z.union([TranscriptionJobSchema, z.null()]).optional(),
-  "kind": z.literal("transcription"),
-  "lastRecordedAt": z.union([z.string(), z.null()]).optional(),
-  "lastRecording": z.union([LastRecordingSchema, z.null()]).optional(),
-  "lifecycle": LifecycleSchema,
-  "live": z.boolean().optional(),
-  "name": z.string(),
-  "ownerPrincipalId": z.string(),
-  "purgeAfter": z.union([z.string(), z.null()]).optional(),
-  "recordingCount": z.number().int(),
-  "settings": SettingsSchema,
-  "shareUrl": z.string(),
-  "source": CaptureSourceSchema,
-  "updatedAt": z.string(),
-});
-export type Transcription = z.infer<typeof TranscriptionSchema>;
 
 export const TranscriptionPageSchema = z.object({
   "nextCursor": z.union([z.string(), z.null()]).optional(),
