@@ -185,9 +185,12 @@ export class RealtimeSession implements AsyncIterable<SessionEvent> {
       });
       ws.addEventListener('close', () => {
         if (rejecting) return;
+        // No HTTP answer at all (a refused upgrade is `unexpected-response`
+        // above): the connection dropped on the way, as the Python and PHP
+        // SDKs say it — retryable, not a bad token.
         fail(
-          new VocalStackError('invalid_token', 'connection rejected or closed before ready', {
-            retryable: false,
+          new VocalStackError('engine_unavailable', 'connection closed before ready', {
+            retryable: true,
           }),
         );
       });
