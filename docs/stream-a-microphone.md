@@ -35,7 +35,7 @@ The SDKs' `connect` resolves at `session.ready` and fails if the server goes qui
 
 ## 3. Send audio
 
-Audio goes in as binary frames of raw PCM: 32-bit float little-endian, 16 kHz, mono (`pcm_f32le`). Send it as it is captured, in chunks of about 100 to 250 ms (6,400 to 16,000 bytes); there is no need to wait for the transcript between chunks. In a browser, `streamMicrophone` (`@vocalstack/sdk/mic`) asks for the microphone, resamples to 16 kHz, sends the chunks and the `clock` frames that let the server mark gaps when a tab is throttled.
+Audio goes in as binary frames of raw PCM: 32-bit float little-endian, 16 kHz, mono (`pcm_f32le`). Send it as it is captured, in chunks of about 100 to 250 ms (6,400 to 16,000 bytes); there is no need to wait for the transcript between chunks. In a browser, `streamMicrophone` (`@vocalstack/js-sdk/mic`) asks for the microphone, resamples to 16 kHz, sends the chunks and the `clock` frames that let the server mark gaps when a tab is throttled.
 
 You can change `spokenLanguage`, `translate`, `speakerLabels` or `latencyMode` mid-stream with a `session.update` text frame (`session.update(…)` in the SDKs); it applies to what follows.
 
@@ -77,7 +77,7 @@ Each program runs as it is once `VOCALSTACK_API_KEY` holds one of your API keys.
 ```typescript
 // Node: ffmpeg captures the microphone, the SDK streams it.
 import { spawn } from 'node:child_process';
-import { RealtimeSession, VocalStack } from '@vocalstack/sdk';
+import { RealtimeSession, VocalStack } from '@vocalstack/js-sdk';
 
 const vs = new VocalStack({ baseUrl: 'https://api.vocalstack.com', apiKey: process.env.VOCALSTACK_API_KEY });
 
@@ -116,8 +116,8 @@ console.log(`done (${session.doneReason})`, session.stats);
 ```typescript
 // In a web page: your server creates the session (the API key stays
 // there), and the page streams the microphone to its streamUrl.
-import { RealtimeSession, VocalStack } from '@vocalstack/sdk';
-import { streamMicrophone } from '@vocalstack/sdk/mic';
+import { RealtimeSession, VocalStack } from '@vocalstack/js-sdk';
+import { streamMicrophone } from '@vocalstack/js-sdk/mic';
 
 // On your server, behind a route of yours (POST /api/transcribe, say):
 const vs = new VocalStack({ baseUrl: 'https://api.vocalstack.com', apiKey: process.env.VOCALSTACK_API_KEY });

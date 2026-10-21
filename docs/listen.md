@@ -49,7 +49,7 @@ Each program runs as it is once `VOCALSTACK_API_KEY` holds one of your API keys.
 ### `listen.ts`
 
 ```typescript
-import { VocalStack } from '@vocalstack/sdk';
+import { VocalStack } from '@vocalstack/js-sdk';
 
 const vs = new VocalStack({ baseUrl: 'https://api.vocalstack.com', apiKey: process.env.VOCALSTACK_API_KEY });
 const recordingId = process.argv[2]!; // a grant's recording.id, or a transcription's currentRecording.recordingId

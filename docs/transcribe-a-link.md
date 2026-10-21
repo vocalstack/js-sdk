@@ -38,7 +38,7 @@ Each program runs as it is once `VOCALSTACK_API_KEY` holds one of your API keys.
 ### `link.ts`
 
 ```typescript
-import { VocalStack } from '@vocalstack/sdk';
+import { VocalStack } from '@vocalstack/js-sdk';
 
 const vs = new VocalStack({ baseUrl: 'https://api.vocalstack.com', apiKey: process.env.VOCALSTACK_API_KEY });
 const url = process.argv[2] ?? 'https://raw.githubusercontent.com/openai/whisper/main/tests/jfk.flac';

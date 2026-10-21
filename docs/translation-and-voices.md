@@ -57,7 +57,7 @@ Each program runs as it is once `VOCALSTACK_API_KEY` holds one of your API keys.
 ```typescript
 import { createReadStream } from 'node:fs';
 import { writeFile } from 'node:fs/promises';
-import { VocalStack, applySentence, type SentenceSegment } from '@vocalstack/sdk';
+import { VocalStack, applySentence, type SentenceSegment } from '@vocalstack/js-sdk';
 
 const vs = new VocalStack({ baseUrl: 'https://api.vocalstack.com', apiKey: process.env.VOCALSTACK_API_KEY });
 

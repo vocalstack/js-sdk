@@ -58,7 +58,7 @@ npx tsx quickstart.ts
 ### `quickstart.ts`
 
 ```typescript
-import { VocalStack } from '@vocalstack/sdk';
+import { VocalStack } from '@vocalstack/js-sdk';
 
 const vs = new VocalStack({ baseUrl: 'https://api.vocalstack.com', apiKey: process.env.VOCALSTACK_API_KEY });
 
