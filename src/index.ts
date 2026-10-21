@@ -1,7 +1,7 @@
 /**
  * The VocalStack SDK: one client, `VocalStack`, grouped by resource.
  *
- *   import { VocalStack } from '@vocalstack/js-sdk';
+ *   import { VocalStack } from '@vocalstack/sdk';
  *   const vs = new VocalStack({ apiKey: process.env.VOCALSTACK_API_KEY });
  *
  *   const tx = await vs.transcriptions.createFromUrl('https://example.com/talk.mp3');

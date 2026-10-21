@@ -60,7 +60,7 @@ Each program runs as it is once `VOCALSTACK_API_KEY` holds one of your API keys.
 
 ```typescript
 import { createHash, randomBytes } from 'node:crypto';
-import { VocalStack } from '@vocalstack/js-sdk';
+import { VocalStack } from '@vocalstack/sdk';
 
 const DASHBOARD = process.env.VOCALSTACK_DASHBOARD_URL ?? 'https://app.vocalstack.com';
 const REDIRECT_URI = 'https://example.com/api/vocalstack/callback';

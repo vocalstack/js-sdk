@@ -1,4 +1,4 @@
-# Publishes @vocalstack/contract and @vocalstack/js-sdk to npm when a GitHub
+# Publishes @vocalstack/contract and @vocalstack/sdk to npm when a GitHub
 # release is published in vocalstack/js-sdk (tag v<version>, the version in
 # package.json, e.g. v1.0.0-alpha.1).  npm trusts this repository, this
 # workflow and the `npm` environment (trusted publishing), so there is no

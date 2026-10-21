@@ -1,6 +1,6 @@
 {
-  "name": "@vocalstack/js-sdk",
-  "version": "2.0.0-alpha.0",
+  "name": "@vocalstack/sdk",
+  "version": "1.0.0-alpha.0",
   "description": "VocalStack speech API SDK for Node and browsers: one client (VocalStack) grouped by resource, typed from the generated contract, with realtime WebSocket streaming.",
   "license": "MIT",
   "type": "module",

@@ -756,7 +756,7 @@ for the web builds made before.
   "session" only for a realtime session.
 - **Removed**: the generated oRPC contract (`src/contract.ts`, the
   `contract` export and the `@orpc/contract` dependency): nothing used it
-  and it was incomplete; `@vocalstack/js-sdk` is the client.
+  and it was incomplete; `@vocalstack/sdk` is the client.
 
 ## [1.0.0-alpha.0] - 2026-10-03: first public surface
 
