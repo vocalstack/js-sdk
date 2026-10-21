@@ -1,0 +1,53 @@
+# Publishes @vocalstack/contract and @vocalstack/sdk to npm when a GitHub
+# release is published in vocalstack/js-sdk (tag v<version>, the version in
+# package.json, e.g. v1.0.0-alpha.1).  npm trusts this repository, this
+# workflow and the `npm` environment (trusted publishing), so there is no
+# token.  The contract goes first, only when its version is not on npm yet;
+# the SDK then depends on that version instead of file:contract.  A
+# prerelease version goes to the `next` dist-tag, everything else to `latest`.
+# Source: sdks/typescript/.github/ in the API's repository, mirrored.
+
+name: publish
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    environment: npm
+    permissions:
+      contents: read
+      id-token: write # npm trusted publishing + provenance
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          registry-url: 'https://registry.npmjs.org'
+      - name: the release tag matches package.json
+        run: |
+          version=$(node -p "require('./package.json').version")
+          [ "${GITHUB_REF_NAME}" = "v$version" ] || { echo "::error::ref ${GITHUB_REF_NAME} does not match version $version (want v$version)"; exit 1; }
+      - name: install + build + test
+        run: |
+          (cd contract && npm ci)
+          npm ci
+          npm run build
+          npm test
+      - name: npm publish (contract first; the SDK depends on it)
+        run: |
+          dist_tag() { case "$1" in *-*) echo next ;; *) echo latest ;; esac; }
+          contract=$(node -p "require('./contract/package.json').version")
+          if npm view "@vocalstack/contract@$contract" version >/dev/null 2>&1; then
+            echo "@vocalstack/contract $contract is already on npm"
+          else
+            (cd contract && npm publish --access public --tag "$(dist_tag "$contract")")
+          fi
+          npm pkg set "dependencies.@vocalstack/contract=$contract"
+          npm publish --access public --tag "$(dist_tag "$(node -p "require('./package.json').version")")"
