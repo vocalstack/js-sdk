@@ -1,11 +1,11 @@
-# @vocalstack/sdk
+# @vocalstack/js-sdk
 
 The VocalStack speech API for Node (20 or newer) and browsers: one client,
 `VocalStack`, with one group per resource, typed from the API's one OpenAPI
 document (`/v1/openapi.json`, generated into `@vocalstack/contract`).
 
 ```ts
-import { VocalStack } from '@vocalstack/sdk';
+import { VocalStack } from '@vocalstack/js-sdk';
 
 const vs = new VocalStack({ apiKey: process.env.VOCALSTACK_API_KEY }); // baseUrl defaults to https://api.vocalstack.com
 
@@ -21,7 +21,9 @@ const srt = await (await vs.recordings.export(job.recordingId, 'srt')).text();
 
 ## Install
 
-Not on npm yet. The API serves its own builds to every account: [https://api.vocalstack.com/docs/guides/quickstart.md](https://api.vocalstack.com/docs/guides/quickstart.md) has the install command for the current build (it sends your API key to that host only).
+```sh
+npm install @vocalstack/js-sdk
+```
 
 ## Guides
 
@@ -112,7 +114,7 @@ for await (const ev of sub) {
 }
 ```
 
-Browser microphone capture ships as `@vocalstack/sdk/mic`
+Browser microphone capture ships as `@vocalstack/js-sdk/mic`
 (`streamMicrophone(session, { onStall, onRecover })`).
 
 ## Errors

@@ -1,12 +1,12 @@
 ---
 name: vocalstack
-description: Use when writing Node or TypeScript code that calls the VocalStack speech API with @vocalstack/sdk, for example to transcribe an audio or video URL or a local file, stream live audio for realtime transcription, fetch or export a transcript (JSON, SRT, XLSX, PDF), or search transcripts. Covers installing, API keys, base URLs, five copy-paste programs and error handling (401, 402, 403, 429).
+description: Use when writing Node or TypeScript code that calls the VocalStack speech API with @vocalstack/js-sdk, for example to transcribe an audio or video URL or a local file, stream live audio for realtime transcription, fetch or export a transcript (JSON, SRT, XLSX, PDF), or search transcripts. Covers installing, API keys, base URLs, five copy-paste programs and error handling (401, 402, 403, 429).
 ---
 
 # VocalStack TypeScript SDK
 
 The VocalStack API transcribes speech (files, links, live audio), with speaker
-labels and translation. `@vocalstack/sdk` has one client, `VocalStack`, with
+labels and translation. `@vocalstack/js-sdk` has one client, `VocalStack`, with
 one group per resource: `vs.transcriptions`, `vs.jobs`, `vs.recordings`,
 `vs.broadcasts`, `vs.search`, `vs.realtime` and a few more (listed at the end).
 
@@ -30,14 +30,11 @@ one group per resource: `vs.transcriptions`, `vs.jobs`, `vs.recordings`,
 
 ```sh
 npm init -y && npm pkg set type=module   # in a new folder: the programs below are ESM
-npm i @vocalstack/sdk                    # Node 20 or newer
+npm i @vocalstack/js-sdk                    # Node 20 or newer
 ```
 
-Before the package is published, any account installs
-the private build its environment serves: the API reference's Install section
-(`<base>/docs`, or Developers -> API reference in the app) and `<base>/sdk/latest`
-give the exact commands, which send `VOCALSTACK_API_KEY` to that host only.
-Or install it from a clone of https://github.com/vocalstack/js-sdk. Build it
+To run code newer than the npm release, install it from a clone of
+https://github.com/vocalstack/js-sdk. Build it
 first (`npm run build` also builds the bundled `contract/` package):
 
 ```sh
@@ -66,7 +63,7 @@ for that transcription, so print the text without a speaker.
 Every program below starts like this:
 
 ```js
-import { VocalStack } from '@vocalstack/sdk';
+import { VocalStack } from '@vocalstack/js-sdk';
 const vs = new VocalStack({
   baseUrl: process.env.VOCALSTACK_BASE_URL, // absent: https://api.vocalstack.com
   apiKey: process.env.VOCALSTACK_API_KEY,
@@ -79,7 +76,7 @@ The server fetches the link itself, so it must be a public http(s) address.
 Private, loopback and cloud-metadata addresses are refused.
 
 ```js
-import { VocalStack } from '@vocalstack/sdk';
+import { VocalStack } from '@vocalstack/js-sdk';
 const vs = new VocalStack({ baseUrl: process.env.VOCALSTACK_BASE_URL, apiKey: process.env.VOCALSTACK_API_KEY });
 
 const tx = await vs.transcriptions.create({
@@ -100,7 +97,7 @@ console.log('recordingId', recordingId);
 ## 2. Transcribe a local file
 
 ```js
-import { VocalStack } from '@vocalstack/sdk';
+import { VocalStack } from '@vocalstack/js-sdk';
 const vs = new VocalStack({ baseUrl: process.env.VOCALSTACK_BASE_URL, apiKey: process.env.VOCALSTACK_API_KEY });
 
 const tx = await vs.transcriptions.create({
@@ -124,7 +121,7 @@ speakers. `recordings.export` returns the file as a `Response`: formats `json`,
 
 ```js
 import { writeFile } from 'node:fs/promises';
-import { VocalStack } from '@vocalstack/sdk';
+import { VocalStack } from '@vocalstack/js-sdk';
 const vs = new VocalStack({ baseUrl: process.env.VOCALSTACK_BASE_URL, apiKey: process.env.VOCALSTACK_API_KEY });
 const recordingId = process.argv[2];
 
@@ -141,11 +138,11 @@ A live transcription takes raw PCM: 32-bit float little-endian, 16 kHz, mono.
 Create it, start a recording, and open the publisher socket the grant names.
 Here ffmpeg decodes a file at realtime speed (`-re`). For a microphone, swap
 the input: `-f avfoundation -i :0` on macOS, `-f pulse -i default` on Linux.
-(`@vocalstack/sdk/mic` is for browsers, and browsers must not hold API keys.)
+(`@vocalstack/js-sdk/mic` is for browsers, and browsers must not hold API keys.)
 
 ```js
 import { spawn } from 'node:child_process';
-import { VocalStack } from '@vocalstack/sdk';
+import { VocalStack } from '@vocalstack/js-sdk';
 const vs = new VocalStack({ baseUrl: process.env.VOCALSTACK_BASE_URL, apiKey: process.env.VOCALSTACK_API_KEY });
 
 const tx = await vs.transcriptions.createLive({ name: 'Live demo', settings: { spokenLanguage: 'en' } });
@@ -173,7 +170,7 @@ To transcribe without storing anything, use a realtime session instead:
 ## 5. Search transcripts
 
 ```js
-import { VocalStack } from '@vocalstack/sdk';
+import { VocalStack } from '@vocalstack/js-sdk';
 const vs = new VocalStack({ baseUrl: process.env.VOCALSTACK_BASE_URL, apiKey: process.env.VOCALSTACK_API_KEY });
 
 const { hits } = await vs.search.query(process.argv[2] ?? 'country', { limit: 5 }); // q: 2+ characters
@@ -189,7 +186,7 @@ the whole batch. Its files get transcripts, exports and speaker labels (when
 `settings.speakerLabels` asks), never a summary, title, share link or voices.
 
 ```js
-import { VocalStack } from '@vocalstack/sdk';
+import { VocalStack } from '@vocalstack/js-sdk';
 const vs = new VocalStack({ baseUrl: process.env.VOCALSTACK_BASE_URL, apiKey: process.env.VOCALSTACK_API_KEY });
 
 const batch = await vs.batches.create({ name: 'Interviews', settings: { spokenLanguage: 'en' } });
@@ -224,7 +221,7 @@ twice by default (`maxRetries` on the client).
 | 503 | `unavailable` | The service is waking (its database was asleep). Retried automatically after `Retry-After` (2 s) on calls that are safe to repeat: GET, HEAD, DELETE, or any call with `{ idempotencyKey }`. A create without a key is not retried: retry it yourself, with an `idempotencyKey` so it cannot run twice. A realtime socket refused this way throws `unavailable`; a bare 503 there is `capacity_exceeded`. |
 
 ```js
-import { VocalStack, VocalStackError } from '@vocalstack/sdk';
+import { VocalStack, VocalStackError } from '@vocalstack/js-sdk';
 const vs = new VocalStack({ baseUrl: process.env.VOCALSTACK_BASE_URL, apiKey: process.env.VOCALSTACK_API_KEY });
 
 try {

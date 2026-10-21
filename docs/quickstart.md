@@ -23,10 +23,10 @@ A key is for servers and scripts. The API refuses one sent from a web page or in
 Three SDKs, one client each (`VocalStack`), grouped by resource: `vs.transcriptions`, `vs.jobs`, `vs.recordings`, `vs.realtime` and a few more (`$vs->transcriptions` and so on in PHP). TypeScript runs on Node 20 or newer and in browsers; Python is asyncio, 3.10 or newer; PHP is synchronous, 8.1 or newer, installed with Composer.
 
 ```sh
-# Not on npm yet: https://api.vocalstack.com/docs/guides/quickstart.md has the install command for the current build
+npm install @vocalstack/js-sdk
 ```
 
-The SDK is not on npm yet: the API serves its builds to every account, and the commands send your key to the API's host only. With HTTP + WebSocket there is nothing to install: the programs use curl and jq, and Node 22's built-in WebSocket (any WebSocket client works).
+Each SDK installs from its registry: npm, PyPI or Packagist. With HTTP + WebSocket there is nothing to install: the programs use curl and jq, and Node 22's built-in WebSocket (any WebSocket client works).
 
 ## 3. Transcribe a file
 
@@ -50,7 +50,7 @@ Each program runs as it is once `VOCALSTACK_API_KEY` holds one of your API keys.
 export VOCALSTACK_API_KEY="<your API key>"
 mkdir vocalstack-quickstart && cd vocalstack-quickstart
 npm init -y && npm pkg set type=module
-# Not on npm yet: https://api.vocalstack.com/docs/guides/quickstart.md has the install command for the current build
+npm install @vocalstack/js-sdk
 npm install --save-dev tsx
 npx tsx quickstart.ts
 ```
@@ -58,7 +58,7 @@ npx tsx quickstart.ts
 ### `quickstart.ts`
 
 ```typescript
-import { VocalStack } from '@vocalstack/sdk';
+import { VocalStack } from '@vocalstack/js-sdk';
 
 const vs = new VocalStack({ baseUrl: 'https://api.vocalstack.com', apiKey: process.env.VOCALSTACK_API_KEY });
 
