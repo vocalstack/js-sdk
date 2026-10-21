@@ -12,13 +12,13 @@
 | `GET /v1/batches/{id}` | Get a batch |
 | `GET /v1/batches/{id}/export` | Download a batch's transcripts |
 
-A batch is several files transcribed together, for less than a transcription each: the batch counts once against the plan's transcriptions created per hour, and it is billed by the second of audio with one minimum charge for the whole batch, not one per file. Each file is still a transcription of its own (its `batchId` names the batch), with its job, transcript, audio and exports, and speaker labels when the batch asks for them. A batch's files never get a summary, a title, a share link or spoken translations.
+A batch is several files transcribed together, for less than a transcription each: the batch counts once against the plan's transcriptions created per hour, and it is billed by the second of audio, each file for at least a minute (`rates.batchFileMinimumSeconds`) and the whole batch for at least one minimum charge, not one per file. Each file is still a transcription of its own (its `batchId` names the batch), with its job, transcript, audio and exports, and speaker labels when the batch asks for them. A batch's files never get a summary, a title, a share link or spoken translations.
 
 Create the batch, add each file or link, start it, then wait for it to be `done`.
 
 ## 1. Create the batch
 
-`POST /v1/batches` answers `201` with an `open` batch. The body is optional: a `name` (by default the batch is named for its date) and `settings` every file runs with, `spokenLanguage` (absent: detected per file), `speakerLabels` (`off` by default, `auto` or `on`) and `latencyMode`.
+`POST /v1/batches` answers `201` with an `open` batch. The body is optional: a `name` (by default the batch is named for its date) and `settings` every file runs with, `spokenLanguage` (absent: detected per file; name it when you know it, and each file starts sooner), `speakerLabels` (`off` by default, `auto` or `on`) and `latencyMode`.
 
 ## 2. Add the files
 

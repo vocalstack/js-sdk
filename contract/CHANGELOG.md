@@ -20,6 +20,13 @@ One line per change, naming the operation (`METHOD /path`, its
 
 ## [Unreleased]
 
+### Minimum per file of a batch (2026-10-21, still `1.0.0-alpha.0`)
+
+- **Added**: `Rates.batchFileMinimumSeconds` (`GET /v1/billing` `billing.get`, `rates` and `pendingChange.rates`; `GET /v1/billing/plans` `billing.plans`): each file of a batch is billed at least this much audio (Pay as you go and Premium 60, Enterprise 0), the batch as a whole still at least `minimumSeconds`, topped up once when the batch closes.
+- **Changed**: `POST /v1/batches/{id}/start` (`batches.start`) needs credit for the larger of the batch's minimum and a minute for each of its files.
+- **Changed**: `BatchSettings.spokenLanguage` documents that a named language lets each file skip its language detection and start sooner.
+- **Changed**: the API overview and `insufficient_credit` describe the minimum per file of a batch (`rates.batchFileMinimumSeconds`) next to `rates.minimumSeconds`.
+
 ### Batches of files (2026-10-20, still `1.0.0-alpha.0`)
 
 - **Added**: `POST /v1/batches` (`batches.create`), `GET /v1/batches` (`batches.list`), `GET /v1/batches/{id}` (`batches.get`), `DELETE /v1/batches/{id}` (`batches.delete`, an unstarted batch only), `POST /v1/batches/{id}/files` (`batches.addFile`), `POST /v1/batches/{id}/start` (`batches.start`), `POST /v1/batches/{id}/stop` (`batches.stop`); schemas `Batch`, `BatchPage`, `BatchSettings`, `BatchCounts`, `CreateBatch`. A batch is one create against `creates_per_hour` and pays one minimum between its files; its files run longest first on the account's free concurrency, with no summary, title, share link or voices.

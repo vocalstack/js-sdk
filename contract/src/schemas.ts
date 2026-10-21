@@ -443,6 +443,7 @@ export const PriceChangeSchema = z.object({
 export type PriceChange = z.infer<typeof PriceChangeSchema>;
 
 export const RatesSchema = z.object({
+  "batchFileMinimumSeconds": z.number().int().optional(),
   "filePerHour": z.number(),
   "livePerHour": z.number(),
   "minimumSeconds": z.number().int(),
