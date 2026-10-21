@@ -21,7 +21,9 @@ const srt = await (await vs.recordings.export(job.recordingId, 'srt')).text();
 
 ## Install
 
-Not on npm yet. The API serves its own builds to every account: [https://api.vocalstack.com/docs/guides/quickstart.md](https://api.vocalstack.com/docs/guides/quickstart.md) has the install command for the current build (it sends your API key to that host only).
+```sh
+npm install @vocalstack/js-sdk
+```
 
 ## Guides
 
