@@ -14,6 +14,7 @@ import type {
   SessionOptions,
   SessionStats,
   SpeakerLabels,
+  WarmRequest,
 } from '@vocalstack/contract';
 
 import { capacityExceeded, fromEnvelope, VocalStackError } from './errors.js';
@@ -469,6 +470,14 @@ export class Realtime {
   /** `GET /v1/realtime/capabilities`: languages, audio formats, limits. */
   capabilities(): Promise<Capabilities> {
     return this.#t.json('GET', '/v1/realtime/capabilities');
+  }
+
+  /** `POST /v1/realtime/warm`: a person is using a screen that can start a
+   * live transcription, so the one they start next is ready at once.  Send
+   * it on real use (input, focus, a visible window), at most every 30 s,
+   * and at once when the selected spoken language changes. */
+  async warm(req: WarmRequest): Promise<void> {
+    await this.#t.json('POST', '/v1/realtime/warm', { body: req });
   }
 
   /** Stream an encoded file (mp3, wav, flac, ogg, m4a…) through a realtime

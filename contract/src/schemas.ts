@@ -686,6 +686,9 @@ export const ClientFrameSchema = z.discriminatedUnion('type', [z.object({
 })]);
 export type ClientFrame = z.infer<typeof ClientFrameSchema>;
 
+export const ClientKindSchema = z.enum(['dashboard', 'chrome_extension', 'mac_app', 'obs_plugin', 'sdk', 'other']);
+export type ClientKind = z.infer<typeof ClientKindSchema>;
+
 export const DecoderSchema = z.union([z.literal("fast"), z.literal("accuracy")]);
 export type Decoder = z.infer<typeof DecoderSchema>;
 
@@ -960,6 +963,17 @@ export const LanguageListsSchema = z.object({
 });
 export type LanguageLists = z.infer<typeof LanguageListsSchema>;
 
+export const LanguageMismatchSchema = z.object({
+  "confidence": z.union([z.number(), z.null()]).optional(),
+  "detected": z.union([z.string(), z.null()]).optional(),
+  "fromMediaS": z.union([z.number(), z.null()]).optional(),
+  "toMediaS": z.union([z.number(), z.null()]).optional(),
+});
+export type LanguageMismatch = z.infer<typeof LanguageMismatchSchema>;
+
+export const LanguageStatusStateSchema = z.enum(['matches', 'mismatch', 'unknown', 'change_unsupported']);
+export type LanguageStatusState = z.infer<typeof LanguageStatusStateSchema>;
+
 export const LedgerEntrySchema = z.object({
   "amount": z.number(),
   "balanceAfter": z.number(),
@@ -1169,6 +1183,7 @@ export const RecordingSchema = z.object({
   "id": z.string(),
   "ingest": z.union([StreamIngestSchema, z.null()]).optional(),
   "kind": RecordingKindSchema,
+  "languageMismatches": z.array(LanguageMismatchSchema).optional(),
   "lastSeq": z.number().int(),
   "lifecycle": LifecycleSchema,
   "maxDurationS": z.number().int(),
@@ -1429,6 +1444,24 @@ export const ServerFrameSchema = z.discriminatedUnion('type', [z.object({
   "state": VoiceStatusStateSchema,
   "type": z.literal("transcript.voiceStatus"),
   "voiceKey": z.string().optional(),
+}), z.object({
+  "confidence": z.union([z.number(), z.null()]).optional(),
+  "detected": z.union([z.string(), z.null()]).optional(),
+  "expected": z.string(),
+  "fromMediaS": z.union([z.number(), z.null()]).optional(),
+  "message": z.string(),
+  "state": LanguageStatusStateSchema,
+  "type": z.literal("transcript.languageStatus"),
+}), z.object({
+  "fromMediaS": z.number(),
+  "seqs": z.array(z.number().int()),
+  "type": z.literal("transcript.retracted"),
+}), z.object({
+  "fromMediaS": z.number(),
+  "held": z.boolean(),
+  "language": z.union([z.string(), z.null()]).optional(),
+  "outcome": z.union([z.string(), z.null()]).optional(),
+  "type": z.literal("transcript.held"),
 }), z.object({
   "processedS": z.number(),
   "totalS": z.union([z.number(), z.null()]).optional(),
@@ -1818,6 +1851,13 @@ export const VoiceTrackSchema = z.object({
 }).optional(),
 });
 export type VoiceTrack = z.infer<typeof VoiceTrackSchema>;
+
+export const WarmRequestSchema = z.object({
+  "canStart": z.boolean(),
+  "clientKind": ClientKindSchema,
+  "spokenLanguage": z.union([z.string(), z.null()]).optional(),
+});
+export type WarmRequest = z.infer<typeof WarmRequestSchema>;
 
 export const YearlyOptInSchema = z.object({
   "acceptTerms": z.boolean().optional(),

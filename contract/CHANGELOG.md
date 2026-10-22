@@ -20,6 +20,15 @@ One line per change, naming the operation (`METHOD /path`, its
 
 ## [Unreleased]
 
+### Instant start (2026-10-22, still `1.0.0-alpha.0`)
+
+- **Added**: the `transcript.languageStatus` frame (`expected`, `state`: `matches`, `mismatch`, `unknown` or `change_unsupported`, `detected`, `confidence`, `fromMediaS`, `message`): a stream pinned to a spoken language says whether the speech is that language; not an error, the stream goes on. Sent on the stream's socket and the host's subscription, never to listeners.
+- **Added**: `Recording.languageMismatches` (`LanguageMismatch`: `fromMediaS`, `toMediaS`, `detected`, `confidence`): where a pinned recording's speech was another language. The owner's only.
+- **Added**: the `transcript.retracted` frame (`seqs`, `fromMediaS`): committed rows taken back because the speech there was another language than the engine that wrote them could read; another engine transcribes it again and its rows follow. Drop them wherever they are shown.
+- **Added**: `transcript.languageStatus.state` `change_unsupported` is sent when a stream can't take a change of its spoken language.
+- **Added**: the `transcript.held` frame (`held`, `fromMediaS`, `language`, `outcome`): from `fromMediaS` the speech may be another language than the engine reads, and its rows wait until that is known; show a placeholder there. `held: false` ends it: the rows went out after all (`released`), another engine writes that span again and its rows follow (`moved`), or it is read again once the recording ends (`untranscribed`).
+- **Added**: `POST /v1/realtime/warm` (`realtime.warm`), body `WarmRequest` (`clientKind`, `canStart`, `spokenLanguage`): a client says a person is using a screen that can start a live transcription, so the one they start next is ready at once; 204, nothing billed.
+
 ### Minimum per file of a batch (2026-10-21, still `1.0.0-alpha.0`)
 
 - **Added**: `Rates.batchFileMinimumSeconds` (`GET /v1/billing` `billing.get`, `rates` and `pendingChange.rates`; `GET /v1/billing/plans` `billing.plans`): each file of a batch is billed at least this much audio (Pay as you go and Premium 60, Enterprise 0), the batch as a whole still at least `minimumSeconds`, topped up once when the batch closes.

@@ -1494,6 +1494,17 @@
             }
           ]
         },
+        "ClientKind": {
+          "enum": [
+            "dashboard",
+            "chrome_extension",
+            "mac_app",
+            "obs_plugin",
+            "sdk",
+            "other"
+          ],
+          "type": "string"
+        },
         "CommittedSegment": {
           "properties": {
             "catchup": {
@@ -2989,6 +3000,53 @@
           ],
           "type": "object"
         },
+        "LanguageMismatch": {
+          "description": "`Recording.languageMismatches`: a stretch where the speech was not the\npinned spoken language.",
+          "properties": {
+            "confidence": {
+              "description": "How sure, 0-1.",
+              "format": "double",
+              "type": [
+                "number",
+                "null"
+              ]
+            },
+            "detected": {
+              "description": "The language heard instead.",
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "fromMediaS": {
+              "description": "Media seconds where it began.",
+              "format": "double",
+              "type": [
+                "number",
+                "null"
+              ]
+            },
+            "toMediaS": {
+              "description": "Where the pinned language came back; absent while it lasts.",
+              "format": "double",
+              "type": [
+                "number",
+                "null"
+              ]
+            }
+          },
+          "type": "object"
+        },
+        "LanguageStatusState": {
+          "description": "`transcript.languageStatus.state`.",
+          "enum": [
+            "matches",
+            "mismatch",
+            "unknown",
+            "change_unsupported"
+          ],
+          "type": "string"
+        },
         "LastRecording": {
           "description": "A live transcription's newest recording (`lastRecording`): what\nits row in a list reads from — how long it ran, when, and whether it is\nstill running — and the recording a tap on that row opens.",
           "properties": {
@@ -4284,6 +4342,13 @@
             },
             "kind": {
               "$ref": "#/components/schemas/RecordingKind"
+            },
+            "languageMismatches": {
+              "description": "Pinned to a spoken language, where the speech was another\n(`transcript.languageStatus`): one span each, in media seconds.\nThe owner's only.",
+              "items": {
+                "$ref": "#/components/schemas/LanguageMismatch"
+              },
+              "type": "array"
             },
             "lastSeq": {
               "description": "Highest published frame sequence (-1 = none yet).",
@@ -5682,6 +5747,118 @@
                 "lang",
                 "state",
                 "detail"
+              ],
+              "type": "object"
+            },
+            {
+              "description": "A stream pinned to a spoken language: whether the speech is that\nlanguage.  Not an error: the stream goes on in the language it was\ngiven.  `mismatch` follows 30 s or more of another language within\na few minutes and clears (`matches`) after about two minutes of the\npinned one; `unknown` until either is clear.  `change_unsupported`:\na change of the spoken language this stream could not take; it goes\non in `expected`.  Sent on a change only, to the stream's own socket\nand the host's subscription, never to listeners.",
+              "properties": {
+                "confidence": {
+                  "description": "How sure, 0-1 (`mismatch`).",
+                  "format": "double",
+                  "type": [
+                    "number",
+                    "null"
+                  ]
+                },
+                "detected": {
+                  "description": "The language heard instead (`mismatch`).",
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "expected": {
+                  "description": "The pinned language.",
+                  "type": "string"
+                },
+                "fromMediaS": {
+                  "description": "Media seconds where the other language began (`mismatch`).",
+                  "format": "double",
+                  "type": [
+                    "number",
+                    "null"
+                  ]
+                },
+                "message": {
+                  "description": "What to tell the person.",
+                  "type": "string"
+                },
+                "state": {
+                  "$ref": "#/components/schemas/LanguageStatusState"
+                },
+                "type": {
+                  "const": "transcript.languageStatus",
+                  "type": "string"
+                }
+              },
+              "required": [
+                "type",
+                "expected",
+                "state",
+                "message"
+              ],
+              "type": "object"
+            },
+            {
+              "description": "Committed rows taken back: the speech there was another language\nthan the engine that wrote them could read, and another engine is\ntranscribing it again; its rows follow, under these `seq`s again or\nnew ones.  Drop them wherever they are shown.",
+              "properties": {
+                "fromMediaS": {
+                  "description": "Media seconds from which the transcript is being redone.",
+                  "format": "double",
+                  "type": "number"
+                },
+                "seqs": {
+                  "items": {
+                    "format": "int64",
+                    "type": "integer"
+                  },
+                  "type": "array"
+                },
+                "type": {
+                  "const": "transcript.retracted",
+                  "type": "string"
+                }
+              },
+              "required": [
+                "type",
+                "seqs",
+                "fromMediaS"
+              ],
+              "type": "object"
+            },
+            {
+              "description": "Text held back (`held`): from `fromMediaS` the speech may be\nanother language than the engine reads, and its rows wait until\nthat is known; show a placeholder there.  Then (`held: false`) the\nrows went out after all (`outcome` `released`), another engine\nwrites that span again and its rows follow (`moved`), or it is read\nagain once the recording ends (`untranscribed`).",
+              "properties": {
+                "fromMediaS": {
+                  "format": "double",
+                  "type": "number"
+                },
+                "held": {
+                  "type": "boolean"
+                },
+                "language": {
+                  "description": "The language heard there, when known.",
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "outcome": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "type": {
+                  "const": "transcript.held",
+                  "type": "string"
+                }
+              },
+              "required": [
+                "type",
+                "held",
+                "fromMediaS"
               ],
               "type": "object"
             },
@@ -8465,6 +8642,33 @@
             "voiceKey",
             "state",
             "clips"
+          ],
+          "type": "object"
+        },
+        "WarmRequest": {
+          "additionalProperties": false,
+          "description": "What a client says on activity.",
+          "properties": {
+            "canStart": {
+              "description": "Whether the screen the person is on can start a live transcription now.\nOnly those keep an engine ready.",
+              "type": "boolean"
+            },
+            "clientKind": {
+              "$ref": "#/components/schemas/ClientKind",
+              "description": "Which client: `dashboard`, `chrome_extension`, `mac_app`, `obs_plugin`, `sdk` or `other`."
+            },
+            "spokenLanguage": {
+              "default": null,
+              "description": "The spoken language selected there: a language code, or absent (or\n`auto`) for auto-detect.",
+              "type": [
+                "string",
+                "null"
+              ]
+            }
+          },
+          "required": [
+            "clientKind",
+            "canStart"
           ],
           "type": "object"
         },
@@ -12376,6 +12580,64 @@
           "x-vocalstack-auth": "key",
           "x-vocalstack-scopes": [
             "write"
+          ]
+        }
+      },
+      "/v1/realtime/warm": {
+        "post": {
+          "description": "Say that a person is using a screen that can start a live transcription (`canStart`), so the live transcription they start next is ready at once instead of waiting for an engine to load. Send it on real use — input, focus, a visible window — at most every 30 seconds, and at once when the spoken language selected there changes; an open window nobody uses should not send it. Two minutes after the last one, nothing is kept. `spokenLanguage` is the language selected on that screen (absent for auto-detect). It starts nothing and bills nothing.",
+          "operationId": "realtime.warm",
+          "requestBody": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WarmRequest"
+                }
+              }
+            },
+            "required": true
+          },
+          "responses": {
+            "204": {
+              "description": "Noted.",
+              "headers": {
+                "RateLimit-Limit": {
+                  "$ref": "#/components/headers/RateLimit-Limit"
+                },
+                "RateLimit-Remaining": {
+                  "$ref": "#/components/headers/RateLimit-Remaining"
+                },
+                "RateLimit-Reset": {
+                  "$ref": "#/components/headers/RateLimit-Reset"
+                },
+                "X-Request-Id": {
+                  "$ref": "#/components/headers/X-Request-Id"
+                }
+              }
+            },
+            "429": {
+              "$ref": "#/components/responses/RateLimited"
+            },
+            "503": {
+              "$ref": "#/components/responses/Unavailable"
+            }
+          },
+          "security": [
+            {
+              "bearerAuth": []
+            }
+          ],
+          "summary": "Keep an engine ready",
+          "tags": [
+            "realtime"
+          ],
+          "x-errors": [
+            "invalid_options",
+            "forbidden"
+          ],
+          "x-vocalstack-auth": "userOrKey",
+          "x-vocalstack-scopes": [
+            "recordings:publish"
           ]
         }
       },
