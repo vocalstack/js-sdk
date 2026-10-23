@@ -51,3 +51,45 @@ test('a realtime session hands every frame to onFrame, lifecycle frames included
     wss.close();
   }
 });
+
+test('a realtime socket that closes with no session.done is an engine_lost error, not a quiet end', async () => {
+  const wss = new WebSocketServer({ port: 0 });
+  await new Promise((r) => wss.once('listening', r));
+  wss.on('connection', (ws) => {
+    ws.send(JSON.stringify({ type: 'session.ready', sessionId: 's1' }));
+    ws.send(JSON.stringify({ type: 'transcript.committed', segment: { seq: 0, start: 0, end: 1, text: 'before the loss', speaker: 0, words: [] } }));
+    // The engine's machine is gone: the connection just ends.
+    setTimeout(() => ws.terminate(), 20);
+  });
+  try {
+    const url = `ws://127.0.0.1:${wss.address().port}/v1/realtime/sessions/t/socket`;
+    const session = await RealtimeSession.connect({ sessionId: 's1', streamUrl: url });
+    const events = [];
+    await assert.rejects(
+      (async () => {
+        for await (const ev of session) events.push(ev.type);
+      })(),
+      (e) => e.code === 'engine_lost' && e.retryable === true,
+    );
+    assert.deepEqual(events, ['transcript.committed'], 'what came before the loss is still read');
+    assert.equal(session.doneReason, null);
+  } finally {
+    wss.close();
+  }
+});
+
+test('a realtime socket closed by close() ends quietly', async () => {
+  const wss = new WebSocketServer({ port: 0 });
+  await new Promise((r) => wss.once('listening', r));
+  wss.on('connection', (ws) => ws.send(JSON.stringify({ type: 'session.ready', sessionId: 's1' })));
+  try {
+    const url = `ws://127.0.0.1:${wss.address().port}/v1/realtime/sessions/t/socket`;
+    const session = await RealtimeSession.connect({ sessionId: 's1', streamUrl: url });
+    setTimeout(() => session.close(), 20);
+    const events = [];
+    for await (const ev of session) events.push(ev.type);
+    assert.deepEqual(events, []);
+  } finally {
+    wss.close();
+  }
+});

@@ -20,6 +20,10 @@ One line per change, naming the operation (`METHOD /path`, its
 
 ## [Unreleased]
 
+### A lost engine is said (2026-10-23, still `1.0.0-alpha.0`)
+
+- **Added**: the `ErrorCode` `engine_lost`: the engine serving an open realtime socket went away mid-stream and no other engine could carry the stream on. Sent as an `error` frame (`retryable: true`) just before the socket closes with 1011; the SDKs report a socket that closes with neither `session.done` nor an `error` frame the same way.
+
 ### Instant start (2026-10-22, still `1.0.0-alpha.0`)
 
 - **Added**: the `transcript.languageStatus` frame (`expected`, `state`: `matches`, `mismatch`, `unknown` or `change_unsupported`, `detected`, `confidence`, `fromMediaS`, `message`): a stream pinned to a spoken language says whether the speech is that language; not an error, the stream goes on. Sent on the stream's socket and the host's subscription, never to listeners.

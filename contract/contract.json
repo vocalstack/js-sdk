@@ -2447,6 +2447,11 @@
               "type": "string"
             },
             {
+              "const": "engine_lost",
+              "description": "The engine serving an open realtime socket went away mid-stream (its\nmachine stopped or crashed) and no other engine could carry the\nstream on: what was committed before stays, nothing after it was\ntranscribed.  Sent as an `error` frame just before the socket\ncloses (1011), and what the SDKs report when the socket closes\nwith neither `session.done` nor an `error` frame.  Retryable: open\na new realtime session (a recording: start again) to go on.",
+              "type": "string"
+            },
+            {
               "const": "forbidden",
               "description": "The authenticated actor may not act on this resource.",
               "type": "string"

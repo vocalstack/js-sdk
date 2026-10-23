@@ -31,7 +31,7 @@ This call takes an API key, so it belongs on your server. A web page asks your s
 
 Connect to `streamUrl` as it is, with no header: the token is in the URL. While a machine warms up the server sends `session.loading` heartbeats (`stage`: `download`, then `model`), then `session.ready`. Send audio only after `session.ready`.
 
-The SDKs' `connect` resolves at `session.ready` and fails if the server goes quiet for 30 s (`readyDeadlineMs`): with no frame at all that is `capacity_exceeded` (every machine is busy), after loading frames `engine_unavailable`. A refused upgrade carries the error envelope: `401 invalid_token`, `410 session_expired`, `503 unavailable` (retry after `Retry-After`).
+The SDKs' `connect` resolves at `session.ready` and fails if the server goes quiet for 30 s (`readyDeadlineMs`): with no frame at all that is `capacity_exceeded` (every machine is busy), after loading frames `engine_unavailable`. Once ready, a socket that closes before `session.done` (the engine went away mid-stream) ends the iteration with `engine_lost` (retryable: start again), never a quiet end. A refused upgrade carries the error envelope: `401 invalid_token`, `410 session_expired`, `503 unavailable` (retry after `Retry-After`).
 
 ## 3. Send audio
 

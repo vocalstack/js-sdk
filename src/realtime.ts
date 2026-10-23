@@ -59,6 +59,20 @@ export interface ConnectParams {
 
 const DEFAULT_READY_DEADLINE_MS = 30_000;
 
+/** A ready socket that closed with neither `session.done` nor an `error`
+ * frame, and not by `close()`: the engine went away mid-stream (its
+ * machine stopped or crashed) or the connection to it dropped.  What was
+ * committed before stays; nothing after it was transcribed.  Retryable:
+ * open a new realtime session to go on (there is no resume). */
+export function engineLost(closeCode?: number): VocalStackError {
+  const how = closeCode ? ` (close ${closeCode})` : '';
+  return new VocalStackError(
+    'engine_lost',
+    `The connection to the transcription engine closed before the realtime session finished${how}; open a new realtime session to continue.`,
+    { retryable: true },
+  );
+}
+
 /** A refused socket upgrade as an error.  A 503 carrying the error body
  * with `unavailable` (the database is waking; retry shortly) says so; any
  * other 503 — a bare one from a saturated proxy, or no body at all — is
@@ -92,6 +106,8 @@ export class RealtimeSession implements AsyncIterable<SessionEvent> {
   #stats: SessionStats | null = null;
   #error: VocalStackError | null = null;
   #closed = false;
+  /** `close()` was called: the socket's end is ours, not a lost engine. */
+  #closedByUs = false;
   #onFrame: ((frame: ServerFrame) => void) | undefined;
 
   private constructor(sessionId: string, ws: WsLike, onFrame?: (frame: ServerFrame) => void) {
@@ -248,8 +264,13 @@ export class RealtimeSession implements AsyncIterable<SessionEvent> {
           break;
       }
     });
-    this.#ws.addEventListener('close', () => {
+    this.#ws.addEventListener('close', (ev: any) => {
       this.#closed = true;
+      // Closed under us before the session said how it ended: not a
+      // silent end of the transcript, the engine was lost.
+      if (!this.#endReason && !this.#error && !this.#closedByUs) {
+        this.#error = engineLost(typeof ev?.code === 'number' ? ev.code : undefined);
+      }
       this.#wake?.();
     });
   }
@@ -359,6 +380,7 @@ export class RealtimeSession implements AsyncIterable<SessionEvent> {
 
   close(): void {
     this.#closed = true;
+    this.#closedByUs = true;
     try {
       this.#ws.close();
     } catch {
