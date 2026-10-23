@@ -4,6 +4,8 @@ The VocalStack speech API for Node (20 or newer) and browsers: one client,
 `VocalStack`, with one group per resource, typed from the API's one OpenAPI
 document (`/v1/openapi.json`, generated into `@vocalstack/contract`).
 
+Read more about the [VocalStack JavaScript SDK](https://vocalstack.com/#developers) and our other SDKs on the [VocalStack website](https://vocalstack.com/).
+
 ```ts
 import { VocalStack } from '@vocalstack/js-sdk';
 
