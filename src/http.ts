@@ -1,4 +1,4 @@
-import { fromEnvelope, fromOAuth } from './errors.js';
+import { VocalStackError, fromEnvelope, fromOAuth } from './errors.js';
 
 export type Query = Record<string, string | number | boolean | undefined | null>;
 
@@ -135,13 +135,23 @@ export class Transport {
       init.body === undefined ? undefined : form ? (init.body as FormData) : urlencoded ? String(init.body) : JSON.stringify(init.body);
     const maxRetries = init.noRetry ? 0 : (this.opts.maxRetries ?? 2);
     for (let attempt = 0; ; attempt++) {
-      const res = await this.#fetch(this.url(path, init.query), {
-        method,
-        headers,
-        body,
-        redirect: 'manual',
-        signal: init.signal,
-      });
+      // No answer at all (offline, DNS, refused): a VocalStackError like
+      // any other, with no address in its message; the cause is kept.
+      let res: Response;
+      try {
+        res = await this.#fetch(this.url(path, init.query), {
+          method,
+          headers,
+          body,
+          redirect: 'manual',
+          signal: init.signal,
+        });
+      } catch (e) {
+        if ((e as { name?: string } | null)?.name === 'AbortError') throw e;
+        const err = new VocalStackError('unavailable', 'could not reach the VocalStack API', { retryable: true });
+        (err as { cause?: unknown }).cause = e;
+        throw err;
+      }
       if (res.ok || (res.status >= 300 && res.status < 400)) return res;
       const text = await res.text().catch(() => '');
       let json: unknown = null;
@@ -169,6 +179,11 @@ export class Transport {
     const res = await this.raw(method, path, init);
     if (res.status >= 300 && res.status < 400) return { location: res.headers.get('location') } as T;
     const text = await res.text();
-    return (text ? JSON.parse(text) : undefined) as T;
+    if (!text) return undefined as T;
+    try {
+      return JSON.parse(text) as T;
+    } catch {
+      throw new VocalStackError('internal', 'the API answered with a body that is not JSON', { status: res.status, headers: res.headers, requestId: res.headers.get('x-request-id') ?? undefined });
+    }
   }
 }
