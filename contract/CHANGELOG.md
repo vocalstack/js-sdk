@@ -20,6 +20,10 @@ One line per change, naming the operation (`METHOD /path`, its
 
 ## [Unreleased]
 
+### Staff flag on me (2026-10-24, still `1.0.0-alpha.0`)
+
+- **Added**: `GET /v1/me` (`me.get`) returns `staff` (boolean): whether the person behind the credential is VocalStack staff, also for a key a person owns. False for every customer. The desktop app shows its environment picker on it.
+
 ### Apps' version policy (2026-10-24, still `1.0.0-alpha.0`)
 
 - **Added**: `GET /v1/clients/{client}` (`meta.clientPolicy`), no credential: a VocalStack app's version policy (`ClientPolicy`: `latest`, a `ClientRelease` with `version`, `url`, `bytes`, `sha256`, `signature`, `notes`, or `null`; `deprecatedBelow`; `unsupportedBelow`; `message`, `ClientMessages`). `client` is a `ClientApp`: `mac_app`. The SDKs' `meta.clientPolicy` (Python `meta.client_policy`).

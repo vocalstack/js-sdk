@@ -12509,6 +12509,10 @@
                         },
                         "type": "array"
                       },
+                      "staff": {
+                        "description": "Whether the person behind the credential is VocalStack staff. False for every customer.",
+                        "type": "boolean"
+                      },
                       "userId": {
                         "format": "uuid",
                         "type": [
@@ -12522,7 +12526,8 @@
                       "displayName",
                       "principals",
                       "scopes",
-                      "reach"
+                      "reach",
+                      "staff"
                     ],
                     "type": "object"
                   }
