@@ -667,6 +667,9 @@ export const CheckoutViewSchema = z.object({
 });
 export type CheckoutView = z.infer<typeof CheckoutViewSchema>;
 
+export const ClientAppSchema = z.literal("mac_app");
+export type ClientApp = z.infer<typeof ClientAppSchema>;
+
 export const ClientFrameSchema = z.discriminatedUnion('type', [z.object({
   "type": z.literal("eof"),
 }), z.object({
@@ -688,6 +691,30 @@ export type ClientFrame = z.infer<typeof ClientFrameSchema>;
 
 export const ClientKindSchema = z.enum(['dashboard', 'chrome_extension', 'mac_app', 'obs_plugin', 'sdk', 'other']);
 export type ClientKind = z.infer<typeof ClientKindSchema>;
+
+export const ClientMessagesSchema = z.object({
+  "deprecated": z.union([z.string(), z.null()]).optional(),
+  "unsupported": z.union([z.string(), z.null()]).optional(),
+});
+export type ClientMessages = z.infer<typeof ClientMessagesSchema>;
+
+export const ClientReleaseSchema = z.object({
+  "bytes": z.number().int(),
+  "notes": z.union([z.string(), z.null()]).optional(),
+  "sha256": z.string(),
+  "signature": z.string(),
+  "url": z.string(),
+  "version": z.string(),
+});
+export type ClientRelease = z.infer<typeof ClientReleaseSchema>;
+
+export const ClientPolicySchema = z.object({
+  "deprecatedBelow": z.union([z.string(), z.null()]).optional(),
+  "latest": z.union([ClientReleaseSchema, z.null()]).optional(),
+  "message": ClientMessagesSchema,
+  "unsupportedBelow": z.union([z.string(), z.null()]).optional(),
+});
+export type ClientPolicy = z.infer<typeof ClientPolicySchema>;
 
 export const DecoderSchema = z.union([z.literal("fast"), z.literal("accuracy")]);
 export type Decoder = z.infer<typeof DecoderSchema>;

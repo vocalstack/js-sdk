@@ -1374,6 +1374,16 @@
           ],
           "type": "object"
         },
+        "ClientApp": {
+          "description": "One of VocalStack's own apps, whose versions this API describes.",
+          "oneOf": [
+            {
+              "const": "mac_app",
+              "description": "VocalStack for Mac.",
+              "type": "string"
+            }
+          ]
+        },
         "ClientFrame": {
           "oneOf": [
             {
@@ -1504,6 +1514,102 @@
             "other"
           ],
           "type": "string"
+        },
+        "ClientMessages": {
+          "description": "Copy overrides; `null` keeps the app's own.",
+          "properties": {
+            "deprecated": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "unsupported": {
+              "type": [
+                "string",
+                "null"
+              ]
+            }
+          },
+          "type": "object"
+        },
+        "ClientPolicy": {
+          "description": "An app's version policy.",
+          "properties": {
+            "deprecatedBelow": {
+              "description": "Versions below this one are deprecated: they work, without the newer\nfeatures.  `null`: none are.",
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "latest": {
+              "anyOf": [
+                {
+                  "$ref": "#/components/schemas/ClientRelease"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "The newest build; `null` when there is none to offer."
+            },
+            "message": {
+              "$ref": "#/components/schemas/ClientMessages",
+              "description": "Copy that replaces the app's own for these states."
+            },
+            "unsupportedBelow": {
+              "description": "Versions below this one are unsupported: the app blocks until it is\nupdated (only when `latest` is newer).  `null`: none are.",
+              "type": [
+                "string",
+                "null"
+              ]
+            }
+          },
+          "required": [
+            "message"
+          ],
+          "type": "object"
+        },
+        "ClientRelease": {
+          "description": "A build to update to.",
+          "properties": {
+            "bytes": {
+              "format": "uint64",
+              "minimum": 0,
+              "type": "integer"
+            },
+            "notes": {
+              "description": "What changed, as plain text.",
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "sha256": {
+              "description": "SHA-256 of the file, lowercase hex.",
+              "type": "string"
+            },
+            "signature": {
+              "description": "Ed25519 over the file by the app's release key, base64.  The app\ninstalls nothing whose signature does not verify.",
+              "type": "string"
+            },
+            "url": {
+              "description": "Where to download the build: https, no credential, never moved to\nanother version.",
+              "type": "string"
+            },
+            "version": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "version",
+            "url",
+            "bytes",
+            "sha256",
+            "signature"
+          ],
+          "type": "object"
         },
         "CommittedSegment": {
           "properties": {
@@ -12019,6 +12125,51 @@
           ]
         }
       },
+      "/v1/clients/{client}": {
+        "get": {
+          "description": "For VocalStack's own apps (`mac_app`: VocalStack for Mac): the newest build, with its download, size, SHA-256 and the release key's Ed25519 signature, and below which versions the app is deprecated or unsupported. `latest` is `null` while there is no build to offer. No credential.",
+          "operationId": "meta.clientPolicy",
+          "parameters": [
+            {
+              "in": "path",
+              "name": "client",
+              "required": true,
+              "schema": {
+                "$ref": "#/components/schemas/ClientApp"
+              }
+            }
+          ],
+          "responses": {
+            "200": {
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "$ref": "#/components/schemas/ClientPolicy"
+                  }
+                }
+              },
+              "description": "OK",
+              "headers": {
+                "X-Request-Id": {
+                  "$ref": "#/components/headers/X-Request-Id"
+                }
+              }
+            },
+            "503": {
+              "$ref": "#/components/responses/Unavailable"
+            }
+          },
+          "summary": "Get an app's version policy",
+          "tags": [
+            "meta"
+          ],
+          "x-errors": [
+            "not_found"
+          ],
+          "x-vocalstack-auth": "public",
+          "x-vocalstack-scopes": []
+        }
+      },
       "/v1/connect/token": {
         "post": {
           "description": "One-click Connect ([guide](/docs/guides/connect-an-app.md)): your server swaps the `code` the dashboard sent to your `redirect_uri` for an API key, with the PKCE `code_verifier` (OAuth 2.0 authorization code + PKCE; the access token is the key). No credential. The code works once and for two minutes; a second redemption, a wrong verifier or another `redirect_uri` is `400 invalid_grant`, and the code is spent either way. A request from a web page is refused: call it from your server. Errors are OAuth's `{ error, error_description }`, never the API's error envelope, but for `429` and `503`. The answer is `Cache-Control: no-store`.",
@@ -17295,7 +17446,7 @@
         "x-displayName": "Billing"
       },
       {
-        "description": "Health and this OpenAPI document.",
+        "description": "Health, this OpenAPI document and the version policy of VocalStack's own apps.",
         "name": "meta",
         "x-displayName": "Meta"
       }

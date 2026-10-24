@@ -20,6 +20,10 @@ One line per change, naming the operation (`METHOD /path`, its
 
 ## [Unreleased]
 
+### Apps' version policy (2026-10-24, still `1.0.0-alpha.0`)
+
+- **Added**: `GET /v1/clients/{client}` (`meta.clientPolicy`), no credential: a VocalStack app's version policy (`ClientPolicy`: `latest`, a `ClientRelease` with `version`, `url`, `bytes`, `sha256`, `signature`, `notes`, or `null`; `deprecatedBelow`; `unsupportedBelow`; `message`, `ClientMessages`). `client` is a `ClientApp`: `mac_app`. The SDKs' `meta.clientPolicy` (Python `meta.client_policy`).
+
 ### A lost engine is said (2026-10-23, still `1.0.0-alpha.0`)
 
 - **Added**: the `ErrorCode` `engine_lost`: the engine serving an open realtime socket went away mid-stream and no other engine could carry the stream on. Sent as an `error` frame (`retryable: true`) just before the socket closes with 1011; the SDKs report a socket that closes with neither `session.done` nor an `error` frame the same way.

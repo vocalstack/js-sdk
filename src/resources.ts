@@ -37,6 +37,8 @@ import type {
   CreatedAppStreamKey,
   ChargePage,
   ExportFormat,
+  ClientApp,
+  ClientPolicy,
   Health,
   LanguageLists,
   LedgerPage,
@@ -982,5 +984,9 @@ export class Meta {
   /** The OpenAPI document this SDK is generated from. */
   openapi(): Promise<Record<string, unknown>> {
     return this.#t.json('GET', '/v1/openapi.json');
+  }
+  /** A VocalStack app's version policy: the newest build and which versions are deprecated or unsupported. */
+  clientPolicy(client: ClientApp): Promise<ClientPolicy> {
+    return this.#t.json('GET', `/v1/clients/${encodeURIComponent(client)}`);
   }
 }
