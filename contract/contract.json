@@ -14045,7 +14045,7 @@
       },
       "/v1/recordings/{id}/retranscribe": {
         "post": {
-          "description": "Read one line's audio again with the language forced, and apply what the recognizer hears as a line rewrite. A line heard in the wrong language cannot be repaired word by word — every word is wrong together — so this is the repair for it. The segments must be settled, like every other correction; the answer is the same `line` corrections a hand-typed rewrite produces, with the same revert behind them. 503 `engine_unavailable` means the audio for that line has not reached this machine yet and the ask is worth repeating.",
+          "description": "Read one line's audio again with the language forced, and apply what the recognizer hears as a line rewrite. A line heard in the wrong language cannot be repaired word by word — every word is wrong together — so this is the repair for it. The segments must be settled, like every other correction; the answer is the same `line` corrections a hand-typed rewrite produces, with the same revert behind them. 503 `engine_unavailable` means the audio for that line has not reached this machine yet and the ask is worth repeating; 503 `unavailable`, that the line could not be read just now. `language_unavailable`: lines of this transcription cannot be read again in another language (its engine has no second model).",
           "operationId": "corrections.retranscribe",
           "parameters": [
             {
@@ -14120,6 +14120,8 @@
             "invalid_state",
             "invalid_options",
             "engine_unavailable",
+            "unavailable",
+            "language_unavailable",
             "not_found",
             "insufficient_credit",
             "usage_cap_reached"
