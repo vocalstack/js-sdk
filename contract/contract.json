@@ -5480,6 +5480,13 @@
                   },
                   "type": "array"
                 },
+                "language": {
+                  "description": "The segment's language from now on, when the amend read it again\nin another one (a hand-back to Whisper rewriting what the English\nmodel wrote for it); absent when unchanged.",
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
                 "scriptWords": {
                   "description": "Words of the new text the script wrote (a misheard word the\nrescorer swapped for a near-identical script word), by position\nin `text`'s words; they take `Word.script`.  Absent when none.",
                   "items": {

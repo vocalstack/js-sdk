@@ -1408,6 +1408,7 @@ export const ServerFrameSchema = z.discriminatedUnion('type', [z.object({
   "words": z.array(WordSchema),
 }), z.object({
   "fixes": z.array(FixSchema).optional(),
+  "language": z.union([z.string(), z.null()]).optional(),
   "scriptWords": z.array(z.number().int()).optional(),
   "seq": z.number().int(),
   "speaker": z.number().int(),

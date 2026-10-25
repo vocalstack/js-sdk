@@ -20,6 +20,10 @@ One line per change, naming the operation (`METHOD /path`, its
 
 ## [Unreleased]
 
+### Amended language (2026-10-25, still `1.0.0-alpha.0`)
+
+- **Added**: the `transcript.amended` frame carries `language` when the amend read the segment again in another language (a hand-back from the English model to Whisper rewriting what it wrote); the stored segment's `language` follows. Absent when unchanged.
+
 ### Staff flag on me (2026-10-24, still `1.0.0-alpha.0`)
 
 - **Added**: `POST /v1/recordings/{id}/retranscribe` (`corrections.retranscribe`) answers `language_unavailable` when lines of the transcription cannot be read again in another language (its engine has no second model), and 503 `unavailable` when a line could not be read just now; both were a 400 `invalid_options` carrying the engine's own text.
