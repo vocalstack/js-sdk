@@ -63,7 +63,8 @@ const DEFAULT_READY_DEADLINE_MS = 30_000;
  * frame, and not by `close()`: the engine went away mid-stream (its
  * machine stopped or crashed) or the connection to it dropped.  What was
  * committed before stays; nothing after it was transcribed.  Retryable:
- * open a new realtime session to go on (there is no resume). */
+ * open a new realtime session to go on.  (A relay's restart close, 1012,
+ * is not this: the session reconnects and goes on, `RESTART_CLOSE`.) */
 export function engineLost(closeCode?: number): VocalStackError {
   const how = closeCode ? ` (close ${closeCode})` : '';
   return new VocalStackError(
@@ -96,6 +97,125 @@ export function upgradeRefused(status: number | undefined, body: string): VocalS
   return fromEnvelope(parsed, status);
 }
 
+/** The relay's restart close (a draining relay, a blip of the proxy in
+ * front of it): the client is to reconnect with the same `streamUrl`, and
+ * the session goes on (the relay keeps its engine, or carries the session
+ * on as itself).  The only close the SDK reconnects on. */
+export const RESTART_CLOSE = 1012;
+/** Reconnects after a restart close: up to this many, waiting 1, 2, 4 s
+ * (a try waits for `session.ready` within the ready deadline). */
+const RESTART_TRIES = 3;
+/** Audio and frames sent while reconnecting are kept, up to this much
+ * (about a minute of 16 kHz float audio), and sent once it is back. */
+const MAX_PENDING_BYTES = 4 * 1024 * 1024;
+
+/** Open `url` and wait for `session.ready`, or the error the connect is
+ * refused with.  Every frame before ready goes to `onFrame`; at ready,
+ * `attach` takes the socket in the same tick, so a frame right behind
+ * `session.ready` is the session's, not lost between the two. */
+async function openReady(
+  url: string,
+  deadlineMs: number,
+  onLoading: ((stage: 'download' | 'model') => void) | undefined,
+  onFrame: (frame: ServerFrame) => void,
+  attach: (ws: WsLike) => void,
+): Promise<void> {
+  const ws = await openWebSocket(url);
+  ws.binaryType = 'arraybuffer';
+  await new Promise<void>((resolve, reject) => {
+    let settled = false;
+    let sawFrame = false;
+    let rejecting = false;
+    let timer: ReturnType<typeof setTimeout>;
+    const fail = (err: VocalStackError) => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timer);
+      try {
+        ws.close();
+      } catch {
+      }
+      reject(err);
+    };
+    const arm = () => {
+      clearTimeout(timer);
+      timer = setTimeout(() => {
+        fail(
+          sawFrame
+            ? new VocalStackError(
+                'engine_unavailable',
+                `engine did not become ready within ${deadlineMs}ms`,
+                { retryable: true },
+              )
+            : capacityExceeded(
+                `no response from the engine within ${deadlineMs}ms — every machine is ` +
+                  `busy with another session, or one is stuck holding a slot`,
+              ),
+        );
+      }, deadlineMs);
+    };
+    arm();
+
+    ws.addEventListener('message', (ev: any) => {
+      // Once ready, the session reads the socket; this one stops re-arming
+      // the deadline (it used to leave a timer running for 30 s).
+      if (settled || typeof ev.data !== 'string') return;
+      sawFrame = true;
+      arm();
+      let frame: ServerFrame | null;
+      try {
+        frame = parseServerFrame(ev.data);
+      } catch {
+        return;
+      }
+      if (!frame) return;
+      onFrame(frame);
+      if (frame.type === 'session.loading') {
+        onLoading?.(frame.stage);
+      } else if (frame.type === 'session.ready') {
+        if (!settled) {
+          settled = true;
+          clearTimeout(timer);
+          attach(ws);
+          resolve();
+        }
+      } else if (frame.type === 'error') {
+        fail(
+          new VocalStackError(frame.code, frame.message, {
+            retryable: frame.retryable,
+          }),
+        );
+      }
+    });
+    const emitterOn = (ws as unknown as { on?: (e: string, l: (...a: any[]) => void) => void })
+      .on?.bind(ws);
+    emitterOn?.('unexpected-response', (_req: unknown, res: any) => {
+      rejecting = true;
+      const status: number | undefined = res?.statusCode;
+      let body = '';
+      if (res && typeof res.on === 'function') {
+        res.on('data', (c: Uint8Array) => (body += c.toString()));
+        res.on('end', () => fail(upgradeRefused(status, body)));
+      } else {
+        fail(upgradeRefused(status, ''));
+      }
+    });
+    ws.addEventListener('close', () => {
+      if (rejecting) return;
+      // No HTTP answer at all (a refused upgrade is `unexpected-response`
+      // above): the connection dropped on the way, as the Python and PHP
+      // SDKs say it — retryable, not a bad token.
+      fail(
+        new VocalStackError('engine_unavailable', 'connection closed before ready', {
+          retryable: true,
+        }),
+      );
+    });
+    ws.addEventListener('error', () => {
+    });
+  });
+}
+
 export class RealtimeSession implements AsyncIterable<SessionEvent> {
   readonly sessionId: string;
 
@@ -109,112 +229,86 @@ export class RealtimeSession implements AsyncIterable<SessionEvent> {
   /** `close()` was called: the socket's end is ours, not a lost engine. */
   #closedByUs = false;
   #onFrame: ((frame: ServerFrame) => void) | undefined;
+  readonly #params: ConnectParams;
+  /** Reconnecting after a restart close: what is sent waits in `#pending`. */
+  #reconnecting = false;
+  #pending: (string | Uint8Array | ArrayBuffer)[] = [];
+  #pendingBytes = 0;
+  #reconnects = 0;
 
-  private constructor(sessionId: string, ws: WsLike, onFrame?: (frame: ServerFrame) => void) {
+  private constructor(sessionId: string, ws: WsLike, params: ConnectParams) {
     this.sessionId = sessionId;
     this.#ws = ws;
-    this.#onFrame = onFrame;
+    this.#onFrame = params.onFrame;
+    this.#params = params;
   }
 
   static async connect(params: ConnectParams): Promise<RealtimeSession> {
     const deadlineMs = params.readyDeadlineMs ?? DEFAULT_READY_DEADLINE_MS;
-    const ws = await openWebSocket(params.streamUrl);
-    ws.binaryType = 'arraybuffer';
-    const session = new RealtimeSession(params.sessionId, ws, params.onFrame);
+    const early: ServerFrame[] = [];
+    let session: RealtimeSession | undefined;
+    await openReady(params.streamUrl, deadlineMs, params.onLoading, (f) => early.push(f), (ws) => {
+      const s = new RealtimeSession(params.sessionId, ws, params);
+      for (const f of early) s.#frame(f);
+      s.#listen();
+      session = s;
+    });
+    return session!;
+  }
 
-    await new Promise<void>((resolve, reject) => {
-      let settled = false;
-      let sawFrame = false;
-      let rejecting = false;
-      let timer: ReturnType<typeof setTimeout>;
-      const fail = (err: VocalStackError) => {
-        if (settled) return;
-        settled = true;
-        clearTimeout(timer);
-        try {
-          ws.close();
-        } catch {
-        }
-        reject(err);
-      };
-      const arm = () => {
-        clearTimeout(timer);
-        timer = setTimeout(() => {
-          fail(
-            sawFrame
-              ? new VocalStackError(
-                  'engine_unavailable',
-                  `engine did not become ready within ${deadlineMs}ms`,
-                  { retryable: true },
-                )
-              : capacityExceeded(
-                  `no response from the engine within ${deadlineMs}ms — every machine is ` +
-                    `busy with another session, or one is stuck holding a slot`,
-                ),
-          );
-        }, deadlineMs);
-      };
-      arm();
-
-      ws.addEventListener('message', (ev: any) => {
-        // Once ready, #listen reads the socket; this one stops re-arming
-        // the deadline (it used to leave a timer running for 30 s).
-        if (settled || typeof ev.data !== 'string') return;
-        sawFrame = true;
-        arm();
-        let frame: ServerFrame | null;
-        try {
-          frame = parseServerFrame(ev.data);
-        } catch {
+  /** The socket closed with the relay's restart close: open the same
+   * `streamUrl` again (1, 2, 4 s apart), send what waited meanwhile, and
+   * go on as the same session.  Out of tries: `engine_lost`. */
+  async #reconnect(code: number): Promise<void> {
+    this.#reconnecting = true;
+    const deadlineMs = this.#params.readyDeadlineMs ?? DEFAULT_READY_DEADLINE_MS;
+    while (this.#reconnects < RESTART_TRIES && !this.#closedByUs) {
+      await new Promise((r) => setTimeout(r, 1000 * 2 ** this.#reconnects));
+      this.#reconnects++;
+      if (this.#closedByUs) break;
+      try {
+        await openReady(this.#params.streamUrl, deadlineMs, this.#params.onLoading, (f) => this.#frame(f), (ws) => {
+          this.#ws = ws;
+          this.#reconnecting = false;
+          this.#listen();
+          const waiting = this.#pending;
+          this.#pending = [];
+          this.#pendingBytes = 0;
+          for (const d of waiting) this.#send(d);
+        });
+        if (this.#closedByUs) this.close();
+        return;
+      } catch (e) {
+        // A refusal that will not pass (a bad or used token) ends it now.
+        if (e instanceof VocalStackError && !e.retryable) {
+          this.#fail(e);
           return;
         }
-        if (!frame) return;
-        session.#frame(frame);
-        if (frame.type === 'session.loading') {
-          params.onLoading?.(frame.stage);
-        } else if (frame.type === 'session.ready') {
-          if (!settled) {
-            settled = true;
-            clearTimeout(timer);
-            session.#listen();
-            resolve();
-          }
-        } else if (frame.type === 'error') {
-          fail(
-            new VocalStackError(frame.code, frame.message, {
-              retryable: frame.retryable,
-            }),
-          );
-        }
-      });
-      const emitterOn = (ws as unknown as { on?: (e: string, l: (...a: any[]) => void) => void })
-        .on?.bind(ws);
-      emitterOn?.('unexpected-response', (_req: unknown, res: any) => {
-        rejecting = true;
-        const status: number | undefined = res?.statusCode;
-        let body = '';
-        if (res && typeof res.on === 'function') {
-          res.on('data', (c: Uint8Array) => (body += c.toString()));
-          res.on('end', () => fail(upgradeRefused(status, body)));
-        } else {
-          fail(upgradeRefused(status, ''));
-        }
-      });
-      ws.addEventListener('close', () => {
-        if (rejecting) return;
-        // No HTTP answer at all (a refused upgrade is `unexpected-response`
-        // above): the connection dropped on the way, as the Python and PHP
-        // SDKs say it — retryable, not a bad token.
-        fail(
-          new VocalStackError('engine_unavailable', 'connection closed before ready', {
-            retryable: true,
-          }),
-        );
-      });
-      ws.addEventListener('error', () => {
-      });
-    });
-    return session;
+      }
+    }
+    this.#fail(engineLost(code));
+  }
+
+  #fail(err: VocalStackError): void {
+    this.#reconnecting = false;
+    this.#pending = [];
+    this.#closed = true;
+    if (!this.#endReason && !this.#error && !this.#closedByUs) this.#error = err;
+    this.#wake?.();
+  }
+
+  /** Send now, or keep it while reconnecting (bounded). */
+  #send(data: string | Uint8Array | ArrayBuffer): void {
+    if (this.#reconnecting) {
+      const n = typeof data === 'string' ? data.length : data.byteLength;
+      if (this.#pendingBytes + n <= MAX_PENDING_BYTES) {
+        this.#pending.push(data);
+        this.#pendingBytes += n;
+      }
+      return;
+    }
+    if (this.#ws.readyState !== WS_OPEN) return;
+    this.#ws.send(data);
   }
 
   /** Hands a frame to `onFrame`; a throwing callback never breaks the socket. */
@@ -226,8 +320,9 @@ export class RealtimeSession implements AsyncIterable<SessionEvent> {
   }
 
   #listen(): void {
-    this.#ws.addEventListener('message', (ev: any) => {
-      if (typeof ev.data !== 'string') return;
+    const sock = this.#ws;
+    sock.addEventListener('message', (ev: any) => {
+      if (sock !== this.#ws || typeof ev.data !== 'string') return;
       let frame: ServerFrame | null;
       try {
         frame = parseServerFrame(ev.data);
@@ -264,24 +359,32 @@ export class RealtimeSession implements AsyncIterable<SessionEvent> {
           break;
       }
     });
-    this.#ws.addEventListener('close', (ev: any) => {
+    const ws = this.#ws;
+    ws.addEventListener('close', (ev: any) => {
+      if (ws !== this.#ws) return;
+      const code = typeof ev?.code === 'number' ? ev.code : undefined;
+      // The relay restarting: reconnect and go on (`RESTART_CLOSE`).
+      if (code === RESTART_CLOSE && !this.#endReason && !this.#error && !this.#closedByUs) {
+        void this.#reconnect(code);
+        return;
+      }
       this.#closed = true;
       // Closed under us before the session said how it ended: not a
       // silent end of the transcript, the engine was lost.
       if (!this.#endReason && !this.#error && !this.#closedByUs) {
-        this.#error = engineLost(typeof ev?.code === 'number' ? ev.code : undefined);
+        this.#error = engineLost(code);
       }
       this.#wake?.();
     });
   }
 
   sendAudio(chunk: Float32Array | ArrayBuffer | Uint8Array): void {
-    if (this.#ws.readyState !== WS_OPEN) return;
     const data =
       chunk instanceof Float32Array
         ? new Uint8Array(chunk.buffer, chunk.byteOffset, chunk.byteLength)
         : chunk;
-    this.#ws.send(data);
+    // Copied: a caller may reuse its buffer while a reconnect keeps it.
+    this.#send(this.#reconnecting ? (data instanceof Uint8Array ? data.slice() : data.slice(0)) : data);
   }
 
   async sendFile(
@@ -291,12 +394,14 @@ export class RealtimeSession implements AsyncIterable<SessionEvent> {
     const MAX_BUFFERED = 4 * 1024 * 1024;
     for await (const chunk of source) {
       for (let off = 0; off < chunk.byteLength; off += chunkBytes) {
+        // Through a reconnect (a relay restarting) it waits, and goes on.
+        while (this.#reconnecting) await new Promise((r) => setTimeout(r, 50));
         if (this.#ws.readyState !== WS_OPEN) return;
         while ((this.#ws as any).bufferedAmount > MAX_BUFFERED) {
           await new Promise((r) => setTimeout(r, 10));
-          if (this.#ws.readyState !== WS_OPEN) return;
+          if (this.#ws.readyState !== WS_OPEN && !this.#reconnecting) return;
         }
-        this.#ws.send(chunk.subarray(off, Math.min(off + chunkBytes, chunk.byteLength)));
+        this.#send(chunk.subarray(off, Math.min(off + chunkBytes, chunk.byteLength)));
       }
     }
     this.eof();
@@ -323,9 +428,7 @@ export class RealtimeSession implements AsyncIterable<SessionEvent> {
    * `streamMicrophone`/`captureMicrophone` call this automatically.
    */
   sendClock(pcm: number, wall: number): void {
-    if (this.#ws.readyState === WS_OPEN) {
-      this.#ws.send(JSON.stringify({ type: 'clock', pcm: Math.floor(pcm), wall }));
-    }
+    this.#send(JSON.stringify({ type: 'clock', pcm: Math.floor(pcm), wall }));
   }
 
   /**
@@ -346,8 +449,7 @@ export class RealtimeSession implements AsyncIterable<SessionEvent> {
     speakerLabels?: SpeakerLabels;
     translate?: string[];
   }): void {
-    if (this.#ws.readyState !== WS_OPEN) return;
-    this.#ws.send(
+    this.#send(
       JSON.stringify({
         type: 'session.update',
         ...(changes.latencyMode !== undefined && { latencyMode: changes.latencyMode }),
@@ -359,15 +461,11 @@ export class RealtimeSession implements AsyncIterable<SessionEvent> {
   }
 
   eof(): void {
-    if (this.#ws.readyState === WS_OPEN) {
-      this.#ws.send(JSON.stringify({ type: 'eof' }));
-    }
+    this.#send(JSON.stringify({ type: 'eof' }));
   }
 
   cancel(): void {
-    if (this.#ws.readyState === WS_OPEN) {
-      this.#ws.send(JSON.stringify({ type: 'cancel' }));
-    }
+    this.#send(JSON.stringify({ type: 'cancel' }));
   }
 
   get doneReason(): 'eof' | 'max_duration' | 'cancelled' | null {

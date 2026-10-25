@@ -66,7 +66,7 @@ Around them: `transcript.translated` attaches translations to a committed `seq`;
 
 Send `{"type":"eof"}` when the audio ends (`session.eof()` in the SDKs). The server transcribes what it still holds, sends the last commits, then `session.done` with `reason` (`eof`, `max_duration`, `cancelled`) and `stats` (`audioS`, `processingS`, `realtimeFactor`), and closes. `cancel` stops at once and drops the rest.
 
-There is no resume: a dropped connection ends the session. To go on, create a new one. A session lasts at most `limits.maxDurationS` (`GET /v1/realtime/capabilities`), and its audio spends the account's credit per second at the plan's live rate, at least the plan's minimum (`rates.minimumSeconds` on `GET /v1/billing`) per session that receives audio; a new session after a drop is a transcription of its own, with its own minimum.
+A socket closed with 1012 ("restarting": a relay draining for a deploy, or a blip of the proxy in front of it) is to be reconnected with the same `streamUrl`, and the session goes on; the SDKs do it for you, up to three tries, and keep the audio sent meanwhile. Any other dropped connection ends the session: to go on, create a new one. A session lasts at most `limits.maxDurationS` (`GET /v1/realtime/capabilities`), and its audio spends the account's credit per second at the plan's live rate, at least the plan's minimum (`rates.minimumSeconds` on `GET /v1/billing`) per session that receives audio; a new session after a drop is a transcription of its own, with its own minimum.
 
 ## Complete code
 
