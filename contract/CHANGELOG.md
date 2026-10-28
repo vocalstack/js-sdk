@@ -20,6 +20,10 @@ One line per change, naming the operation (`METHOD /path`, its
 
 ## [Unreleased]
 
+### Share host (2026-10-28, still `1.0.0-alpha.0`)
+
+- **Changed**: a share link's `url` documents the transcription share host: `{tx_share_base_url}/{code}` where the environment has one, else `{public_base_url}/t/{code}` as before. Same shape.
+
 ### Amended language (2026-10-25, still `1.0.0-alpha.0`)
 
 - **Added**: the `transcript.amended` frame carries `language` when the amend read the segment again in another language (a hand-back from the English model to Whisper rewriting what it wrote); the stored segment's `language` follows. Absent when unchanged.

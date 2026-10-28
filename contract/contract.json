@@ -6615,7 +6615,7 @@
               ]
             },
             "url": {
-              "description": "The public page: `{public_base_url}/t/{code}`.",
+              "description": "The public page: `{tx_share_base_url}/{code}`, else `{public_base_url}/t/{code}`.",
               "type": "string"
             },
             "views": {
