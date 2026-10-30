@@ -751,6 +751,9 @@ export const CommittedSegmentSchema = z.object({
 });
 export type CommittedSegment = z.infer<typeof CommittedSegmentSchema>;
 
+export const ConsentSchema = z.enum(['pending', 'granted', 'refused']);
+export type Consent = z.infer<typeof ConsentSchema>;
+
 export const NotVoicedReasonSchema = z.literal("rewrite");
 export type NotVoicedReason = z.infer<typeof NotVoicedReasonSchema>;
 
@@ -1564,6 +1567,12 @@ export const SessionOptionsSchema = z.object({
 });
 export type SessionOptions = z.infer<typeof SessionOptionsSchema>;
 
+export const SetConsentSchema = z.object({
+  "consent": ConsentSchema,
+  "name": z.union([z.string(), z.null()]).optional(),
+});
+export type SetConsent = z.infer<typeof SetConsentSchema>;
+
 export const SetIntervalSchema = z.object({
   "acceptTerms": z.boolean().optional(),
   "expectedPrice": z.union([z.number(), z.null()]).optional(),
@@ -1863,7 +1872,9 @@ export const UsageReportSchema = z.object({
 export type UsageReport = z.infer<typeof UsageReportSchema>;
 
 export const VoiceSchema = z.object({
+  "auto": z.boolean().optional(),
   "color": z.union([z.string(), z.null()]).optional(),
+  "consent": ConsentSchema,
   "consentAt": z.union([z.string(), z.null()]).optional(),
   "createdAt": z.string(),
   "draft": z.boolean(),
@@ -1874,7 +1885,9 @@ export const VoiceSchema = z.object({
   "name": z.string(),
   "previewUrl": z.union([z.string(), z.null()]).optional(),
   "progress": z.number().int(),
+  "recordingId": z.union([z.string(), z.null()]).optional(),
   "sampleS": z.number(),
+  "speaker": z.union([z.number().int(), z.null()]).optional(),
   "speechS": z.number().optional(),
   "state": z.string(),
   "updatedAt": z.string(),

@@ -681,6 +681,13 @@ export class Voices {
   createFromSpeaker(req: Omit<CreateVoiceFromSpeaker, 'consent'>, call: CallOptions = {}): Promise<Voice> {
     return this.#t.json('POST', '/v1/voices/from-speaker', { body: { consent: true, ...req }, ...call });
   }
+  /** Record whether the speaker agreed to their clone: `granted` (with an
+   * optional name, which also names the speaker in its recording) makes it
+   * speak; `refused` deletes its audio and voice. Automatic clones start
+   * `pending`. */
+  setConsent(id: string, consent: 'granted' | 'refused', opts: { name?: string } = {}): Promise<Voice> {
+    return this.#t.json('POST', `/v1/voices/${seg(id)}/consent`, { body: { consent, ...opts } });
+  }
   /** Rename, recolour, switch off; `{ name, consent: true, draft: false }` finishes a draft. */
   update(id: string, patch: PatchVoice): Promise<Voice> {
     return this.#t.json('PATCH', `/v1/voices/${seg(id)}`, { body: patch });

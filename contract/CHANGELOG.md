@@ -20,6 +20,12 @@ One line per change, naming the operation (`METHOD /path`, its
 
 ## [Unreleased]
 
+### Voice consent and automatic speaker clones (2026-10-30, still `1.0.0-alpha.0`)
+
+- **Added**: `POST /v1/voices/{id}/consent` (`voices.setConsent`, `SetConsent`: `consent` — `granted` or `refused` — and an optional `name`): records whether the speaker agreed to their clone, with who decided and when. `refused` deletes the clone's audio and voice at once. The SDKs' `voices.setConsent` (Python `voices.set_consent`).
+- **Added**: `Voice.consent` (`pending`, `granted`, `refused`), `Voice.recordingId`, `Voice.speaker` and `Voice.auto`. Every speaker with 30 seconds of speech in a recording is cloned automatically (`auto: true`, `consent: pending`) and deleted with the recording. Only a `granted` voice speaks, is listed by `GET /v1/voices/available`, can be pinned in `settings.voiceByLang`, or has a `previewUrl`.
+- **Changed**: `POST /v1/voices` (`voices.create`) and `POST /v1/voices/from-speaker` (`voices.createFromSpeaker`): a clone needs 30 seconds of speech from one diarized speaker. An uploaded sample is diarized and the speaker with the most speech is cloned; the silence around them no longer matters (the old floor of a third of the sample voiced is gone). `createFromSpeaker` counts that speaker's diarized turns, and grants and names the automatic clone when there is one.
+
 ### Tags (2026-10-30, still `1.0.0-alpha.0`)
 
 - **Added**: `GET /v1/tags` (`tags.list`), `POST /v1/tags` (`tags.create`), `PATCH /v1/tags/{id}` (`tags.update`), `DELETE /v1/tags/{id}` (`tags.delete`) and `POST /v1/tags/{id}/transcriptions` (`tags.tagTranscriptions`, `TagTranscriptions`: `add`, `remove`): the account's own labels for its transcriptions (`Tag`: `id`, `name`, `color` — `coral`, `amber`, `lime`, `green`, `teal`, `blue`, `violet` or `pink` — `createdAt`). The SDKs' `tags` group (Python `tags.tag_transcriptions`).

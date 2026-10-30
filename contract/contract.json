@@ -1790,6 +1790,15 @@
           },
           "type": "object"
         },
+        "Consent": {
+          "description": "Whether the speaker agreed to their clone (`voices.consent`): one\nstate, one name, in the database, on the wire and here.",
+          "enum": [
+            "pending",
+            "granted",
+            "refused"
+          ],
+          "type": "string"
+        },
         "Correction": {
           "properties": {
             "actor": {
@@ -6404,6 +6413,27 @@
           ],
           "type": "object"
         },
+        "SetConsent": {
+          "additionalProperties": false,
+          "description": "`POST /v1/voices/:id/consent`: the owner records whether the speaker\nagreed to their clone.",
+          "properties": {
+            "consent": {
+              "$ref": "#/components/schemas/Consent",
+              "description": "`granted` or `refused`.  Refused deletes the clone's audio and\nvoice at once; it is not built again for that speaker."
+            },
+            "name": {
+              "description": "A name for the voice, and for the speaker in the recording it was\ncut from.  Only with `granted`.",
+              "type": [
+                "string",
+                "null"
+              ]
+            }
+          },
+          "required": [
+            "consent"
+          ],
+          "type": "object"
+        },
         "SetInterval": {
           "description": "`POST /v1/billing/subscription/interval`.",
           "properties": {
@@ -8746,13 +8776,23 @@
         },
         "Voice": {
           "properties": {
+            "auto": {
+              "default": false,
+              "description": "Made automatically from a recording's speaker, and deleted with it.",
+              "type": "boolean"
+            },
             "color": {
               "type": [
                 "string",
                 "null"
               ]
             },
+            "consent": {
+              "$ref": "#/components/schemas/Consent",
+              "description": "Whether the speaker agreed to this clone: `pending`, `granted` or\n`refused`.  Only a `granted` clone speaks, is offered as a voice,\nor has a preview.  An automatic clone starts `pending`."
+            },
             "consentAt": {
+              "description": "When `consent` was last decided.",
               "type": [
                 "string",
                 "null"
@@ -8797,9 +8837,23 @@
               "minimum": -32768,
               "type": "integer"
             },
+            "recordingId": {
+              "description": "The recording this clone was cut from, and the speaker in it.",
+              "type": [
+                "string",
+                "null"
+              ]
+            },
             "sampleS": {
               "format": "double",
               "type": "number"
+            },
+            "speaker": {
+              "format": "int32",
+              "type": [
+                "integer",
+                "null"
+              ]
             },
             "speechS": {
               "default": 0.0,
@@ -8826,6 +8880,7 @@
             "uses",
             "enabled",
             "draft",
+            "consent",
             "createdAt",
             "updatedAt"
           ],
@@ -17231,7 +17286,7 @@
           ]
         },
         "post": {
-          "description": "Create a voice from a recorded sample and queue its training: multipart/form-data with a `sample` audio part and a `meta` JSON part. The voice comes back `training` with progress 0; poll GET /v1/voices/{id}. Training reports a real state — it never fakes progress, and a voice that cannot be trained ends `failed` with the reason on `error`.",
+          "description": "Create a voice from a recorded sample and queue its training: multipart/form-data with a `sample` audio part and a `meta` JSON part. The sample needs at least 30 seconds of speech from one person: it is diarized, and the speaker with the most speech is cloned; the silence around them does not matter. The voice comes back `training` with progress 0; poll GET /v1/voices/{id}. Training reports a real state — it never fakes progress, and a voice that cannot be trained ends `failed` with the reason on `error`.",
           "operationId": "voices.create",
           "parameters": [
             {
@@ -17413,7 +17468,7 @@
       },
       "/v1/voices/from-speaker": {
         "post": {
-          "description": "Create a voice from one speaker of a recording — no sample to upload, because the recording's own audio is the sample. Works while the recording is still running: the server joins the stretches that speaker actually spoke for and clones from those. Naming them here also labels them in the transcript and associates them with the new voice. Needs at least 30 seconds of them; the refusal says how much there is.",
+          "description": "Create a voice from one speaker of a recording — no sample to upload, because the recording's own audio is the sample. Works while the recording is still running: the server joins the stretches that speaker actually spoke for and clones from those. Naming them here also labels them in the transcript and associates them with the new voice. Needs at least 30 seconds of that speaker's speech, their diarized turns added up; the refusal says how much there is. `consent: true` grants consent; when the speaker was already cloned automatically, that clone is the one granted and named.",
           "operationId": "voices.createFromSpeaker",
           "parameters": [
             {
@@ -17762,6 +17817,83 @@
           ],
           "x-errors": [
             "invalid_options",
+            "not_found",
+            "forbidden"
+          ],
+          "x-vocalstack-auth": "userOrKey",
+          "x-vocalstack-scopes": [
+            "write"
+          ]
+        }
+      },
+      "/v1/voices/{id}/consent": {
+        "post": {
+          "description": "Record whether the speaker agreed to their cloned voice. Every speaker with 30 seconds of speech in a recording is cloned automatically with `consent: \"pending\"`; a clone speaks, is offered in `GET /v1/voices/available` and has a preview only once its consent is `granted`. `granted` (optionally with a `name`, which also names the speaker in the recording it came from) makes it usable; `refused` deletes its audio and voice at once and it is not cloned again. Refusing later withdraws consent the same way. Each decision is recorded with who made it and when.",
+          "operationId": "voices.setConsent",
+          "parameters": [
+            {
+              "in": "path",
+              "name": "id",
+              "required": true,
+              "schema": {
+                "type": "string"
+              }
+            }
+          ],
+          "requestBody": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SetConsent"
+                }
+              }
+            },
+            "required": true
+          },
+          "responses": {
+            "200": {
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "$ref": "#/components/schemas/Voice"
+                  }
+                }
+              },
+              "description": "OK",
+              "headers": {
+                "RateLimit-Limit": {
+                  "$ref": "#/components/headers/RateLimit-Limit"
+                },
+                "RateLimit-Remaining": {
+                  "$ref": "#/components/headers/RateLimit-Remaining"
+                },
+                "RateLimit-Reset": {
+                  "$ref": "#/components/headers/RateLimit-Reset"
+                },
+                "X-Request-Id": {
+                  "$ref": "#/components/headers/X-Request-Id"
+                }
+              }
+            },
+            "429": {
+              "$ref": "#/components/responses/RateLimited"
+            },
+            "503": {
+              "$ref": "#/components/responses/Unavailable"
+            }
+          },
+          "security": [
+            {
+              "bearerAuth": []
+            }
+          ],
+          "summary": "Grant or refuse consent for a voice",
+          "tags": [
+            "voices"
+          ],
+          "x-errors": [
+            "invalid_options",
+            "invalid_state",
             "not_found",
             "forbidden"
           ],
