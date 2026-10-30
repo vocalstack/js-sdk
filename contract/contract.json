@@ -8133,6 +8133,7 @@
                 "wordpress",
                 "payload",
                 "strapi",
+                "sanity",
                 "contentful",
                 "mcp",
                 "batch_api",

@@ -23,7 +23,7 @@ One line per change, naming the operation (`METHOD /path`, its
 ### Tags (2026-10-30, still `1.0.0-alpha.0`)
 
 - **Added**: `GET /v1/tags` (`tags.list`), `POST /v1/tags` (`tags.create`), `PATCH /v1/tags/{id}` (`tags.update`), `DELETE /v1/tags/{id}` (`tags.delete`) and `POST /v1/tags/{id}/transcriptions` (`tags.tagTranscriptions`, `TagTranscriptions`: `add`, `remove`): the account's own labels for its transcriptions (`Tag`: `id`, `name`, `color` — `coral`, `amber`, `lime`, `green`, `teal`, `blue`, `violet` or `pink` — `createdAt`). The SDKs' `tags` group (Python `tags.tag_transcriptions`).
-- **Added**: `Transcription.tags` (`TagRef`: `id`, `name`, `color`), the tags on it, and `Transcription.origin`, where it was made (`dashboard`, `api`, `extension`, `desktop_app`, `obs`, `wordpress`, `payload`, `strapi`, `contentful`, `mcp`, `batch_api`, `broadcast`, `unknown`).
+- **Added**: `Transcription.tags` (`TagRef`: `id`, `name`, `color`), the tags on it, and `Transcription.origin`, where it was made (`dashboard`, `api`, `extension`, `desktop_app`, `obs`, `wordpress`, `payload`, `strapi`, `sanity`, `contentful`, `mcp`, `batch_api`, `broadcast`, `unknown`; `sanity` is the Sanity plugin, known by its User-Agent `VocalStack-Sanity/<version>`).
 
 ### Loom share links (2026-10-30, still `1.0.0-alpha.0`)
 

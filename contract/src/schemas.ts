@@ -338,7 +338,7 @@ export const TranscriptionSchema = z.object({
   "lifecycle": LifecycleSchema,
   "live": z.boolean().optional(),
   "name": z.string(),
-  "origin": z.enum(['dashboard', 'api', 'extension', 'desktop_app', 'obs', 'wordpress', 'payload', 'strapi', 'contentful', 'mcp', 'batch_api', 'broadcast', 'unknown']),
+  "origin": z.enum(['dashboard', 'api', 'extension', 'desktop_app', 'obs', 'wordpress', 'payload', 'strapi', 'sanity', 'contentful', 'mcp', 'batch_api', 'broadcast', 'unknown']),
   "ownerPrincipalId": z.string(),
   "purgeAfter": z.union([z.string(), z.null()]).optional(),
   "recordingCount": z.number().int(),
