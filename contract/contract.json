@@ -3555,6 +3555,24 @@
                 "null"
               ]
             },
+            "reason": {
+              "anyOf": [
+                {
+                  "$ref": "#/components/schemas/ProbeReason"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Why the link is not one to transcribe, when `ok` is `false`: for a\nclient to pick its own next step (`problem` says what is wrong, never\nwhat to do).  Absent when `ok`."
+            },
+            "siteName": {
+              "description": "The site's name with `site_not_fetched` and `meeting`: `Vimeo`,\n`Google Meet`.",
+              "type": [
+                "string",
+                "null"
+              ]
+            },
             "source": {
               "description": "`youtube` or `radio` — the live form's source for it.",
               "type": "string"
@@ -4273,6 +4291,61 @@
             "to"
           ],
           "type": "object"
+        },
+        "ProbeReason": {
+          "description": "`LinkProbe.reason`.",
+          "oneOf": [
+            {
+              "const": "web_page",
+              "description": "A web page; `media` may list the recordings on it.",
+              "type": "string"
+            },
+            {
+              "const": "site_not_fetched",
+              "description": "A site VocalStack never fetches from (Vimeo, Spotify, Kick, Loom…).",
+              "type": "string"
+            },
+            {
+              "const": "meeting",
+              "description": "A meeting (Zoom, Google Meet, Microsoft Teams, Webex).",
+              "type": "string"
+            },
+            {
+              "const": "not_found",
+              "description": "Nothing at the address (404, 410), or a video that is gone.",
+              "type": "string"
+            },
+            {
+              "const": "unreachable",
+              "description": "No answer: a timeout, a name that does not resolve, a refused connection.",
+              "type": "string"
+            },
+            {
+              "const": "forbidden",
+              "description": "The address refused access (401, 403), or needs a sign-in.",
+              "type": "string"
+            },
+            {
+              "const": "not_media",
+              "description": "Something that is not a recording (a PDF, an image, an archive).",
+              "type": "string"
+            },
+            {
+              "const": "copy_protected",
+              "description": "A copy-protected (DRM) recording.",
+              "type": "string"
+            },
+            {
+              "const": "too_long",
+              "description": "Longer than a file may be.",
+              "type": "string"
+            },
+            {
+              "const": "unknown",
+              "description": "Anything else.",
+              "type": "string"
+            }
+          ]
         },
         "PromoCodeView": {
           "description": "What a promo code gives for the purchase it was checked for.",
@@ -15669,7 +15742,7 @@
       },
       "/v1/transcriptions/probe": {
         "get": {
-          "description": "What a link is before it is transcribed: `live` — a YouTube live on air or scheduled, an endless HTTP stream, an HLS playlist with no end, a dynamic DASH manifest — belongs in a live transcription; `file` is transcribed as one; `unknown` could not be told. `source` names the live form's source (`youtube`, `radio`). A web page is not a recording (`ok: false`), but `media` lists the recordings on it — media files, playlists, YouTube videos — each found, then opened as a link of its own would be, with its title on the page when it has one: create one transcription per entry. Nothing is kept. 60 a minute; searching a web page also counts against an hourly allowance — 20 with a plan, 10 on pay as you go, 2 on credit never paid for — and past it the probe answers `rate_limited` with `retryAfterS`.",
+          "description": "What a link is before it is transcribed: `live` — a YouTube live on air or scheduled, an endless HTTP stream, an HLS playlist with no end, a dynamic DASH manifest — belongs in a live transcription; `file` is transcribed as one; `unknown` could not be told. `source` names the live form's source (`youtube`, `radio`). A web page is not a recording (`ok: false`), but `media` lists the recordings on it — media files, playlists, YouTube videos — each found, then opened as a link of its own would be, with its title on the page when it has one: create one transcription per entry. When `ok` is `false`, `reason` says why for a client to choose its own next step (`web_page`, `site_not_fetched` and `meeting` with `siteName`, `not_found`, `unreachable`, `forbidden`, `not_media`, `copy_protected`, `too_long`, `unknown`) and `problem` says what is wrong in a sentence for people, never what to do: a link that is plainly not a recording (a PDF, an image) or is copy-protected is refused, and so is a YouTube video longer than a file may be (8 hours). Nothing is kept. 60 a minute; searching a web page also counts against an hourly allowance — 20 with a plan, 10 on pay as you go, 2 on credit never paid for — and past it the probe answers `rate_limited` with `retryAfterS`.",
           "operationId": "transcriptions.probe",
           "parameters": [
             {

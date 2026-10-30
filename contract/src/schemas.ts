@@ -1032,11 +1032,16 @@ export const PageMediaSchema = z.object({
 });
 export type PageMedia = z.infer<typeof PageMediaSchema>;
 
+export const ProbeReasonSchema = z.union([z.literal("web_page"), z.literal("site_not_fetched"), z.literal("meeting"), z.literal("not_found"), z.literal("unreachable"), z.literal("forbidden"), z.literal("not_media"), z.literal("copy_protected"), z.literal("too_long"), z.literal("unknown")]);
+export type ProbeReason = z.infer<typeof ProbeReasonSchema>;
+
 export const LinkProbeSchema = z.object({
   "kind": LinkKindSchema,
   "media": z.array(PageMediaSchema).optional(),
   "ok": z.boolean(),
   "problem": z.union([z.string(), z.null()]).optional(),
+  "reason": z.union([ProbeReasonSchema, z.null()]).optional(),
+  "siteName": z.union([z.string(), z.null()]).optional(),
   "source": z.string(),
 });
 export type LinkProbe = z.infer<typeof LinkProbeSchema>;

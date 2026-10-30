@@ -20,6 +20,12 @@ One line per change, naming the operation (`METHOD /path`, its
 
 ## [Unreleased]
 
+### Link check: refused sites, non-recordings, copy protection (2026-10-29, still `1.0.0-alpha.0`)
+
+- **Added**: `LinkProbe.reason` (`GET /v1/transcriptions/probe`, `transcriptions.probe`), set whenever `ok` is `false`: `web_page`, `site_not_fetched`, `meeting`, `not_found`, `unreachable`, `forbidden`, `not_media`, `copy_protected`, `too_long`, `unknown`; and `LinkProbe.siteName` with `site_not_fetched` and `meeting` (Vimeo, Kick, Loom, Google Meet…).
+- **Changed**: `transcriptions.probe` answers `ok: false` for a link that is plainly not a recording (a PDF, an image, a text file, an archive, a document), for a copy-protected (DRM) playlist, and for a YouTube video longer than 8 hours; kick.com and loom.com are sites never fetched. Every `problem` and job `error` is a sentence for people that says what is wrong, never one client's next step.
+- **Changed**: `POST /v1/transcriptions` refuses a YouTube video longer than a file may be (8 hours) with `400 invalid_options` before anything is created.
+
 ### Share host (2026-10-28, still `1.0.0-alpha.0`)
 
 - **Changed**: a share link's `url` documents the transcription share host: `{tx_share_base_url}/{code}` where the environment has one, else `{public_base_url}/t/{code}` as before. Same shape.
