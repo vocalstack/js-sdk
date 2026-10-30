@@ -31,6 +31,7 @@ import {
   Rtmp,
   Search,
   ShareLinks,
+  Tags,
   Transcriptions,
   Voices,
 } from './resources.js';
@@ -61,6 +62,7 @@ export {
   Rtmp,
   Search,
   ShareLinks,
+  Tags,
   Transcriptions,
   Voices,
 } from './resources.js';
@@ -81,6 +83,7 @@ export class VocalStack {
   readonly jobs: Jobs;
   readonly corrections: Corrections;
   readonly shareLinks: ShareLinks;
+  readonly tags: Tags;
   readonly voices: Voices;
   readonly search: Search;
   readonly me: MeApi;
@@ -102,6 +105,7 @@ export class VocalStack {
     this.jobs = new Jobs(t);
     this.corrections = new Corrections(t);
     this.shareLinks = new ShareLinks(t);
+    this.tags = new Tags(t);
     this.voices = new Voices(t);
     this.search = new Search(t);
     this.me = new MeApi(t);

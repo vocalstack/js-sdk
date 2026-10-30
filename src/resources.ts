@@ -32,6 +32,7 @@ import type {
   CreateLiveTranscription,
   CreateBroadcast,
   CreateShareLink,
+  CreateTag,
   CreateTranscription,
   CreateVoiceFromSpeaker,
   CreatedAppStreamKey,
@@ -58,11 +59,15 @@ import type {
   StartRecording,
   StartJob,
   SummaryStatus,
+  Tag,
+  TagList,
+  TagTranscriptions,
   Transcription,
   TranscriptionJob,
   TranscriptionPage,
   TranscriptSnapshot,
   UpdateBroadcast,
+  UpdateTag,
   UpdateTranscription,
   UpdateShareLink,
   UploadRecording,
@@ -613,6 +618,33 @@ export class ShareLinks {
   }
   revoke(id: string): Promise<ShareLink> {
     return this.#t.json('DELETE', `/v1/share-links/${seg(id)}`);
+  }
+}
+
+/** `vs.tags`: the account's own labels for its transcriptions; each
+ * transcription lists its own in `tags`. */
+export class Tags {
+  readonly #t: Transport;
+  constructor(t: Transport) {
+    this.#t = t;
+  }
+  async list(): Promise<Tag[]> {
+    const r = await this.#t.json<TagList>('GET', '/v1/tags');
+    return r.tags ?? [];
+  }
+  create(req: CreateTag): Promise<Tag> {
+    return this.#t.json('POST', '/v1/tags', { body: req });
+  }
+  update(id: string, req: UpdateTag): Promise<Tag> {
+    return this.#t.json('PATCH', `/v1/tags/${seg(id)}`, { body: req });
+  }
+  /** Delete a tag: it comes off every transcription it is on. */
+  async delete(id: string): Promise<void> {
+    await this.#t.json('DELETE', `/v1/tags/${seg(id)}`);
+  }
+  /** Put the tag on the transcriptions in `add` and take it off those in `remove`. */
+  tagTranscriptions(id: string, req: TagTranscriptions): Promise<Tag> {
+    return this.#t.json('POST', `/v1/tags/${seg(id)}/transcriptions`, { body: req });
   }
 }
 

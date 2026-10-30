@@ -2191,6 +2191,34 @@
           ],
           "type": "object"
         },
+        "CreateTag": {
+          "additionalProperties": false,
+          "properties": {
+            "color": {
+              "default": null,
+              "description": "One of the eight colours; the first no tag has yet when omitted.",
+              "enum": [
+                "coral",
+                "amber",
+                "lime",
+                "green",
+                "teal",
+                "blue",
+                "violet",
+                "pink"
+              ],
+              "type": "string"
+            },
+            "name": {
+              "description": "1 to 40 characters, unique in the account however it is cased.",
+              "type": "string"
+            }
+          },
+          "required": [
+            "name"
+          ],
+          "type": "object"
+        },
         "CreateTranscription": {
           "additionalProperties": false,
           "description": "`POST /v1/transcriptions`: JSON for a URL, or the `options` part of a\nmultipart upload whose `file` part carries the media.",
@@ -4307,7 +4335,7 @@
             },
             {
               "const": "site_not_fetched",
-              "description": "A site VocalStack never fetches from (Vimeo, Spotify, Kick, Loom…).",
+              "description": "A site VocalStack never fetches from (Vimeo, Spotify, Kick…).",
               "type": "string"
             },
             {
@@ -7835,6 +7863,104 @@
           },
           "type": "object"
         },
+        "Tag": {
+          "properties": {
+            "color": {
+              "enum": [
+                "coral",
+                "amber",
+                "lime",
+                "green",
+                "teal",
+                "blue",
+                "violet",
+                "pink"
+              ],
+              "type": "string"
+            },
+            "createdAt": {
+              "type": "string"
+            },
+            "id": {
+              "type": "string"
+            },
+            "name": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "id",
+            "name",
+            "color",
+            "createdAt"
+          ],
+          "type": "object"
+        },
+        "TagList": {
+          "properties": {
+            "tags": {
+              "items": {
+                "$ref": "#/components/schemas/Tag"
+              },
+              "type": "array"
+            }
+          },
+          "required": [
+            "tags"
+          ],
+          "type": "object"
+        },
+        "TagRef": {
+          "description": "A tag as a transcription lists it.",
+          "properties": {
+            "color": {
+              "enum": [
+                "coral",
+                "amber",
+                "lime",
+                "green",
+                "teal",
+                "blue",
+                "violet",
+                "pink"
+              ],
+              "type": "string"
+            },
+            "id": {
+              "type": "string"
+            },
+            "name": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "id",
+            "name",
+            "color"
+          ],
+          "type": "object"
+        },
+        "TagTranscriptions": {
+          "additionalProperties": false,
+          "description": "Transcriptions to put the tag on and to take it off, by id.",
+          "properties": {
+            "add": {
+              "default": [],
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            "remove": {
+              "default": [],
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            }
+          },
+          "type": "object"
+        },
         "TranscriptSnapshot": {
           "properties": {
             "lang": {
@@ -7996,6 +8122,25 @@
             "name": {
               "type": "string"
             },
+            "origin": {
+              "description": "Where it was made: `dashboard` (the web app), `api` (an API key),\none of our apps (`extension`, `desktop_app`, `obs`, `wordpress`,\n`payload`, `strapi`, `contentful`), `mcp`, `batch_api`, a broadcast's\nencoder (`broadcast`), or `unknown`.",
+              "enum": [
+                "dashboard",
+                "api",
+                "extension",
+                "desktop_app",
+                "obs",
+                "wordpress",
+                "payload",
+                "strapi",
+                "contentful",
+                "mcp",
+                "batch_api",
+                "broadcast",
+                "unknown"
+              ],
+              "type": "string"
+            },
             "ownerPrincipalId": {
               "type": "string"
             },
@@ -8019,6 +8164,14 @@
               "$ref": "#/components/schemas/CaptureSource",
               "description": "A live transcription's microphone, or the stream URL the server\npulls; a file or link transcription says `mic` (its source is the\njob's)."
             },
+            "tags": {
+              "default": [],
+              "description": "The account's tags on it, by name (`tags.list`).",
+              "items": {
+                "$ref": "#/components/schemas/TagRef"
+              },
+              "type": "array"
+            },
             "updatedAt": {
               "type": "string"
             }
@@ -8034,6 +8187,7 @@
             "shareUrl",
             "settings",
             "recordingCount",
+            "origin",
             "createdAt",
             "updatedAt"
           ],
@@ -8289,6 +8443,33 @@
               ]
             },
             "label": {
+              "default": null,
+              "type": [
+                "string",
+                "null"
+              ]
+            }
+          },
+          "type": "object"
+        },
+        "UpdateTag": {
+          "additionalProperties": false,
+          "properties": {
+            "color": {
+              "default": null,
+              "enum": [
+                "coral",
+                "amber",
+                "lime",
+                "green",
+                "teal",
+                "blue",
+                "violet",
+                "pink"
+              ],
+              "type": "string"
+            },
+            "name": {
               "default": null,
               "type": [
                 "string",
@@ -15478,6 +15659,329 @@
           ]
         }
       },
+      "/v1/tags": {
+        "get": {
+          "description": "The account's tags, by name. Each transcription lists its own in `tags`.",
+          "operationId": "tags.list",
+          "responses": {
+            "200": {
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "$ref": "#/components/schemas/TagList"
+                  }
+                }
+              },
+              "description": "OK",
+              "headers": {
+                "RateLimit-Limit": {
+                  "$ref": "#/components/headers/RateLimit-Limit"
+                },
+                "RateLimit-Remaining": {
+                  "$ref": "#/components/headers/RateLimit-Remaining"
+                },
+                "RateLimit-Reset": {
+                  "$ref": "#/components/headers/RateLimit-Reset"
+                },
+                "X-Request-Id": {
+                  "$ref": "#/components/headers/X-Request-Id"
+                }
+              }
+            },
+            "429": {
+              "$ref": "#/components/responses/RateLimited"
+            },
+            "503": {
+              "$ref": "#/components/responses/Unavailable"
+            }
+          },
+          "security": [
+            {
+              "bearerAuth": []
+            }
+          ],
+          "summary": "List tags",
+          "tags": [
+            "tags"
+          ],
+          "x-vocalstack-auth": "userOrKey",
+          "x-vocalstack-scopes": [
+            "read"
+          ]
+        },
+        "post": {
+          "description": "A tag: `name` (1 to 40 characters, unique in the account however it is cased: `conflict` when taken) and `color`, one of `coral`, `amber`, `lime`, `green`, `teal`, `blue`, `violet`, `pink` — when omitted, the first no tag of the account has yet. An account keeps up to 200 tags.",
+          "operationId": "tags.create",
+          "requestBody": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CreateTag"
+                }
+              }
+            },
+            "required": true
+          },
+          "responses": {
+            "201": {
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "$ref": "#/components/schemas/Tag"
+                  }
+                }
+              },
+              "description": "Created",
+              "headers": {
+                "RateLimit-Limit": {
+                  "$ref": "#/components/headers/RateLimit-Limit"
+                },
+                "RateLimit-Remaining": {
+                  "$ref": "#/components/headers/RateLimit-Remaining"
+                },
+                "RateLimit-Reset": {
+                  "$ref": "#/components/headers/RateLimit-Reset"
+                },
+                "X-Request-Id": {
+                  "$ref": "#/components/headers/X-Request-Id"
+                }
+              }
+            },
+            "429": {
+              "$ref": "#/components/responses/RateLimited"
+            },
+            "503": {
+              "$ref": "#/components/responses/Unavailable"
+            }
+          },
+          "security": [
+            {
+              "bearerAuth": []
+            }
+          ],
+          "summary": "Create a tag",
+          "tags": [
+            "tags"
+          ],
+          "x-errors": [
+            "invalid_options",
+            "invalid_state",
+            "conflict"
+          ],
+          "x-vocalstack-auth": "userOrKey",
+          "x-vocalstack-scopes": [
+            "write"
+          ]
+        }
+      },
+      "/v1/tags/{id}": {
+        "delete": {
+          "description": "Delete a tag: it comes off every transcription it is on. The transcriptions stay. A key that reaches only its own transcriptions is `forbidden`.",
+          "operationId": "tags.delete",
+          "parameters": [
+            {
+              "in": "path",
+              "name": "id",
+              "required": true,
+              "schema": {
+                "type": "string"
+              }
+            }
+          ],
+          "responses": {
+            "204": {
+              "description": "Deleted.",
+              "headers": {
+                "RateLimit-Limit": {
+                  "$ref": "#/components/headers/RateLimit-Limit"
+                },
+                "RateLimit-Remaining": {
+                  "$ref": "#/components/headers/RateLimit-Remaining"
+                },
+                "RateLimit-Reset": {
+                  "$ref": "#/components/headers/RateLimit-Reset"
+                },
+                "X-Request-Id": {
+                  "$ref": "#/components/headers/X-Request-Id"
+                }
+              }
+            },
+            "429": {
+              "$ref": "#/components/responses/RateLimited"
+            },
+            "503": {
+              "$ref": "#/components/responses/Unavailable"
+            }
+          },
+          "security": [
+            {
+              "bearerAuth": []
+            }
+          ],
+          "summary": "Delete a tag",
+          "tags": [
+            "tags"
+          ],
+          "x-errors": [
+            "not_found",
+            "forbidden"
+          ],
+          "x-vocalstack-auth": "userOrKey",
+          "x-vocalstack-scopes": [
+            "write"
+          ]
+        },
+        "patch": {
+          "description": "Rename or recolour a tag: any of `name`, `color`. Omitted fields are left as they are. Every transcription with it shows the change, so a key that reaches only its own transcriptions is `forbidden`.",
+          "operationId": "tags.update",
+          "parameters": [
+            {
+              "in": "path",
+              "name": "id",
+              "required": true,
+              "schema": {
+                "type": "string"
+              }
+            }
+          ],
+          "requestBody": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UpdateTag"
+                }
+              }
+            },
+            "required": true
+          },
+          "responses": {
+            "200": {
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "$ref": "#/components/schemas/Tag"
+                  }
+                }
+              },
+              "description": "OK",
+              "headers": {
+                "RateLimit-Limit": {
+                  "$ref": "#/components/headers/RateLimit-Limit"
+                },
+                "RateLimit-Remaining": {
+                  "$ref": "#/components/headers/RateLimit-Remaining"
+                },
+                "RateLimit-Reset": {
+                  "$ref": "#/components/headers/RateLimit-Reset"
+                },
+                "X-Request-Id": {
+                  "$ref": "#/components/headers/X-Request-Id"
+                }
+              }
+            },
+            "429": {
+              "$ref": "#/components/responses/RateLimited"
+            },
+            "503": {
+              "$ref": "#/components/responses/Unavailable"
+            }
+          },
+          "security": [
+            {
+              "bearerAuth": []
+            }
+          ],
+          "summary": "Update a tag",
+          "tags": [
+            "tags"
+          ],
+          "x-errors": [
+            "invalid_options",
+            "conflict",
+            "not_found",
+            "forbidden"
+          ],
+          "x-vocalstack-auth": "userOrKey",
+          "x-vocalstack-scopes": [
+            "write"
+          ]
+        }
+      },
+      "/v1/tags/{id}/transcriptions": {
+        "post": {
+          "description": "Put the tag on the transcriptions in `add` and take it off those in `remove`, by id, up to 500 in one call. All or none: an id that is not one of yours is `not_found` and nothing changes. Adding a tag a transcription already has, or removing one it does not, is not an error. Returns the tag.",
+          "operationId": "tags.tagTranscriptions",
+          "parameters": [
+            {
+              "in": "path",
+              "name": "id",
+              "required": true,
+              "schema": {
+                "type": "string"
+              }
+            }
+          ],
+          "requestBody": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TagTranscriptions"
+                }
+              }
+            },
+            "required": true
+          },
+          "responses": {
+            "200": {
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "$ref": "#/components/schemas/Tag"
+                  }
+                }
+              },
+              "description": "OK",
+              "headers": {
+                "RateLimit-Limit": {
+                  "$ref": "#/components/headers/RateLimit-Limit"
+                },
+                "RateLimit-Remaining": {
+                  "$ref": "#/components/headers/RateLimit-Remaining"
+                },
+                "RateLimit-Reset": {
+                  "$ref": "#/components/headers/RateLimit-Reset"
+                },
+                "X-Request-Id": {
+                  "$ref": "#/components/headers/X-Request-Id"
+                }
+              }
+            },
+            "429": {
+              "$ref": "#/components/responses/RateLimited"
+            },
+            "503": {
+              "$ref": "#/components/responses/Unavailable"
+            }
+          },
+          "security": [
+            {
+              "bearerAuth": []
+            }
+          ],
+          "summary": "Tag transcriptions",
+          "tags": [
+            "tags"
+          ],
+          "x-errors": [
+            "invalid_options",
+            "not_found"
+          ],
+          "x-vocalstack-auth": "userOrKey",
+          "x-vocalstack-scopes": [
+            "write"
+          ]
+        }
+      },
       "/v1/transcriptions": {
         "get": {
           "description": "Transcriptions owned by the acting principal (file, link and live), newest first (by `createdAt`), a page at a time: follow `nextCursor` (absent on the last page) as `cursor`. A cursor is never an offset: transcriptions created, changed or archived while you page are neither repeated nor skipped among the rest. `lifecycle=all` is the active and the archived in one list.",
@@ -15747,7 +16251,7 @@
       },
       "/v1/transcriptions/probe": {
         "get": {
-          "description": "What a link is before it is transcribed: `live` — a YouTube live on air or scheduled, an endless HTTP stream, an HLS playlist with no end, a dynamic DASH manifest — belongs in a live transcription; `file` is transcribed as one; `unknown` could not be told. `source` names the live form's source (`youtube`, `radio`). A web page is not a recording (`ok: false`), but `media` lists the recordings and live streams on it — media files, playlists, YouTube videos, a station's stream — each found, then opened as a link of its own would be, with its title on the page when it has one and its `kind` (`live` or `file`): create one transcription per `file` entry. A page whose own player plays a live stream (a radio station's page) is `kind: live` and `ok: true`, its stream first in `media`: a live transcription made from the page records that stream. When `ok` is `false`, `reason` says why for a client to choose its own next step (`web_page`, `site_not_fetched` and `meeting` with `siteName`, `not_found`, `unreachable`, `forbidden`, `not_media`, `copy_protected`, `too_long`, `unknown`) and `problem` says what is wrong in a sentence for people, never what to do: a link that is plainly not a recording (a PDF, an image) or is copy-protected is refused, and so is a YouTube video longer than a file may be (8 hours). Nothing is kept. 60 a minute; searching a web page also counts against an hourly allowance — 20 with a plan, 10 on pay as you go, 2 on credit never paid for — and past it the probe answers `rate_limited` with `retryAfterS`.",
+          "description": "What a link is before it is transcribed: `live` — a YouTube live on air or scheduled, an endless HTTP stream, an HLS playlist with no end, a dynamic DASH manifest — belongs in a live transcription; `file` is transcribed as one; `unknown` could not be told. `source` names the live form's source (`youtube`, `radio`). A web page is not a recording (`ok: false`), but `media` lists the recordings and live streams on it — media files, playlists, YouTube videos, a station's stream — each found, then opened as a link of its own would be, with its title on the page when it has one and its `kind` (`live` or `file`): create one transcription per `file` entry. A page whose own player plays a live stream (a radio station's page) is `kind: live` and `ok: true`, its stream first in `media`: a live transcription made from the page records that stream. When `ok` is `false`, `reason` says why for a client to choose its own next step (`web_page`, `site_not_fetched` and `meeting` with `siteName`, `not_found`, `unreachable`, `forbidden`, `not_media`, `copy_protected`, `too_long`, `unknown`) and `problem` says what is wrong in a sentence for people, never what to do: a link that is plainly not a recording (a PDF, an image) or is copy-protected is refused, and so is a YouTube or Loom video longer than a file may be (8 hours). A Loom share link is a `file` when the video is public; a private one is `ok: false` with `forbidden`. Nothing is kept. 60 a minute; searching a web page also counts against an hourly allowance — 20 with a plan, 10 on pay as you go, 2 on credit never paid for — and past it the probe answers `rate_limited` with `retryAfterS`.",
           "operationId": "transcriptions.probe",
           "parameters": [
             {
@@ -17501,6 +18005,11 @@
         "description": "Named, read-only links to a broadcast's or a transcription's public page.",
         "name": "share-links",
         "x-displayName": "Share links"
+      },
+      {
+        "description": "The account's own labels for its transcriptions.",
+        "name": "tags",
+        "x-displayName": "Tags"
       },
       {
         "description": "The voices spoken translations are read in, stock and cloned.",

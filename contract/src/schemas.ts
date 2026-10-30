@@ -315,6 +315,13 @@ export const CaptureSourceSchema = z.discriminatedUnion('kind', [z.object({
 })]);
 export type CaptureSource = z.infer<typeof CaptureSourceSchema>;
 
+export const TagRefSchema = z.object({
+  "color": z.enum(['coral', 'amber', 'lime', 'green', 'teal', 'blue', 'violet', 'pink']),
+  "id": z.string(),
+  "name": z.string(),
+});
+export type TagRef = z.infer<typeof TagRefSchema>;
+
 export const TranscriptionSchema = z.object({
   "archivedAt": z.union([z.string(), z.null()]).optional(),
   "batchId": z.union([z.string(), z.null()]).optional(),
@@ -331,12 +338,14 @@ export const TranscriptionSchema = z.object({
   "lifecycle": LifecycleSchema,
   "live": z.boolean().optional(),
   "name": z.string(),
+  "origin": z.enum(['dashboard', 'api', 'extension', 'desktop_app', 'obs', 'wordpress', 'payload', 'strapi', 'contentful', 'mcp', 'batch_api', 'broadcast', 'unknown']),
   "ownerPrincipalId": z.string(),
   "purgeAfter": z.union([z.string(), z.null()]).optional(),
   "recordingCount": z.number().int(),
   "settings": SettingsSchema,
   "shareUrl": z.string(),
   "source": CaptureSourceSchema,
+  "tags": z.array(TagRefSchema).optional(),
   "updatedAt": z.string(),
 });
 export type Transcription = z.infer<typeof TranscriptionSchema>;
@@ -848,6 +857,12 @@ export const CreateShareLinkSchema = z.object({
   "label": z.string(),
 });
 export type CreateShareLink = z.infer<typeof CreateShareLinkSchema>;
+
+export const CreateTagSchema = z.object({
+  "color": z.enum(['coral', 'amber', 'lime', 'green', 'teal', 'blue', 'violet', 'pink']).optional(),
+  "name": z.string(),
+});
+export type CreateTag = z.infer<typeof CreateTagSchema>;
 
 export const SettingsPatchSchema = z.object({
   "confidence": z.union([ConfidencePolicySchema, z.null()]).optional(),
@@ -1722,6 +1737,25 @@ export const SummaryStatusSchema = z.object({
 });
 export type SummaryStatus = z.infer<typeof SummaryStatusSchema>;
 
+export const TagSchema = z.object({
+  "color": z.enum(['coral', 'amber', 'lime', 'green', 'teal', 'blue', 'violet', 'pink']),
+  "createdAt": z.string(),
+  "id": z.string(),
+  "name": z.string(),
+});
+export type Tag = z.infer<typeof TagSchema>;
+
+export const TagListSchema = z.object({
+  "tags": z.array(TagSchema),
+});
+export type TagList = z.infer<typeof TagListSchema>;
+
+export const TagTranscriptionsSchema = z.object({
+  "add": z.array(z.string()).optional(),
+  "remove": z.array(z.string()).optional(),
+});
+export type TagTranscriptions = z.infer<typeof TagTranscriptionsSchema>;
+
 export const TranscriptSnapshotSchema = z.object({
   "lang": z.union([z.string(), z.null()]).optional(),
   "lastSeq": z.number().int(),
@@ -1757,6 +1791,12 @@ export const UpdateShareLinkSchema = z.object({
   "label": z.union([z.string(), z.null()]).optional(),
 });
 export type UpdateShareLink = z.infer<typeof UpdateShareLinkSchema>;
+
+export const UpdateTagSchema = z.object({
+  "color": z.enum(['coral', 'amber', 'lime', 'green', 'teal', 'blue', 'violet', 'pink']).optional(),
+  "name": z.union([z.string(), z.null()]).optional(),
+});
+export type UpdateTag = z.infer<typeof UpdateTagSchema>;
 
 export const UpdateTranscriptionSchema = z.object({
   "name": z.union([z.string(), z.null()]).optional(),

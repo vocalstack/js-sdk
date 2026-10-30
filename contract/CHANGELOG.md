@@ -20,6 +20,15 @@ One line per change, naming the operation (`METHOD /path`, its
 
 ## [Unreleased]
 
+### Tags (2026-10-30, still `1.0.0-alpha.0`)
+
+- **Added**: `GET /v1/tags` (`tags.list`), `POST /v1/tags` (`tags.create`), `PATCH /v1/tags/{id}` (`tags.update`), `DELETE /v1/tags/{id}` (`tags.delete`) and `POST /v1/tags/{id}/transcriptions` (`tags.tagTranscriptions`, `TagTranscriptions`: `add`, `remove`): the account's own labels for its transcriptions (`Tag`: `id`, `name`, `color` — `coral`, `amber`, `lime`, `green`, `teal`, `blue`, `violet` or `pink` — `createdAt`). The SDKs' `tags` group (Python `tags.tag_transcriptions`).
+- **Added**: `Transcription.tags` (`TagRef`: `id`, `name`, `color`), the tags on it, and `Transcription.origin`, where it was made (`dashboard`, `api`, `extension`, `desktop_app`, `obs`, `wordpress`, `payload`, `strapi`, `contentful`, `mcp`, `batch_api`, `broadcast`, `unknown`).
+
+### Loom share links (2026-10-30, still `1.0.0-alpha.0`)
+
+- **Changed**: `transcriptions.probe` (`GET /v1/transcriptions/probe`) answers a public Loom share link (`loom.com/share/<id>`) with `kind: file`, `ok: true` (it was `ok: false`, `reason: site_not_fetched`, `siteName: Loom`); a private Loom video is `ok: false` with `reason: forbidden`, a Loom video longer than a file may be `too_long`. `POST /v1/transcriptions` (`transcriptions.create`) with such a `url` transcribes the video's audio. `ProbeReason.site_not_fetched`'s description no longer names Loom.
+
 ### Live streams on web pages (2026-10-30, still `1.0.0-alpha.0`)
 
 - **Added**: `PageMedia.kind` (`live` | `file`, the `LinkKind` values) on each of `LinkProbe.media` (`GET /v1/transcriptions/probe`, `transcriptions.probe`): a web page's live streams are listed too (a station's Icecast mount with no extension, a live HLS playlist, an address the page carries in base64), the page's own player's stream first.
