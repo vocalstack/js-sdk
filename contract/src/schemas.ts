@@ -1027,6 +1027,7 @@ export const LinkKindSchema = z.union([z.literal("live"), z.literal("file"), z.l
 export type LinkKind = z.infer<typeof LinkKindSchema>;
 
 export const PageMediaSchema = z.object({
+  "kind": LinkKindSchema,
   "title": z.union([z.string(), z.null()]).optional(),
   "url": z.string(),
 });

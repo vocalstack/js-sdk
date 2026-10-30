@@ -20,6 +20,12 @@ One line per change, naming the operation (`METHOD /path`, its
 
 ## [Unreleased]
 
+### Live streams on web pages (2026-10-30, still `1.0.0-alpha.0`)
+
+- **Added**: `PageMedia.kind` (`live` | `file`, the `LinkKind` values) on each of `LinkProbe.media` (`GET /v1/transcriptions/probe`, `transcriptions.probe`): a web page's live streams are listed too (a station's Icecast mount with no extension, a live HLS playlist, an address the page carries in base64), the page's own player's stream first.
+- **Changed**: `transcriptions.probe` answers a web page whose own player plays a live stream (a radio station's page) with `kind: live`, `ok: true` and no `reason`, `media` listing the streams; a stream answering with Icecast / Shoutcast headers is `live`.
+- **Changed**: `POST /v1/transcriptions/live` (`transcriptions.createLive`), `POST /v1/broadcasts` (`broadcasts.create`) and `POST /v1/broadcasts/{id}/audio-sources` (`broadcasts.addAudioSource`) take a web page as a stream source's `url`: the first live stream on it becomes `source.url` (the address the server pulls). A page with none is `400 invalid_options` ("No live audio stream found on that page."); searching a page counts against the probe's hourly allowance of web pages (`rate_limited`), unless the probe searched that page in the last 10 minutes.
+
 ### Link check: refused sites, non-recordings, copy protection (2026-10-29, still `1.0.0-alpha.0`)
 
 - **Added**: `LinkProbe.reason` (`GET /v1/transcriptions/probe`, `transcriptions.probe`), set whenever `ok` is `false`: `web_page`, `site_not_fetched`, `meeting`, `not_found`, `unreachable`, `forbidden`, `not_media`, `copy_protected`, `too_long`, `unknown`; and `LinkProbe.siteName` with `site_not_fetched` and `meeting` (Vimeo, Kick, Loom, Google Meet…).

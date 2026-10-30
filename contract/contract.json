@@ -1180,7 +1180,7 @@
               "type": "object"
             },
             {
-              "description": "The server opens `url` (a live audio stream: Icecast MP3 / AAC /\nOgg over HTTP, a YouTube live, an RTMP ingest address), decodes it\nand publishes it when the host presses record.\nStarting a recording then returns no `streamUrl`:\nnothing on the device sends audio.",
+              "description": "The server opens `url` (a live audio stream: Icecast MP3 / AAC /\nOgg over HTTP, a YouTube live, an RTMP ingest address), decodes it\nand publishes it when the host presses record.  Given a web page\nthat plays one (a radio station's page), the first live stream on\nit is kept here instead.\nStarting a recording then returns no `streamUrl`:\nnothing on the device sends audio.",
               "properties": {
                 "kind": {
                   "const": "stream",
@@ -3538,14 +3538,14 @@
               "$ref": "#/components/schemas/LinkKind"
             },
             "media": {
-              "description": "The link is a web page (`ok` is `false`), and these are the\nrecordings on it — each opens as a link of its own would.  Absent\nwhen it is not a page, or carries none.",
+              "description": "The link is a web page, and these are the recordings and live\nstreams on it, each with its `kind` — each opens as a link of its\nown would; the page's own player's stream first.  Absent when it is\nnot a page, or carries none.",
               "items": {
                 "$ref": "#/components/schemas/PageMedia"
               },
               "type": "array"
             },
             "ok": {
-              "description": "Did the link open as something to transcribe — a stream, a playlist,\na media file, a YouTube video?  `false` when it did not answer,\nanswered an error, or is a web page (design 81's \"That link didn't\nwork\").  A YouTube refusal that may pass (a bot wall, a timeout)\ncounts as working: it cannot be told from here.",
+              "description": "Did the link open as something to transcribe — a stream, a playlist,\na media file, a YouTube video?  `false` when it did not answer,\nanswered an error, or is a web page (design 81's \"That link didn't\nwork\").  A YouTube refusal that may pass (a bot wall, a timeout)\ncounts as working: it cannot be told from here.  A web page whose\nown player plays a live stream (a radio station's page) is `true`\nwith `kind` `live`: a live transcription made from the page records\nthat stream, `media`'s first.",
               "type": "boolean"
             },
             "problem": {
@@ -3785,8 +3785,12 @@
           ]
         },
         "PageMedia": {
-          "description": "A recording found on a page.",
+          "description": "A recording or a live stream found on a page.",
           "properties": {
+            "kind": {
+              "$ref": "#/components/schemas/LinkKind",
+              "description": "`live` — a stream on air (a station's Icecast mount, a live HLS\nplaylist): record it in a live transcription; `file` — a recording\nwith an end: transcribe it as one.  Never `unknown`."
+            },
             "title": {
               "description": "Its name on the page, when the page gives one.",
               "type": [
@@ -3800,7 +3804,8 @@
             }
           },
           "required": [
-            "url"
+            "url",
+            "kind"
           ],
           "type": "object"
         },
@@ -15662,7 +15667,7 @@
       },
       "/v1/transcriptions/live": {
         "post": {
-          "description": "Create a live transcription: captured as it is spoken — this device's microphone, or a stream the server pulls — rather than read from a file (`live: true`). It is created idle; `transcriptions.startRecording` starts it, and the recording's pause / resume / stop calls drive it. `broadcasts` attaches it to those broadcasts from the start.",
+          "description": "Create a live transcription: captured as it is spoken — this device's microphone, or a stream the server pulls — rather than read from a file (`live: true`). It is created idle; `transcriptions.startRecording` starts it, and the recording's pause / resume / stop calls drive it. `broadcasts` attaches it to those broadcasts from the start. A stream `source.url` may be a web page that plays one (a radio station's page): the first live stream found on it becomes `source.url`, and a page with none is refused (`invalid_options`); searching a page counts against the link check's hourly allowance of web pages.",
           "operationId": "transcriptions.createLive",
           "parameters": [
             {
@@ -15742,7 +15747,7 @@
       },
       "/v1/transcriptions/probe": {
         "get": {
-          "description": "What a link is before it is transcribed: `live` — a YouTube live on air or scheduled, an endless HTTP stream, an HLS playlist with no end, a dynamic DASH manifest — belongs in a live transcription; `file` is transcribed as one; `unknown` could not be told. `source` names the live form's source (`youtube`, `radio`). A web page is not a recording (`ok: false`), but `media` lists the recordings on it — media files, playlists, YouTube videos — each found, then opened as a link of its own would be, with its title on the page when it has one: create one transcription per entry. When `ok` is `false`, `reason` says why for a client to choose its own next step (`web_page`, `site_not_fetched` and `meeting` with `siteName`, `not_found`, `unreachable`, `forbidden`, `not_media`, `copy_protected`, `too_long`, `unknown`) and `problem` says what is wrong in a sentence for people, never what to do: a link that is plainly not a recording (a PDF, an image) or is copy-protected is refused, and so is a YouTube video longer than a file may be (8 hours). Nothing is kept. 60 a minute; searching a web page also counts against an hourly allowance — 20 with a plan, 10 on pay as you go, 2 on credit never paid for — and past it the probe answers `rate_limited` with `retryAfterS`.",
+          "description": "What a link is before it is transcribed: `live` — a YouTube live on air or scheduled, an endless HTTP stream, an HLS playlist with no end, a dynamic DASH manifest — belongs in a live transcription; `file` is transcribed as one; `unknown` could not be told. `source` names the live form's source (`youtube`, `radio`). A web page is not a recording (`ok: false`), but `media` lists the recordings and live streams on it — media files, playlists, YouTube videos, a station's stream — each found, then opened as a link of its own would be, with its title on the page when it has one and its `kind` (`live` or `file`): create one transcription per `file` entry. A page whose own player plays a live stream (a radio station's page) is `kind: live` and `ok: true`, its stream first in `media`: a live transcription made from the page records that stream. When `ok` is `false`, `reason` says why for a client to choose its own next step (`web_page`, `site_not_fetched` and `meeting` with `siteName`, `not_found`, `unreachable`, `forbidden`, `not_media`, `copy_protected`, `too_long`, `unknown`) and `problem` says what is wrong in a sentence for people, never what to do: a link that is plainly not a recording (a PDF, an image) or is copy-protected is refused, and so is a YouTube video longer than a file may be (8 hours). Nothing is kept. 60 a minute; searching a web page also counts against an hourly allowance — 20 with a plan, 10 on pay as you go, 2 on credit never paid for — and past it the probe answers `rate_limited` with `retryAfterS`.",
           "operationId": "transcriptions.probe",
           "parameters": [
             {
