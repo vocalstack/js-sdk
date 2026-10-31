@@ -18,7 +18,7 @@ Create the batch, add each file or link, start it, then wait for it to be `done`
 
 ## 1. Create the batch
 
-`POST /v1/batches` answers `201` with an `open` batch. The body is optional: a `name` (by default the batch is named for its date) and `settings` every file runs with, `spokenLanguage` (absent: detected per file; name it when you know it, and each file starts sooner), `speakerLabels` (`off` by default, `auto` or `on`) and `latencyMode`.
+`POST /v1/batches` answers `201` with an `open` batch. The body is optional: a `name` (by default the batch is named for its date) and `settings` every file runs with, `spokenLanguage` (absent: detected per file; name it when you know it, and each file starts sooner), `speakerLabels` (`auto` by default, `on` or `off`), `latencyMode`, and `voiceCloning` (each speaker read in their own cloned voice; turning it on needs `voiceCloningConsent: true`, your confirmation that everyone speaking agreed).
 
 ## 2. Add the files
 

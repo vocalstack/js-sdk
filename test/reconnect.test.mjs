@@ -10,7 +10,7 @@ import { RealtimeSession, RESTART_CLOSE } from '../dist/realtime.js';
  *  connection i does after `afterBytes` of audio: close with a code, or
  *  (when absent) commit one segment on `eof` and say done. */
 async function server(script) {
-  const wss = new WebSocketServer({ port: 0 });
+  const wss = new WebSocketServer({ host: '127.0.0.1', port: 0 });
   await new Promise((r) => wss.once('listening', r));
   const conns = [];
   wss.on('connection', (ws) => {

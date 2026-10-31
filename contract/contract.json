@@ -684,7 +684,7 @@
         },
         "BatchSettings": {
           "additionalProperties": false,
-          "description": "What every file of a batch runs with.  Summary, title, voices and the\nshare link are never made for a batch file, so they are not here.",
+          "description": "What every file of a batch runs with.  Summary, title, voices and the\nshare link are never made for a batch file, so they are not here.\nVoice cloning is (design 120: the New transcription form asks it for\nevery file it starts, one file or several).",
           "properties": {
             "latencyMode": {
               "$ref": "#/components/schemas/LatencyMode",
@@ -692,8 +692,8 @@
             },
             "speakerLabels": {
               "$ref": "#/components/schemas/SpeakerLabels",
-              "default": "off",
-              "description": "`off` (default), `auto` or `on`: speaker labels for every file.\nNever on a file under a minute."
+              "default": "auto",
+              "description": "`auto` (default: \"When Needed\"), `on` or `off`: speaker labels for\nevery file.  Never on a file under a minute."
             },
             "spokenLanguage": {
               "description": "Whisper language code; absent = auto-detect per file.  Named, each\nfile skips the detection and starts sooner.",
@@ -701,6 +701,16 @@
                 "string",
                 "null"
               ]
+            },
+            "voiceCloning": {
+              "default": false,
+              "description": "Every file's `Settings.voiceCloning`: each speaker read in their own\ncloned voice.  On needs `voiceCloningConsent: true` in the same\nrequest (the host confirms everyone speaking agreed), and speaker\nlabels: with `speakerLabels: off` they become `auto`.",
+              "type": "boolean"
+            },
+            "voiceCloningConsent": {
+              "description": "Write-only: see `Settings::voice_cloning_consent`.  Never stored or\nreturned.",
+              "type": "boolean",
+              "writeOnly": true
             }
           },
           "type": "object"
@@ -6352,8 +6362,8 @@
             },
             "speakerLabels": {
               "$ref": "#/components/schemas/SpeakerLabels",
-              "default": "off",
-              "description": "Speaker labels: `off` (default), `on`, or `auto` (diarized like\n`on`; a client that shows labels waits for a second speaker)."
+              "default": "auto",
+              "description": "Speaker labels: `auto` (diarized like `on`; a client that shows\nlabels waits for a second speaker), `on`, or `off`.  Absent: `auto`\nwhen created with an account's API key (the API's default since\n2026-10-30); `off` without one (the engine's own default)."
             },
             "spokenLanguage": {
               "description": "Whisper language code of the speech; absent = auto-detect.",
@@ -6386,6 +6396,11 @@
             "voiceCast": {
               "default": true,
               "description": "Cast a distinct, gender-matched voice to each diarized speaker\n(default **on**).\n\nThe listener still picks one voice per language; with this on it\nbecomes the voice of the first speaker of its own gender, and\neverybody else in the room is cast around it from the same\nengine's catalogue — so two men are read in two male voices and a\nwoman in a female one, without anyone configuring anything.\n\nOff means the listener's pick reads every speaker, which is what\nhappened before this existed.  It is also what a caller wants when\nthe choice is editorial rather than practical: a single narrator\nfor the whole room.\n\nNeeds `speakerLabels` on to do anything — with one speaker there is\nnothing to cast — and never delays a clip: a speaker whose gender\nhas not settled yet is read in the listener's pick and moves to\ntheir own voice once it does (see `casting`).",
+              "type": "boolean"
+            },
+            "voiceCloning": {
+              "default": false,
+              "description": "Read a speaker identified as one of the account's cloned voices\nin that clone (default **off**, design 118: nobody is\nread in a cloned voice until the host turns voice cloning on).  Off,\nthey are cast like anyone else, by gender.  A listener's explicit\npick of a clone (`cast:0=clone:<id>`) is not affected.",
               "type": "boolean"
             }
           },
@@ -6545,8 +6560,8 @@
             },
             "speakerLabels": {
               "$ref": "#/components/schemas/SpeakerLabels",
-              "default": "off",
-              "description": "Separate the transcript by who is talking (#39: `off` by default):\n`auto` and `on` diarize, `auto` labels lines once a second speaker\nhas been heard."
+              "default": "auto",
+              "description": "Separate the transcript by who is talking: `auto` (\"When Needed\",\nthe default since 2026-10-30, as the dashboard has it) and `on`\ndiarize, `auto` labels lines once a second speaker has been heard;\n`off` neither separates nor labels."
             },
             "spokenLanguage": {
               "description": "Whisper language code; absent = auto-detect.",
@@ -6582,6 +6597,16 @@
               },
               "description": "Which voice speaks each audience language (`{\"es\": \"F3\"}`), by the\nengine's own voice name or `clone:<id>`.  A language that is not\nlisted gets the engine's default for it.\n\nThis is the host's setting, not a listener's: a clip is\nsynthesised once per language and fanned out to everyone\nlistening in it (`relay.rs` filters by language alone), so a\nper-listener choice could not be honoured without synthesising\nper listener.  The listener's picker therefore offers what is\npinned here — usually the one voice actually being rendered.",
               "type": "object"
+            },
+            "voiceCloning": {
+              "default": false,
+              "description": "Read every speaker in their own cloned voice (design 118): each\nspeaker's automatic clone is granted as it is made, and the live\ncast reads a speaker in it once they are identified.  Off by\ndefault: nobody is read in a cloned voice until the host turns it\non.  On a broadcast it is the default its new transcriptions start\nwith.\nTurning it on needs `voiceCloningConsent: true` in the same request.\nIt needs speaker labels: on with `speakerLabels: off` moves the\nlabels to `auto`, and switching the labels off turns it off.",
+              "type": "boolean"
+            },
+            "voiceCloningConsent": {
+              "description": "Write-only: the host confirms they have permission from everyone\nspeaking to clone their voices.  Needed (and only read) when the\nrequest turns `voiceCloning` on; never stored, never returned.",
+              "type": "boolean",
+              "writeOnly": true
             }
           },
           "type": "object"
@@ -6694,6 +6719,22 @@
               "description": "Replaces the whole map; `{}` clears every pin.",
               "type": [
                 "object",
+                "null"
+              ]
+            },
+            "voiceCloning": {
+              "default": null,
+              "description": "Turning it on needs `voiceCloningConsent: true` beside it.",
+              "type": [
+                "boolean",
+                "null"
+              ]
+            },
+            "voiceCloningConsent": {
+              "default": null,
+              "description": "Write-only: see `Settings::voice_cloning_consent`.",
+              "type": [
+                "boolean",
                 "null"
               ]
             }
@@ -6912,7 +6953,7 @@
           ]
         },
         "SpeakerLabels": {
-          "description": "The three positions of the speaker-labels switch (design 77), on a\nrealtime session's options and on a broadcast's, transcription's or\nrecording's settings alike.\n\n`auto` (\"When Needed\") diarizes like `on`, and its lines are labelled\nonly once a second speaker has been heard, so one person talking reads\nas plain text.  `on` labels every line; `off` (the default, #39)\nneither separates nor labels.",
+          "description": "The three positions of the speaker-labels switch (design 77), on a\nrealtime session's options and on a broadcast's, transcription's or\nrecording's settings alike.\n\n`auto` (\"When Needed\") diarizes like `on`, and its lines are labelled\nonly once a second speaker has been heard, so one person talking reads\nas plain text.  `on` labels every line; `off` neither separates nor\nlabels.  The API's default is `auto` (`domain::settings::\ndefault_speaker_labels`, 2026-10-30); this type's own `off` is a bare\nengine's, which the API never relies on.",
           "enum": [
             "auto",
             "on",
@@ -8912,8 +8953,26 @@
                 "null"
               ]
             },
+            "auto": {
+              "description": "An automatic clone of the recording asked about, not saved in\nVoices (it goes with the recording).  Cloned voices only.",
+              "type": [
+                "boolean",
+                "null"
+              ]
+            },
             "cloned": {
               "type": "boolean"
+            },
+            "consent": {
+              "anyOf": [
+                {
+                  "$ref": "#/components/schemas/Consent"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "A cloned voice's consent: `granted`, or `pending` for an automatic\nclone of the recording asked about, listed to its owner only (no\n`previewUrl`, it does not speak yet).  Absent on stock voices."
             },
             "default": {
               "type": "boolean"
@@ -8952,6 +9011,14 @@
             "ready": {
               "default": true,
               "type": "boolean"
+            },
+            "speaker": {
+              "description": "The speaker in the recording asked about (`?recording=`) this clone\nwas cut from or reads.",
+              "format": "int32",
+              "type": [
+                "integer",
+                "null"
+              ]
             },
             "speakers": {
               "format": "uint32",
@@ -15173,7 +15240,7 @@
       },
       "/v1/recordings/{id}/voice/{sentence}": {
         "get": {
-          "description": "One spoken sentence, Ogg/Opus (`format=caf` for Apple's media stack). The owner, or any listener who can reach its broadcast or transcription. A clip in a language the recording was not spoken in is a spoken translation: through a share link it needs `allowTranslate`.",
+          "description": "One spoken sentence, Ogg/Opus (`format=caf` for Apple's media stack). `sentence` is a sentence's `id` from the transcript (`sentences[].id`), not a segment's position; one the recording does not have is a 404. With no `voice`, each speaker is read in their own cloned voice when its consent is granted and the recording has `voiceCloning` on, else in a stock voice of their gender, a different one for each speaker. The owner, or any listener who can reach its broadcast or transcription. A clip in a language the recording was not spoken in is a spoken translation: through a share link it needs `allowTranslate`.",
           "operationId": "recordings.voiceClip",
           "parameters": [
             {
@@ -17378,7 +17445,7 @@
       },
       "/v1/voices/available": {
         "get": {
-          "description": "The voices that can speak a language, best first (`default` marks the one a recording that pins none gets). Open to listeners; a bearer token also returns that account's ready cloned voices. A clip is synthesised once per language and fanned out, so this is the set a host may pin in `settings.voiceByLang` — and all a listener can ever be offered.",
+          "description": "The voices that can speak a language, best first (`default` marks the one a recording that pins none gets). Open to listeners; a bearer token also returns that account's saved cloned voices (not automatic clones). Cloned entries carry `consent`, `auto` and, with `recording`, `speaker`. A clip is synthesised once per language and fanned out, so this is the set a host may pin in `settings.voiceByLang` — and all a listener can ever be offered.",
           "operationId": "voices.available",
           "parameters": [
             {
@@ -17390,7 +17457,7 @@
               }
             },
             {
-              "description": "Also offer the cloned voices this recording uses, to whoever may read it (its owner, or a listener with `listenerToken` or `shareCode`): what a listener of it may pick from.",
+              "description": "Also offer the cloned voices this recording uses or was cut from, each with the `speaker` it reads. To its owner always, with its automatic clones still waiting on consent too (`consent: pending`, `auto: true`, no `previewUrl`; they do not speak until granted); to a listener (`listenerToken` or `shareCode`) only the granted ones, and only while its transcription has `settings.voiceCloning` on.",
               "in": "query",
               "name": "recording",
               "schema": {
@@ -17468,7 +17535,7 @@
       },
       "/v1/voices/from-speaker": {
         "post": {
-          "description": "Create a voice from one speaker of a recording — no sample to upload, because the recording's own audio is the sample. Works while the recording is still running: the server joins the stretches that speaker actually spoke for and clones from those. Naming them here also labels them in the transcript and associates them with the new voice. Needs at least 30 seconds of that speaker's speech, their diarized turns added up; the refusal says how much there is. `consent: true` grants consent; when the speaker was already cloned automatically, that clone is the one granted and named.",
+          "description": "Create a voice from one speaker of a recording — no sample to upload, because the recording's own audio is the sample. Works while the recording is still running: the server joins the stretches that speaker actually spoke for and clones from those. Naming them here also labels them in the transcript and associates them with the new voice. Needs at least 30 seconds of that speaker's speech, their diarized turns added up; the refusal says how much there is. `consent: true` grants consent; when the speaker was already cloned automatically (and not refused), that clone is the one granted, named and saved (`auto` becomes false: it is kept when the recording goes).",
           "operationId": "voices.createFromSpeaker",
           "parameters": [
             {
@@ -17828,7 +17895,7 @@
       },
       "/v1/voices/{id}/consent": {
         "post": {
-          "description": "Record whether the speaker agreed to their cloned voice. Every speaker with 30 seconds of speech in a recording is cloned automatically with `consent: \"pending\"`; a clone speaks, is offered in `GET /v1/voices/available` and has a preview only once its consent is `granted`. `granted` (optionally with a `name`, which also names the speaker in the recording it came from) makes it usable; `refused` deletes its audio and voice at once and it is not cloned again. Refusing later withdraws consent the same way. Each decision is recorded with who made it and when.",
+          "description": "Record whether the speaker agreed to their cloned voice. Every speaker with 30 seconds of speech in a recording is cloned automatically with `consent: \"pending\"`; a clone speaks, is offered in `GET /v1/voices/available` and has a preview only once its consent is `granted`. `granted` (optionally with a `name`, which also names the speaker in the recording it came from) makes it usable; `refused` deletes its audio and voice at once and it is not cloned again. Refusing later withdraws consent the same way. Each decision is recorded with who made it and when; `granted` on a voice already granted is recorded again (the host re-confirming permission). With `settings.voiceCloning` on, a transcription's automatic clones are granted on the host's word as they are made.",
           "operationId": "voices.setConsent",
           "parameters": [
             {

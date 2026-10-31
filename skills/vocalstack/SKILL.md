@@ -102,7 +102,7 @@ const vs = new VocalStack({ baseUrl: process.env.VOCALSTACK_BASE_URL, apiKey: pr
 
 const tx = await vs.transcriptions.create({
   file: process.argv[2], // a path (mp3, wav, flac, ogg, m4a, mp4 ...), a Blob or bytes
-  settings: { spokenLanguage: 'en', speakerLabels: 'on' }, // both optional; speakerLabels: 'off' (default) | 'auto' | 'on'
+  settings: { spokenLanguage: 'en', speakerLabels: 'on' }, // both optional; speakerLabels: 'auto' (default) | 'on' | 'off'
   // Off unless asked for: settings.summary, settings.title, settings.summaryTranslations,
   // settings.voice (spoken translations), and shareLink: true (a public share link).
 });

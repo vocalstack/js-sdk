@@ -20,6 +20,29 @@ One line per change, naming the operation (`METHOD /path`, its
 
 ## [Unreleased]
 
+### A spoken sentence with no voice named (2026-10-31, still `1.0.0-alpha.0`)
+
+- **Changed**: `GET /v1/recordings/{id}/voice/{sentence}` (`recordings.voiceClip`), `POST /v1/recordings/{id}/voice` (`recordings.renderVoice`) and `GET /v1/recordings/{id}/audio?kind=voice` with no `voice`: each speaker is read in their own cloned voice when its consent is granted and the recording has `voiceCloning` on, else in a stock voice of their gender, a different one for each speaker (it was the language's default voice for everyone). A `sentence` the recording does not have is a 404 at once (it was a retryable 503 forever).
+
+### Word times for every reader (2026-10-30, still `1.0.0-alpha.0`)
+
+- **Changed**: `GET /v1/recordings/{id}/transcript` (`recordings.transcript`): `Segment.words` is filled for every viewer shown the text (a share-link reader, a listener), with each word's `text`, `start` and `end` only. `prob`, `alts`, `script` and `recognized` stay the owner's. It was an empty list for anyone but the owner. A hidden line (`suppressed`) still has none.
+
+### Speaker labels on by default; voice cloning for batches (2026-10-30, still `1.0.0-alpha.0`)
+
+- **Changed**: `Settings.speakerLabels` defaults to `auto` ("When Needed": lines are labelled once a second speaker is heard), was `off`, on broadcasts, transcriptions, recordings and `BatchSettings.speakerLabels`. A request that sends it is unchanged. `POST /v1/realtime/sessions` (`realtime.createSession`) made with an account's key also takes `auto` when `speakerLabels` is absent. Files under a minute are still never diarized. With labels on, a speaker heard for 30 s gets an automatic clone waiting on consent (`pending`), which never speaks until granted.
+- **Changed**: `Settings.voiceCloning` and `BatchSettings.voiceCloning` need speaker labels: on with `speakerLabels: off` (on create, or turning it on) moves the labels to `auto`; a patch that switches `speakerLabels` to `off` on a session with `voiceCloning` on turns `voiceCloning` off (its open recording follows). Both on `PATCH`es of broadcasts, transcriptions and recordings and on `POST /v1/batches`.
+- **Added**: `BatchSettings.voiceCloning` (default `false`) on `POST /v1/batches` (`batches.create`): every file of the batch is read in each speaker's own cloned voice. Turning it on needs `voiceCloningConsent: true` in the same request, else 400 `invalid_options`; it is recorded as a `voice.consent` audit event on the batch. `voiceCloningConsent` is write-only.
+
+### Voice cloning per session (2026-10-30, still `1.0.0-alpha.0`)
+
+- **Added**: `Settings.voiceCloning` and `SettingsPatch.voiceCloning` (default `false`), on broadcasts (the default their new sessions start with), transcriptions and recordings: read every speaker in their own cloned voice. Turning it on (on create or patch) needs `voiceCloningConsent: true` in the same request (the host confirms they have permission from everyone speaking), else 400 `invalid_options`; it is recorded as a `voice.consent` audit event. Turning it off needs nothing and deletes nothing. `voiceCloningConsent` is write-only: never stored or returned.
+- **Added**: with `voiceCloning` on, a session's automatic speaker clones are granted as they are made, and switching it on grants the ones waiting (`pending`); refused ones stay refused. The transcription's switch and its open recording's (`PATCH /v1/recordings/{id}/settings`, `recordings.settings`) are one: flipping either flips both, and the running session follows.
+- **Added**: `SessionOptions.voiceCloning` (default `false`): a speaker identified as one of the account's clones is read in it only with this on; otherwise they are cast by gender like anyone else.
+- **Added**: `VoiceOption.consent`, `VoiceOption.speaker` and `VoiceOption.auto` on cloned voices in `GET /v1/voices/available` (`voices.available`). With `recording`, its owner also gets its automatic clones waiting on consent (`consent: pending`, `auto: true`, no `previewUrl`).
+- **Changed**: `GET /v1/voices/available` (`voices.available`): the account's own clones are its saved voices only (automatic clones are offered with their recording). A listener is offered a recording's clones only while its transcription has `voiceCloning` on.
+- **Changed**: `POST /v1/voices/from-speaker` (`voices.createFromSpeaker`): an automatic clone of that speaker is promoted (named, granted, `auto: false`) instead of cloning again. `POST /v1/voices/{id}/consent` (`voices.setConsent`) with `granted` on a granted voice is recorded again.
+
 ### Voice consent and automatic speaker clones (2026-10-30, still `1.0.0-alpha.0`)
 
 - **Added**: `POST /v1/voices/{id}/consent` (`voices.setConsent`, `SetConsent`: `consent` — `granted` or `refused` — and an optional `name`): records whether the speaker agreed to their clone, with who decided and when. `refused` deletes the clone's audio and voice at once. The SDKs' `voices.setConsent` (Python `voices.set_consent`).

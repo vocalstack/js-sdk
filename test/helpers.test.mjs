@@ -23,7 +23,7 @@ test('jobs.wait hands every job read to onProgress, the last one included', asyn
 });
 
 test('a realtime session hands every frame to onFrame, lifecycle frames included', async () => {
-  const wss = new WebSocketServer({ port: 0 });
+  const wss = new WebSocketServer({ host: '127.0.0.1', port: 0 });
   await new Promise((r) => wss.once('listening', r));
   wss.on('connection', (ws) => {
     ws.send(JSON.stringify({ type: 'session.loading', stage: 'model' }));
@@ -53,7 +53,7 @@ test('a realtime session hands every frame to onFrame, lifecycle frames included
 });
 
 test('a realtime socket that closes with no session.done is an engine_lost error, not a quiet end', async () => {
-  const wss = new WebSocketServer({ port: 0 });
+  const wss = new WebSocketServer({ host: '127.0.0.1', port: 0 });
   await new Promise((r) => wss.once('listening', r));
   wss.on('connection', (ws) => {
     ws.send(JSON.stringify({ type: 'session.ready', sessionId: 's1' }));
@@ -79,7 +79,7 @@ test('a realtime socket that closes with no session.done is an engine_lost error
 });
 
 test('a realtime socket closed by close() ends quietly', async () => {
-  const wss = new WebSocketServer({ port: 0 });
+  const wss = new WebSocketServer({ host: '127.0.0.1', port: 0 });
   await new Promise((r) => wss.once('listening', r));
   wss.on('connection', (ws) => ws.send(JSON.stringify({ type: 'session.ready', sessionId: 's1' })));
   try {

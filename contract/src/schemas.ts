@@ -304,6 +304,8 @@ export const SettingsSchema = z.object({
   "title": z.boolean().optional(),
   "voice": z.boolean().optional(),
   "voiceByLang": z.record(z.string(), z.string()).optional(),
+  "voiceCloning": z.boolean().optional(),
+  "voiceCloningConsent": z.boolean().optional(),
 });
 export type Settings = z.infer<typeof SettingsSchema>;
 
@@ -354,6 +356,8 @@ export const BatchSettingsSchema = z.object({
   "latencyMode": LatencyModeSchema.optional(),
   "speakerLabels": SpeakerLabelsSchema.optional(),
   "spokenLanguage": z.union([z.string(), z.null()]).optional(),
+  "voiceCloning": z.boolean().optional(),
+  "voiceCloningConsent": z.boolean().optional(),
 });
 export type BatchSettings = z.infer<typeof BatchSettingsSchema>;
 
@@ -880,6 +884,8 @@ export const SettingsPatchSchema = z.object({
   "title": z.union([z.boolean(), z.null()]).optional(),
   "voice": z.union([z.boolean(), z.null()]).optional(),
   "voiceByLang": z.union([z.record(z.string(), z.string()), z.null()]).optional(),
+  "voiceCloning": z.union([z.boolean(), z.null()]).optional(),
+  "voiceCloningConsent": z.union([z.boolean(), z.null()]).optional(),
 });
 export type SettingsPatch = z.infer<typeof SettingsPatchSchema>;
 
@@ -1564,6 +1570,7 @@ export const SessionOptionsSchema = z.object({
   "voice": z.array(z.string()).optional(),
   "voiceByLang": z.record(z.string(), z.string()).optional(),
   "voiceCast": z.boolean().optional(),
+  "voiceCloning": z.boolean().optional(),
 });
 export type SessionOptions = z.infer<typeof SessionOptionsSchema>;
 
@@ -1897,7 +1904,9 @@ export type Voice = z.infer<typeof VoiceSchema>;
 
 export const VoiceOptionSchema = z.object({
   "accent": z.union([z.string(), z.null()]).optional(),
+  "auto": z.union([z.boolean(), z.null()]).optional(),
   "cloned": z.boolean(),
+  "consent": z.union([ConsentSchema, z.null()]).optional(),
   "default": z.boolean(),
   "gender": z.union([z.string(), z.null()]).optional(),
   "id": z.string(),
@@ -1906,6 +1915,7 @@ export const VoiceOptionSchema = z.object({
   "previewUrl": z.union([z.string(), z.null()]).optional(),
   "quality": z.number().int(),
   "ready": z.boolean().optional(),
+  "speaker": z.union([z.number().int(), z.null()]).optional(),
   "speakers": z.number().int().optional(),
 });
 export type VoiceOption = z.infer<typeof VoiceOptionSchema>;
