@@ -1612,6 +1612,7 @@ export const SpeakerViewSchema = z.object({
   "identifiedConfidence": z.union([z.number(), z.null()]).optional(),
   "name": z.string(),
   "speaker": z.number().int(),
+  "speechS": z.union([z.number(), z.null()]).optional(),
   "voiceColor": z.union([z.string(), z.null()]).optional(),
   "voiceId": z.union([z.string(), z.null()]).optional(),
 });
@@ -1782,6 +1783,7 @@ export const TranscriptSnapshotSchema = z.object({
   "speakerLabels": z.union([SpeakerLabelsSchema, z.null()]).optional(),
   "speakers": z.array(SpeakerViewSchema),
   "state": RecordingStateSchema,
+  "translationPending": z.boolean().optional(),
 });
 export type TranscriptSnapshot = z.infer<typeof TranscriptSnapshotSchema>;
 

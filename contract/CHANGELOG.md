@@ -20,6 +20,14 @@ One line per change, naming the operation (`METHOD /path`, its
 
 ## [Unreleased]
 
+### A language switch answers at once (2026-10-31, still `1.0.0-alpha.0`)
+
+- **Added**: `TranscriptSnapshot.translationPending` on `GET /v1/recordings/{id}/transcript` (`recordings.transcript`) with `lang`: true when some sentences are not translated yet. The fetch translates for up to 2.5 s and answers with what it has; the rest is translated in the background, so fetch again in a few seconds for it. It used to translate everything before answering (a minute on a long transcript).
+
+### How long each speaker spoke (2026-10-31, still `1.0.0-alpha.0`)
+
+- **Added**: `SpeakerView.speechS` on `GET /v1/recordings/{id}/transcript` (`recordings.transcript`): seconds the speaker was heard for, their diarized turns added up — what an automatic clone is cut from (30 s needed).
+
 ### Descriptions without internal references (2026-10-31, still `1.0.0-alpha.0`)
 
 - **Changed**: two descriptions lost text that pointed at internal documents or modules (the billing-setting lowering notice, the spoken-line pieces field); no shape change.

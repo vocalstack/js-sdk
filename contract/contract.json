@@ -6996,6 +6996,14 @@
               "format": "int32",
               "type": "integer"
             },
+            "speechS": {
+              "description": "Seconds this speaker was heard for, their diarized turns added up:\nwhat an automatic clone is cut from, and whether one is coming.",
+              "format": "double",
+              "type": [
+                "number",
+                "null"
+              ]
+            },
             "voiceColor": {
               "description": "That voice's colour, so the person reads the same here as\neverywhere else.",
               "type": [
@@ -8086,6 +8094,10 @@
             },
             "state": {
               "$ref": "#/components/schemas/RecordingState"
+            },
+            "translationPending": {
+              "description": "`lang` was asked for and some sentences are not translated into it\nyet: the server is translating them in the background, so fetch\nagain in a few seconds for the rest.",
+              "type": "boolean"
             }
           },
           "required": [
