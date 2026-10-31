@@ -482,7 +482,7 @@ export class Recordings {
     return this.#t.json('POST', this.#p(id, '/voice'), { body: { langs }, ...call });
   }
   /** One sentence spoken in `lang`: `sentence` is a transcript sentence's
-   * `id`, not a segment's position. In the recording's default reading:
+   * `sentenceId`, not a segment's position. In the recording's default reading:
    * each speaker in their granted clone, else a stock voice of their gender. */
   voiceClip(id: string, sentence: number, lang: string, opts: { format?: 'ogg' | 'caf' } & ReadAs = {}): Promise<Response> {
     return this.#t.raw('GET', this.#p(id, `/voice/${seg(sentence)}`), { headers: { accept: '*/*' }, query: { ...listenerQuery(opts), lang, format: opts.format } });

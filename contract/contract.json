@@ -15240,7 +15240,7 @@
       },
       "/v1/recordings/{id}/voice/{sentence}": {
         "get": {
-          "description": "One spoken sentence, Ogg/Opus (`format=caf` for Apple's media stack). `sentence` is a sentence's `id` from the transcript (`sentences[].id`), not a segment's position; one the recording does not have is a 404. With no `voice`, each speaker is read in their own cloned voice when its consent is granted and the recording has `voiceCloning` on, else in a stock voice of their gender, a different one for each speaker. The owner, or any listener who can reach its broadcast or transcription. A clip in a language the recording was not spoken in is a spoken translation: through a share link it needs `allowTranslate`.",
+          "description": "One spoken sentence, Ogg/Opus (`format=caf` for Apple's media stack). `sentence` is a sentence's `sentenceId` from the transcript (`sentences[].sentenceId`), not a segment's position; one the recording does not have is a 404. With no `voice`, each speaker is read in their own cloned voice when its consent is granted and the recording has `voiceCloning` on, else in a stock voice of their gender, a different one for each speaker. The owner, or any listener who can reach its broadcast or transcription. A clip in a language the recording was not spoken in is a spoken translation: through a share link it needs `allowTranslate`.",
           "operationId": "recordings.voiceClip",
           "parameters": [
             {
