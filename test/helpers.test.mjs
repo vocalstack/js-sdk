@@ -1,6 +1,3 @@
-// `npm test` (after `npm run build`): the helpers the reference's guides
-// lean on — `vs.jobs.wait`'s onProgress and a realtime socket's onFrame —
-// against a fake fetch and a local WebSocket server.  No network.
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { WebSocketServer } from 'ws';
@@ -58,7 +55,6 @@ test('a realtime socket that closes with no session.done is an engine_lost error
   wss.on('connection', (ws) => {
     ws.send(JSON.stringify({ type: 'session.ready', sessionId: 's1' }));
     ws.send(JSON.stringify({ type: 'transcript.committed', segment: { seq: 0, start: 0, end: 1, text: 'before the loss', speaker: 0, words: [] } }));
-    // The engine's machine is gone: the connection just ends.
     setTimeout(() => ws.terminate(), 20);
   });
   try {

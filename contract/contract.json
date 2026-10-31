@@ -6481,7 +6481,7 @@
           "type": "object"
         },
         "SettingLowering": {
-          "description": "A lowering of a billing setting that changes the account's terms (the\ndays data is kept after a downgrade, the auto top-up daily limit),\ntold with at least 30 days' notice (docs/billing-price-changes.md §6).",
+          "description": "A lowering of a billing setting that changes the account's terms (the\ndays data is kept after a downgrade, the auto top-up daily limit),\ntold with at least 30 days' notice.",
           "properties": {
             "afterDate": {
               "description": "Pay as you go: it applies after this date (UTC, `YYYY-MM-DD`); null\nfor a subscriber.",
@@ -9064,7 +9064,6 @@
             },
             "clipParts": {
               "additionalProperties": false,
-              "description": "Lines the engine spoke in more than one piece (`tts::split`), and\nhow many.  A line absent here was spoken whole.  `clipDur` is the\nwhole line either way, and so are `wordTimes` — the pieces' own\ntimes are joined here, each shifted by the pieces before it, so a\nreader follows one line and never learns it was cut.",
               "patternProperties": {
                 "^-?\\d+$": {
                   "format": "uint32",

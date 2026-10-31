@@ -1,7 +1,3 @@
-/**
- * The realtime session: `Realtime` (`vs.realtime`: create a session, or
- * transcribe a file or a URL over one) and `RealtimeSession` (its socket).
- */
 import { parseServerFrame } from '@vocalstack/contract';
 import type {
   Capabilities,
@@ -43,28 +39,12 @@ export interface ConnectParams {
   streamUrl: string;
   options?: SessionOptions;
   readyDeadlineMs?: number;
-  /** Fires on every `session.loading` frame while the engine warms up
-   * (model download / load after a machine wake) — lets a UI show
-   * "warming up" instead of a generic connecting state.  Each frame also
-   * re-arms the ready deadline, so a long cold load only fails once the
-   * engine goes silent, not merely slow. */
   onLoading?(stage: 'download' | 'model'): void;
-  /** Every server text frame as it arrives, parsed, before the iterator
-   * sees it: the lifecycle frames the iterator keeps to itself
-   * (`session.loading`, `session.ready`, `session.done`, `error`) and the
-   * transcript frames alike.  For logs and protocol views; the iterator
-   * is still the way to read the transcript. */
   onFrame?(frame: ServerFrame): void;
 }
 
 const DEFAULT_READY_DEADLINE_MS = 30_000;
 
-/** A ready socket that closed with neither `session.done` nor an `error`
- * frame, and not by `close()`: the engine went away mid-stream (its
- * machine stopped or crashed) or the connection to it dropped.  What was
- * committed before stays; nothing after it was transcribed.  Retryable:
- * open a new realtime session to go on.  (A relay's restart close, 1012,
- * is not this: the session reconnects and goes on, `RESTART_CLOSE`.) */
 export function engineLost(closeCode?: number): VocalStackError {
   const how = closeCode ? ` (close ${closeCode})` : '';
   return new VocalStackError(
@@ -74,12 +54,6 @@ export function engineLost(closeCode?: number): VocalStackError {
   );
 }
 
-/** A refused socket upgrade as an error.  A 503 carrying the error body
- * with `unavailable` (the database is waking; retry shortly) says so; any
- * other 503 — a bare one from a saturated proxy, or no body at all — is
- * `capacity_exceeded`.  So is a 502 or 504 without the API's error body:
- * the proxy in front of the engines found none free in time.  Every other
- * status is its own envelope. */
 export function upgradeRefused(status: number | undefined, body: string): VocalStackError {
   let parsed: unknown;
   try {
@@ -97,22 +71,10 @@ export function upgradeRefused(status: number | undefined, body: string): VocalS
   return fromEnvelope(parsed, status);
 }
 
-/** The relay's restart close (a draining relay, a blip of the proxy in
- * front of it): the client is to reconnect with the same `streamUrl`, and
- * the session goes on (the relay keeps its engine, or carries the session
- * on as itself).  The only close the SDK reconnects on. */
 export const RESTART_CLOSE = 1012;
-/** Reconnects after a restart close: up to this many, waiting 1, 2, 4 s
- * (a try waits for `session.ready` within the ready deadline). */
 const RESTART_TRIES = 3;
-/** Audio and frames sent while reconnecting are kept, up to this much
- * (about a minute of 16 kHz float audio), and sent once it is back. */
 const MAX_PENDING_BYTES = 4 * 1024 * 1024;
 
-/** Open `url` and wait for `session.ready`, or the error the connect is
- * refused with.  Every frame before ready goes to `onFrame`; at ready,
- * `attach` takes the socket in the same tick, so a frame right behind
- * `session.ready` is the session's, not lost between the two. */
 async function openReady(
   url: string,
   deadlineMs: number,
@@ -157,8 +119,6 @@ async function openReady(
     arm();
 
     ws.addEventListener('message', (ev: any) => {
-      // Once ready, the session reads the socket; this one stops re-arming
-      // the deadline (it used to leave a timer running for 30 s).
       if (settled || typeof ev.data !== 'string') return;
       sawFrame = true;
       arm();
@@ -202,9 +162,6 @@ async function openReady(
     });
     ws.addEventListener('close', () => {
       if (rejecting) return;
-      // No HTTP answer at all (a refused upgrade is `unexpected-response`
-      // above): the connection dropped on the way, as the Python and PHP
-      // SDKs say it — retryable, not a bad token.
       fail(
         new VocalStackError('engine_unavailable', 'connection closed before ready', {
           retryable: true,
@@ -226,11 +183,9 @@ export class RealtimeSession implements AsyncIterable<SessionEvent> {
   #stats: SessionStats | null = null;
   #error: VocalStackError | null = null;
   #closed = false;
-  /** `close()` was called: the socket's end is ours, not a lost engine. */
   #closedByUs = false;
   #onFrame: ((frame: ServerFrame) => void) | undefined;
   readonly #params: ConnectParams;
-  /** Reconnecting after a restart close: what is sent waits in `#pending`. */
   #reconnecting = false;
   #pending: (string | Uint8Array | ArrayBuffer)[] = [];
   #pendingBytes = 0;
@@ -256,9 +211,6 @@ export class RealtimeSession implements AsyncIterable<SessionEvent> {
     return session!;
   }
 
-  /** The socket closed with the relay's restart close: open the same
-   * `streamUrl` again (1, 2, 4 s apart), send what waited meanwhile, and
-   * go on as the same session.  Out of tries: `engine_lost`. */
   async #reconnect(code: number): Promise<void> {
     this.#reconnecting = true;
     const deadlineMs = this.#params.readyDeadlineMs ?? DEFAULT_READY_DEADLINE_MS;
@@ -279,7 +231,6 @@ export class RealtimeSession implements AsyncIterable<SessionEvent> {
         if (this.#closedByUs) this.close();
         return;
       } catch (e) {
-        // A refusal that will not pass (a bad or used token) ends it now.
         if (e instanceof VocalStackError && !e.retryable) {
           this.#fail(e);
           return;
@@ -297,7 +248,6 @@ export class RealtimeSession implements AsyncIterable<SessionEvent> {
     this.#wake?.();
   }
 
-  /** Send now, or keep it while reconnecting (bounded). */
   #send(data: string | Uint8Array | ArrayBuffer): void {
     if (this.#reconnecting) {
       const n = typeof data === 'string' ? data.length : data.byteLength;
@@ -311,7 +261,6 @@ export class RealtimeSession implements AsyncIterable<SessionEvent> {
     this.#ws.send(data);
   }
 
-  /** Hands a frame to `onFrame`; a throwing callback never breaks the socket. */
   #frame(frame: ServerFrame): void {
     try {
       this.#onFrame?.(frame);
@@ -363,14 +312,11 @@ export class RealtimeSession implements AsyncIterable<SessionEvent> {
     ws.addEventListener('close', (ev: any) => {
       if (ws !== this.#ws) return;
       const code = typeof ev?.code === 'number' ? ev.code : undefined;
-      // The relay restarting: reconnect and go on (`RESTART_CLOSE`).
       if (code === RESTART_CLOSE && !this.#endReason && !this.#error && !this.#closedByUs) {
         void this.#reconnect(code);
         return;
       }
       this.#closed = true;
-      // Closed under us before the session said how it ended: not a
-      // silent end of the transcript, the engine was lost.
       if (!this.#endReason && !this.#error && !this.#closedByUs) {
         this.#error = engineLost(code);
       }
@@ -383,7 +329,6 @@ export class RealtimeSession implements AsyncIterable<SessionEvent> {
       chunk instanceof Float32Array
         ? new Uint8Array(chunk.buffer, chunk.byteOffset, chunk.byteLength)
         : chunk;
-    // Copied: a caller may reuse its buffer while a reconnect keeps it.
     this.#send(this.#reconnecting ? (data instanceof Uint8Array ? data.slice() : data.slice(0)) : data);
   }
 
@@ -394,7 +339,6 @@ export class RealtimeSession implements AsyncIterable<SessionEvent> {
     const MAX_BUFFERED = 4 * 1024 * 1024;
     for await (const chunk of source) {
       for (let off = 0; off < chunk.byteLength; off += chunkBytes) {
-        // Through a reconnect (a relay restarting) it waits, and goes on.
         while (this.#reconnecting) await new Promise((r) => setTimeout(r, 50));
         if (this.#ws.readyState !== WS_OPEN) return;
         while ((this.#ws as any).bufferedAmount > MAX_BUFFERED) {
@@ -420,29 +364,10 @@ export class RealtimeSession implements AsyncIterable<SessionEvent> {
     this.eof();
   }
 
-  /**
-   * Capture clock heartbeat: `pcm` = cumulative samples captured so far
-   * (16kHz-equivalent), `wall` = seconds since capture start.  Lets the
-   * server detect capture loss (throttled tab, device switch) and mark
-   * the transcript with honest gaps instead of gluing across them.
-   * `streamMicrophone`/`captureMicrophone` call this automatically.
-   */
   sendClock(pcm: number, wall: number): void {
     this.#send(JSON.stringify({ type: 'clock', pcm: Math.floor(pcm), wall }));
   }
 
-  /**
-   * Options update during the realtime session. Omitted fields are unchanged.
-   * `latencyMode` switches the decode model policy from the next
-   * engine step; `spokenLanguage` changes the transcription language from the
-   * next engine step (`''` or `'auto'` = auto-detect); `speakerLabels`
-   * turns speaker labelling on (`'on'` or `'auto'`) or off (`'off'`) from the next
-   * engine step — enabling labels speakers from that point on;
-   * `translate` replaces the whole target-language list (`[]` turns
-   * translation off). Applies to subsequent transcript —
-   * already-delivered segments and settled sentences are not
-   * re-transcribed, re-attributed or re-translated.
-   */
   update(changes: {
     latencyMode?: LatencyMode;
     spokenLanguage?: string;
@@ -523,45 +448,30 @@ async function* readableToAsyncIterable(
 }
 
 export interface ConnectOptions {
-  /** See {@link ConnectParams.onLoading}: engine warm-up progress. */
   onLoading?(stage: 'download' | 'model'): void;
-  /** See {@link ConnectParams.onFrame}: every server frame, lifecycle included. */
   onFrame?(frame: ServerFrame): void;
-  /** Overrides the client-wide `readyDeadlineMs` for this socket. */
   readyDeadlineMs?: number;
 }
 
 export interface TranscribeOptions extends Omit<SessionOptions, 'input' | 'audio'> {
-  /** The realtime session, once connected (to `cancel()` it, say). */
   onSession?(session: RealtimeSession): void;
   onProgress?(progress: { processedS: number; totalS?: number }): void;
   onCommit?(segment: CommittedSegment): void;
-  /** A committed segment's translation arrived; the segment (by `seq`)
-   * already has its `translations` filled in. */
   onTranslated?(seq: number, translations: Record<string, string>, sources?: Record<string, string>): void;
-  /** The engine rewrote a committed segment; it is patched in place first. */
   onAmended?(seq: number, text: string, speaker: number, fixes: Fix[]): void;
-  /** A tentative speaker label (`speakerProvisional`) settled: `verdict` is
-   * "confirmed", "amended" or "unverified".  The segment is patched first. */
   onSpeakerSettled?(seq: number, speaker: number, verdict: string, confidence?: number): void;
-  /** Every sentence upsert (`sentences.enabled`); the returned `sentences`
-   * list is kept up to date (dropped sentences are removed). */
   onSentence?(sentence: SentenceSegment): void;
   readyDeadlineMs?: number;
 }
 
 export interface RealtimeTranscript {
   segments: CommittedSegment[];
-  /** Sentence upserts folded into their final state (empty unless
-   * `sentences.enabled`). */
   sentences: SentenceSegment[];
   text: string;
   doneReason: 'eof' | 'max_duration' | 'cancelled' | null;
   stats: SessionStats | null;
 }
 
-/** `vs.realtime`: a realtime session is a signed token plus one socket.
- * Nothing is stored: the transcript is what the socket sends. */
 export class Realtime {
   readonly #t: Transport;
 
@@ -569,12 +479,10 @@ export class Realtime {
     this.#t = t;
   }
 
-  /** `POST /v1/realtime/sessions`: validate the options, get a signed `streamUrl`. */
   createSession(options: SessionOptions = {}, call: CallOptions = {}): Promise<CreateSessionResponse> {
     return this.#t.json('POST', '/v1/realtime/sessions', { body: options, ...call });
   }
 
-  /** `createSession`, then open the socket and wait for `session.ready`. */
   async connect(options: SessionOptions = {}, connect: ConnectOptions = {}): Promise<RealtimeSession> {
     const created = await this.createSession(options);
     return RealtimeSession.connect({
@@ -587,22 +495,14 @@ export class Realtime {
     });
   }
 
-  /** `GET /v1/realtime/capabilities`: languages, audio formats, limits. */
   capabilities(): Promise<Capabilities> {
     return this.#t.json('GET', '/v1/realtime/capabilities');
   }
 
-  /** `POST /v1/realtime/warm`: a person is using a screen that can start a
-   * live transcription, so the one they start next is ready at once.  Send
-   * it on real use (input, focus, a visible window), at most every 30 s,
-   * and at once when the selected spoken language changes. */
   async warm(req: WarmRequest): Promise<void> {
     await this.#t.json('POST', '/v1/realtime/warm', { body: req });
   }
 
-  /** Stream an encoded file (mp3, wav, flac, ogg, m4a…) through a realtime
-   * session and collect the transcript.  Nothing is stored; for a stored,
-   * shareable transcription use `vs.transcriptions.create`. */
   async transcribeFile(file: FileInput, opts: TranscribeOptions = {}): Promise<RealtimeTranscript> {
     const { onSession, readyDeadlineMs, handlers, options } = split(opts);
     const session = await this.connect({ ...options, input: { kind: 'file' } }, { readyDeadlineMs });
@@ -611,7 +511,6 @@ export class Realtime {
     return collectTranscript(session, handlers);
   }
 
-  /** The same for a link the engine fetches itself. */
   async transcribeUrl(url: string, opts: TranscribeOptions = {}): Promise<RealtimeTranscript> {
     const { onSession, readyDeadlineMs, handlers, options } = split(opts);
     const session = await this.connect({ ...options, input: { kind: 'url', url } }, { readyDeadlineMs });
@@ -641,7 +540,6 @@ function split(opts: TranscribeOptions) {
   return { onSession, readyDeadlineMs, handlers, options };
 }
 
-/** Upsert one sentence frame into a list kept in sentenceId order. */
 export function applySentence(list: SentenceSegment[], sentence: SentenceSegment): SentenceSegment[] {
   const i = list.findIndex((s) => s.sentenceId === sentence.sentenceId);
   if (sentence.status === 'dropped') {

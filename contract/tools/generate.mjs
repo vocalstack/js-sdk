@@ -31,7 +31,6 @@ const refName = (ref) => {
 };
 
 const zid = (name) => `${name}Schema`;
-/** A description's first sentence, on one line (a deprecation note). */
 const firstSentence = (d) => (d ?? '').replace(/\s+/g, ' ').trim().split(/(?<=\.) /)[0];
 
 function zodFor(schema, ctx) {
@@ -42,7 +41,6 @@ function zodFor(schema, ctx) {
   const literals = literalUnionValues(schema);
   if (literals) {
     const lits = literals.map((v) => `z.literal(${JSON.stringify(v)})`);
-    // z.union needs two members: a one-value union is its literal.
     return lits.length > 1 ? `z.union([${lits.join(', ')}])` : lits[0];
   }
   if (Array.isArray(schema.anyOf)) {
@@ -93,7 +91,6 @@ function zodFor(schema, ctx) {
         .map(([k, v]) => {
           let expr = zodFor(v, ctx);
           if (!required.has(k)) expr += '.optional()';
-          // A deprecated field (still accepted, ignored): editors strike it through.
           const dep = v.deprecated ? `  /** @deprecated ${firstSentence(v.description)} */\n` : '';
           return `${dep}  ${JSON.stringify(k)}: ${expr},`;
         })
@@ -175,7 +172,6 @@ export * from './frames.js';
 
 fs.mkdirSync(outDir, { recursive: true });
 fs.writeFileSync(path.join(outDir, 'schemas.ts'), schemasTs);
-// No client contract here: the SDK is the one client (deviation 73).
 fs.rmSync(path.join(outDir, 'contract.ts'), { force: true });
 fs.writeFileSync(path.join(outDir, 'frames.ts'), framesTs);
 fs.writeFileSync(path.join(outDir, 'index.ts'), indexTs);
@@ -209,8 +205,6 @@ function emitPython() {
   const aliases = new Map();
   const classes = [];
   const unions = [];
-  // A schema that is only a `$ref` (Broadcast, Transcription: another
-  // name for Session) is bound after the class it names exists.
   const refAliases = [];
 
   for (const name of ordered) {
@@ -237,7 +231,6 @@ function emitPython() {
       const n = refName(schema.$ref);
       return aliases.has(n) ? n : `"${n}"`;
     }
-    // An untyped schema (serde_json::Value) is free-form JSON.
     if (
       schema.type === undefined && schema.$ref === undefined && schema.anyOf === undefined &&
       schema.allOf === undefined && schema.oneOf === undefined && schema.enum === undefined &&
@@ -280,9 +273,6 @@ function emitPython() {
         if (schema.additionalProperties && !schema.properties) {
           return `Dict[str, ${pyType(schema.additionalProperties)}]`;
         }
-        // A map with a non-string key: serde writes the key as a string,
-        // and schemars says which strings are allowed with
-        // `patternProperties`. Rust's HashMap<i32, f64> arrives here.
         if (schema.patternProperties && !schema.properties) {
           const vals = Object.values(schema.patternProperties);
           if (vals.length === 1) return `Dict[str, ${pyType(vals[0])}]`;
@@ -303,7 +293,6 @@ function emitPython() {
       return out;
     }
     for (const [k, v] of Object.entries(props)) {
-      // A Python keyword (`from`) is not a field name: `from_`, aliased.
       const field = PY_KEYWORDS.has(snake(k)) ? `${snake(k)}_` : snake(k);
       let type = pyType(v);
       let line;
@@ -321,7 +310,6 @@ function emitPython() {
             ? `    ${field}: ${opt} = None\n`
             : `    ${field}: ${opt} = Field(default=None, alias=${JSON.stringify(k)})\n`;
       }
-      // A deprecated field (still accepted, ignored by the API).
       if (v.deprecated) out += `    # ${firstSentence(v.description)}\n`;
       out += line;
     }
@@ -347,10 +335,6 @@ function emitPython() {
   const unionMeta = [];
   for (const [name, variants] of unions) {
     const parts = [];
-    // The discriminator is whatever const property every variant shares:
-    // `type` for frames, `kind` for CaptureSource.  Variant classes of a
-    // non-frame union are prefixed with the union's name so `mic` does not
-    // become a bare `Mic`.
     const disc = discriminatorOf(variants[0]) ?? 'type';
     for (const v of variants) {
       const tag = v.properties?.[disc]?.const;

@@ -20,6 +20,10 @@ One line per change, naming the operation (`METHOD /path`, its
 
 ## [Unreleased]
 
+### Descriptions without internal references (2026-10-31, still `1.0.0-alpha.0`)
+
+- **Changed**: two descriptions lost text that pointed at internal documents or modules (the billing-setting lowering notice, the spoken-line pieces field); no shape change.
+
 ### A spoken sentence with no voice named (2026-10-31, still `1.0.0-alpha.0`)
 
 - **Changed**: `GET /v1/recordings/{id}/voice/{sentence}` (`recordings.voiceClip`), `POST /v1/recordings/{id}/voice` (`recordings.renderVoice`) and `GET /v1/recordings/{id}/audio?kind=voice` with no `voice`: each speaker is read in their own cloned voice when its consent is granted and the recording has `voiceCloning` on, else in a stock voice of their gender, a different one for each speaker (it was the language's default voice for everyone). A `sentence` (the transcript's `sentences[].sentenceId`, not a segment's position) the recording does not have is a 404 at once (it was a retryable 503 forever).

@@ -1,12 +1,8 @@
-// `npm test` (after `npm run build`): the paged lists against a fake fetch.
-// The plain methods read every page through `nextCursor`; the `…Page`
-// methods ask for one and hand the cursor back.  No network.
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 
 import { VocalStack } from '../dist/index.js';
 
-/** A fetch answering `pages` in turn, recording each URL. */
 function fakeFetch(pages) {
   const urls = [];
   const fetch = async (url) => {

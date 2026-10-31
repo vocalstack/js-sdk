@@ -1,9 +1,5 @@
 import type { RealtimeSession } from './realtime.js';
 
-// The worklet runs on the browser's realtime audio thread and does one
-// allocation-light thing: post every 128-frame block to the main thread.
-// MessagePort queues are unbounded and never overwrite, so a busy main
-// thread (a big transcript re-render) delivers audio late, never drops it.
 const WORKLET_SOURCE = `
 class PCMProcessor extends AudioWorkletProcessor {
   process(inputs) {
@@ -18,55 +14,25 @@ class PCMProcessor extends AudioWorkletProcessor {
 registerProcessor('pcm-processor', PCMProcessor);
 `;
 
-/** Why capture stopped producing audio (see `MicCaptureOptions.onStall`). */
 export type MicStallReason =
-  /** The input track ended: device unplugged, headset switched, permission revoked. */
   | 'track_ended'
-  /** The track is muted by the OS/hardware (no samples until it unmutes). */
   | 'track_muted'
-  /** The AudioContext was suspended (phone call, screen lock, route change). */
   | 'context_suspended'
-  /** The AudioContext was closed underneath us. */
   | 'context_closed'
-  /** Seconds of exact-zero samples: a silently denied or hardware-muted mic. */
   | 'silent';
 
 export interface MicCaptureOptions {
   chunkSeconds?: number;
   sampleRate?: number;
   audio?: MediaTrackConstraints;
-  /**
-   * Called every ~0.5s with (pcm, wall): cumulative output samples
-   * produced and seconds since capture start.  Wire it to
-   * `session.sendClock` so the server can detect capture loss (a
-   * suspended context or dead track produces no samples while wall
-   * time advances) and mark the transcript with honest gaps.  Driven
-   * by a timer, not by sample arrival, so it keeps reporting while
-   * capture is stalled — that is the case it exists for.
-   */
   onClock?: (pcm: number, wall: number) => void;
-  /**
-   * Capture stopped producing audio.  Recovery is attempted
-   * automatically (context resume, track re-acquire); `onRecover`
-   * fires when samples flow again.  Use it to show a "microphone
-   * lost" state instead of "Listening".
-   */
   onStall?: (reason: MicStallReason) => void;
-  /** Audio is flowing again after a stall. */
   onRecover?: () => void;
-  /**
-   * Exact-zero run length (seconds) that flags a silently denied or
-   * hardware-muted mic (real mics always carry a noise floor).  Default
-   * 3; 0 disables.
-   */
   silentSeconds?: number;
 }
 
-/** The input device the capture is reading, as the browser reports it. */
 export interface MicDevice {
-  /** The device's name, e.g. "MacBook Pro Microphone" ("" before permission is granted). */
   label: string;
-  /** Its native rate (the capture resamples to `sampleRate`). */
   sampleRate?: number;
   channelCount?: number;
   noiseSuppression?: boolean;
@@ -76,27 +42,12 @@ export interface MicDevice {
 export interface MicCapture {
   stop(): Promise<void>;
   readonly sampleRate: number;
-  /** The microphone being read now (a re-acquired track may be another one). */
   readonly device: MicDevice;
-  /** Hold the capture open but stop sending what the microphone hears.
-   *
-   *  A side conversation should not have to end the session, and pausing
-   *  is not the same thing: pausing closes the stream and the listeners
-   *  lose it. Muting keeps every listener connected and the recording
-   *  running, and simply says nothing.
-   *
-   *  Muted chunks are emitted as SILENCE rather than dropped. The server
-   *  measures media time by the audio it receives, so dropping would
-   *  compress the timeline and every later timestamp would be wrong;
-   *  silence keeps the clock honest and transcribes to nothing, which is
-   *  exactly what happened. */
   setMuted(muted: boolean): void;
   readonly muted: boolean;
 }
 
-/** Retry cadence for context resume / track re-acquire while stalled. */
 const RECOVER_MS = 1000;
-/** Capture clock heartbeat cadence. */
 const CLOCK_MS = 500;
 
 export async function captureMicrophone(
@@ -116,10 +67,6 @@ export async function captureMicrophone(
 
   let muted = false;
   let media = await navigator.mediaDevices.getUserMedia({ audio: constraints });
-  // Ask for the target rate directly: Chrome/Firefox/Safari 14.1+ then
-  // resample on the audio thread and our converter is a pass-through.
-  // Browsers that refuse the option fall back to the default rate and the
-  // linear-interpolation resampler below.
   let ctx: AudioContext;
   try {
     ctx = new AudioContext({ sampleRate: targetRate });
@@ -143,17 +90,13 @@ export async function captureMicrophone(
   let buffered: number[] = [];
   let readPos = 0;
   let pending: Float32Array | null = null;
-  // Capture clock: cumulative resampled output samples vs wall time.
   const t0 = performance.now();
   let outSamples = 0;
 
-  // Zero-run detector state (input-rate samples).
   const silentLimit = Math.round((opts.silentSeconds ?? 3) * inputRate);
   let zeroRun = 0;
   let silentFlagged = false;
 
-  // Stall bookkeeping: one active reason at a time; `onRecover` fires
-  // once when it clears.
   let stopped = false;
   let stall: MicStallReason | null = null;
   let recoverTimer: ReturnType<typeof setTimeout> | null = null;
@@ -215,28 +158,21 @@ export async function captureMicrophone(
 
     if (out.length) {
       outSamples += out.length;
-      // Samples flowing again clears a track/context stall; the silent
-      // stall clears only on a nonzero sample (handled above).
       if (stall !== null && stall !== 'silent') clearStall();
       pending = pending ? concat(pending, out) : Float32Array.from(out);
       while (pending.length >= chunkSamples) {
         const chunk = pending.slice(0, chunkSamples);
-        // Silence, not nothing: see `MicCapture.setMuted`.
         onChunk(muted ? new Float32Array(chunk.length) : chunk);
         pending = pending.slice(chunkSamples);
       }
     }
   };
 
-  // Heartbeat on a timer so a stalled capture is still reported: pcm
-  // stops while wall advances, and the server declares the gap.
   const clockTimer = opts.onClock
     ? setInterval(() => {
         opts.onClock?.(outSamples, (performance.now() - t0) / 1000);
       }, CLOCK_MS)
     : null;
-
-  // --- recovery -------------------------------------------------------
 
   const scheduleRecover = (fn: () => void) => {
     if (stopped || recoverTimer) return;
@@ -268,7 +204,6 @@ export async function captureMicrophone(
         source = ctx.createMediaStreamSource(media);
         source.connect(node);
         watchTracks(media);
-        // `onRecover` fires from the first delivered block.
       })
       .catch(() => scheduleRecover(reacquireTrack));
   };
@@ -283,7 +218,6 @@ export async function captureMicrophone(
       track.addEventListener('mute', () => {
         if (!stopped) setStall('track_muted');
       });
-      // `unmute` needs no handler: the next block clears the stall.
     }
   };
   watchTracks(media);

@@ -1,11 +1,8 @@
-// `npm test` (after `npm run build`): `vs.connect.token()` against a fake
-// fetch.  No network.
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 
 import { VocalStack, VocalStackError } from '../dist/index.js';
 
-/** A fetch answering `answers` in turn, recording each request. */
 function fakeFetch(answers) {
   const calls = [];
   const fetch = async (url, init) => {

@@ -1,19 +1,3 @@
-/**
- * The VocalStack SDK: one client, `VocalStack`, grouped by resource.
- *
- *   import { VocalStack } from '@vocalstack/js-sdk';
- *   const vs = new VocalStack({ apiKey: process.env.VOCALSTACK_API_KEY });
- *
- *   const tx = await vs.transcriptions.createFromUrl('https://example.com/talk.mp3');
- *   const job = await vs.jobs.wait(tx.job!.recordingId);
- *   const { sentences } = await vs.recordings.transcript(job.recordingId);
- *
- * What is what (the API's glossary): a realtime session is a signed token
- * plus one socket, nothing stored (`vs.realtime`); a broadcast is the link
- * listeners open; a transcription is a file, link, microphone or stream
- * transcribed and stored; a recording is one take inside either; a job is
- * a file or link recording's transcription work.
- */
 import { Transport, type ClientOptions } from './http.js';
 import { Realtime } from './realtime.js';
 import {
@@ -67,8 +51,6 @@ export {
   Voices,
 } from './resources.js';
 export type { AddBatchFileInput, ConnectToken, ConnectTokenInput, CreateTranscriptionInput, LifecycleFilter, Me, PageOptions, RecordingPageOptions, SearchOptions, Upload, UsageChargesOptions, UsageOptions } from './resources.js';
-// Every schema type of the contract (Broadcast, Transcription, Recording,
-// TranscriptSnapshot, ServerFrame, ...), generated from /v1/openapi.json.
 export type * from '@vocalstack/contract';
 
 export type VocalStackOptions = ClientOptions;

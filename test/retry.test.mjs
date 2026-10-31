@@ -1,5 +1,3 @@
-// `npm test` (after `npm run build`): the transport's retries and the
-// socket upgrade's refusals, against a fake fetch.  No network.
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 
@@ -9,7 +7,6 @@ import { upgradeRefused } from '../dist/realtime.js';
 
 const envelope = (code, status, retryable) => ({ defined: true, code, status, message: code, data: { retryable } });
 
-/** A fetch answering `answers` in turn, recording each request. */
 function fakeFetch(answers) {
   const calls = [];
   const fetch = async (url, init) => {

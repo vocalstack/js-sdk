@@ -1,14 +1,9 @@
-// `npm test` (after `npm run build`): a realtime session through the relay's
-// restart close (1012), against a fake stream server.  No network.
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { WebSocketServer } from 'ws';
 
 import { RealtimeSession, RESTART_CLOSE } from '../dist/realtime.js';
 
-/** A stream server: each connection says ready; `script[i]` decides what
- *  connection i does after `afterBytes` of audio: close with a code, or
- *  (when absent) commit one segment on `eof` and say done. */
 async function server(script) {
   const wss = new WebSocketServer({ host: '127.0.0.1', port: 0 });
   await new Promise((r) => wss.once('listening', r));
@@ -55,7 +50,6 @@ test('a restart close (1012) reconnects to the same streamUrl and the session go
     const done = drain(session);
     session.sendAudio(new Uint8Array(3200));
     await new Promise((r) => setTimeout(r, 200));
-    // Sent while it reconnects: kept, and sent on the next socket.
     session.sendAudio(new Uint8Array(1600));
     session.sendClock(16000, 1);
     session.eof();

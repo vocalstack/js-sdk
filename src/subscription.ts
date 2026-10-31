@@ -4,20 +4,11 @@ import { VocalStackError } from './errors.js';
 import { openWebSocket, WS_OPEN, type WsLike } from './ws.js';
 
 export interface SubscribeOptions {
-  /** Read (and hear) the recording in this language. */
   lang?: string;
-  /** Which voice speaks `lang` for this listener: a voice id from
-   * `vs.voices.available(lang)`.  Omitted means the recording's
-   * `settings.voiceByLang` pin, then the engine's pick. */
   voice?: string;
-  /** A private broadcast's listener token (the one VocalStack's listener page holds). */
   listenerToken?: string;
-  /** Read a transcription through its share link. */
   shareCode?: string;
-  /** With a token the socket is an owner subscriber (full frames, audience
-   * counts); `false` listens as a plain listener. */
   asOwner?: boolean;
-  /** Live original audio (binary Opus frames) from the start. */
   audio?: boolean;
 }
 
@@ -29,13 +20,8 @@ export type SubscriptionEvent =
 
 type Snapshotter = (after: number | undefined) => Promise<TranscriptSnapshot>;
 
-/** A recording's live fan-out (`vs.recordings.subscribe`).  It resolves
- * once the backfill snapshot is in place; live frames follow through the
- * async iterator, with gaps detected on the cursor and healed by
- * re-snapshotting. */
 export class Subscription implements AsyncIterable<SubscriptionEvent> {
   readonly recordingId: string;
-  /** Highest durable cursor applied (snapshot or frame). */
   cursor = -1;
   snapshot: TranscriptSnapshot | null = null;
 
@@ -55,7 +41,6 @@ export class Subscription implements AsyncIterable<SubscriptionEvent> {
     this.#snap = snap;
   }
 
-  /** @internal */
   static async open(recordingId: string, url: string, bearer: string | undefined, opts: SubscribeOptions, snap: Snapshotter): Promise<Subscription> {
     const ws = await openWebSocket(url, bearer);
     ws.binaryType = 'arraybuffer';
@@ -108,14 +93,13 @@ export class Subscription implements AsyncIterable<SubscriptionEvent> {
   }
 
   #onFrame(frame: any) {
-    // The relay cursor is `cursor`; segment-scoped frames use `seq` for the segment.
     const seq: number | undefined = typeof frame.cursor === 'number' ? frame.cursor : typeof frame.seq === 'number' ? frame.seq : undefined;
     if (this.#buffering) {
       this.#buffering.push({ seq, frame });
       return;
     }
     if (seq !== undefined) {
-      if (seq <= this.cursor) return; // already in the snapshot
+      if (seq <= this.cursor) return;
       if (seq > this.cursor + 1 && !this.#healing) {
         this.#healing = true;
         this.#buffering = [{ seq, frame }];
@@ -137,14 +121,11 @@ export class Subscription implements AsyncIterable<SubscriptionEvent> {
     this.#wake?.();
   }
 
-  /** Switch the target language (`null` = as spoken). */
   setLanguage(lang: string | null) {
-    // A gap heal re-reads the snapshot in the language being read now.
     this.#opts.lang = lang ?? undefined;
     this.#send({ type: 'subscribe.update', lang: lang ?? 'none' });
   }
 
-  /** Opt in or out of live original audio. */
   setAudio(enabled: boolean) {
     this.#send({ type: 'subscribe.update', audio: enabled });
   }
@@ -159,7 +140,6 @@ export class Subscription implements AsyncIterable<SubscriptionEvent> {
     try {
       this.#ws.close();
     } catch {
-      // already closed
     }
     this.#wake?.();
   }
