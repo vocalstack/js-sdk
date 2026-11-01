@@ -20,6 +20,10 @@ One line per change, naming the operation (`METHOD /path`, its
 
 ## [Unreleased]
 
+### Speak an ended recording from where the listener is (2026-11-01, still `1.0.0-alpha.0`)
+
+- **Added**: `near` on `POST /v1/recordings/{id}/voice` (`recordings.renderVoice`): on an ended recording, the sentence being listened to. The lines are spoken nearest first and appear in `GET /v1/recordings/{id}/voice` as they are made; the call answers at once, also while a voice server starts. A player fetches only the clips listed instead of asking for unmade ones (each a retryable 503).
+
 ### A voice needs 20 seconds of speech, not 30 (2026-11-01, still `1.0.0-alpha.0`)
 
 - **Changed**: `POST /v1/voices` (`voices.create`), `POST /v1/voices/from-speaker` (`voices.createFromSpeaker`) and the automatic clone of every speaker accept 20 seconds of one person's speech instead of 30; `CreateVoiceFromSpeaker.spans` must add up to 20–60 s (about 25 is plenty). A voice made from a recording's speaker now takes its clearest complete sentence of 4–11 s, with its words, as the voice's reference; shapes are unchanged.

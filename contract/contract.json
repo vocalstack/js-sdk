@@ -15653,6 +15653,10 @@
                         "type": "string"
                       },
                       "type": "array"
+                    },
+                    "near": {
+                      "description": "On an ended recording: the sentence (`sentences[].sentenceId`) being listened to. The lines are spoken from there outwards, nearest first, as they are listed in GET /v1/recordings/{id}/voice, and the call answers at once (also while a voice server starts); call it again with a new `near` after a seek. Fetch only the clips listed: no clip is asked for before it is made.",
+                      "type": "integer"
                     }
                   },
                   "required": [
