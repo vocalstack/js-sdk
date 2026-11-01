@@ -20,6 +20,10 @@ One line per change, naming the operation (`METHOD /path`, its
 
 ## [Unreleased]
 
+### Which voice a clip was read in (2026-11-01, still `1.0.0-alpha.0`)
+
+- **Added**: the `X-Voice-Key` response header on `GET /v1/recordings/{id}/voice/{sentence}` (`recordings.voiceClip`): the voice, or per-speaker cast, the clip was read in (with no `voice` asked, the default cast it resolved to).
+
 ### Try a voice from a speaker before keeping it (2026-11-01, still `1.0.0-alpha.0`)
 
 - **Added**: `CreateVoiceFromSpeaker.draft` on `POST /v1/voices/from-speaker` (`voices.createFromSpeaker`): a draft to preview first, needing no `consent` or `name`; it does not name or stand for the speaker. `PATCH /v1/voices/{id}` (`voices.update`) with `draft: false` keeps it and now also links it to the speaker it was made from.
