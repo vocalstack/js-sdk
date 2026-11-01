@@ -20,6 +20,10 @@ One line per change, naming the operation (`METHOD /path`, its
 
 ## [Unreleased]
 
+### Try a voice from a speaker before keeping it (2026-11-01, still `1.0.0-alpha.0`)
+
+- **Added**: `CreateVoiceFromSpeaker.draft` on `POST /v1/voices/from-speaker` (`voices.createFromSpeaker`): a draft to preview first, needing no `consent` or `name`; it does not name or stand for the speaker. `PATCH /v1/voices/{id}` (`voices.update`) with `draft: false` keeps it and now also links it to the speaker it was made from.
+
 ### Speak an ended recording from where the listener is (2026-11-01, still `1.0.0-alpha.0`)
 
 - **Added**: `near` on `POST /v1/recordings/{id}/voice` (`recordings.renderVoice`): on an ended recording, the sentence being listened to. The lines are spoken nearest first and appear in `GET /v1/recordings/{id}/voice` as they are made; the call answers at once, also while a voice server starts. A player fetches only the clips listed instead of asking for unmade ones (each a retryable 503).

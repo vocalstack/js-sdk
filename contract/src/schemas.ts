@@ -920,6 +920,7 @@ export type SampleSpan = z.infer<typeof SampleSpanSchema>;
 export const CreateVoiceFromSpeakerSchema = z.object({
   "color": z.union([z.string(), z.null()]).optional(),
   "consent": z.boolean().optional(),
+  "draft": z.boolean().optional(),
   "name": z.string(),
   "recordingId": z.string(),
   "spans": z.union([z.array(SampleSpanSchema), z.null()]).optional(),

@@ -2361,6 +2361,10 @@
               "default": false,
               "type": "boolean"
             },
+            "draft": {
+              "default": false,
+              "type": "boolean"
+            },
             "name": {
               "type": "string"
             },
@@ -18357,7 +18361,7 @@
       },
       "/v1/voices/from-speaker": {
         "post": {
-          "description": "Create a voice from one speaker of a recording — no sample to upload, because the recording's own audio is the sample. Works while the recording is still running: the server joins the stretches that speaker actually spoke for and clones from those. Naming them here also labels them in the transcript and associates them with the new voice. Needs at least 20 seconds of that speaker's speech, their diarized turns added up; the refusal says how much there is. `consent: true` grants consent; when the speaker was already cloned automatically (and not refused), that clone is the one granted, named and saved (`auto` becomes false: it is kept when the recording goes). `spans` picks the stretches to clone from (media seconds, e.g. the transcript's sentences of that speaker): only that speaker's speech inside them is used, they must add up to 20–60 seconds (about 25 is plenty: the clearest complete sentence among them becomes the voice's reference), and a new voice is always made.",
+          "description": "Create a voice from one speaker of a recording — no sample to upload, because the recording's own audio is the sample. Works while the recording is still running: the server joins the stretches that speaker actually spoke for and clones from those. Naming them here also labels them in the transcript and associates them with the new voice. Needs at least 20 seconds of that speaker's speech, their diarized turns added up; the refusal says how much there is. `consent: true` grants consent; when the speaker was already cloned automatically (and not refused), that clone is the one granted, named and saved (`auto` becomes false: it is kept when the recording goes). `spans` picks the stretches to clone from (media seconds, e.g. the transcript's sentences of that speaker): only that speaker's speech inside them is used, they must add up to 20–60 seconds (about 25 is plenty: the clearest complete sentence among them becomes the voice's reference), and a new voice is always made. `draft: true` makes a draft to try first (no `consent` or `name` needed; preview it in any language): it neither names nor stands for the speaker until it is kept with PATCH /v1/voices/{id} `{\"draft\": false, \"consent\": true, \"name\": …}`, which links it to the speaker; DELETE drops it.",
           "operationId": "voices.createFromSpeaker",
           "parameters": [
             {
