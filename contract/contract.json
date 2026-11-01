@@ -2367,6 +2367,15 @@
             "recordingId": {
               "type": "string"
             },
+            "spans": {
+              "items": {
+                "$ref": "#/components/schemas/SampleSpan"
+              },
+              "type": [
+                "array",
+                "null"
+              ]
+            },
             "speaker": {
               "format": "int32",
               "type": "integer"
@@ -3696,6 +3705,60 @@
           "required": [
             "enabled",
             "threshold"
+          ],
+          "type": "object"
+        },
+        "ManyFailure": {
+          "properties": {
+            "code": {
+              "$ref": "#/components/schemas/ErrorCode"
+            },
+            "id": {
+              "type": "string"
+            },
+            "message": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "id",
+            "code",
+            "message"
+          ],
+          "type": "object"
+        },
+        "ManyIds": {
+          "properties": {
+            "ids": {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            }
+          },
+          "required": [
+            "ids"
+          ],
+          "type": "object"
+        },
+        "ManyResult": {
+          "properties": {
+            "done": {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            "failed": {
+              "items": {
+                "$ref": "#/components/schemas/ManyFailure"
+              },
+              "type": "array"
+            }
+          },
+          "required": [
+            "done",
+            "failed"
           ],
           "type": "object"
         },
@@ -5035,6 +5098,23 @@
             "maskedStreamKey",
             "live",
             "monitorUrl"
+          ],
+          "type": "object"
+        },
+        "SampleSpan": {
+          "properties": {
+            "end": {
+              "format": "double",
+              "type": "number"
+            },
+            "start": {
+              "format": "double",
+              "type": "number"
+            }
+          },
+          "required": [
+            "start",
+            "end"
           ],
           "type": "object"
         },
@@ -8829,6 +8909,12 @@
         },
         "Voice": {
           "properties": {
+            "archivedAt": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
             "auto": {
               "default": false,
               "description": "Made automatically from a recording's speaker, and deleted with it.",
@@ -11674,6 +11760,198 @@
           ]
         }
       },
+      "/v1/broadcasts/archive": {
+        "post": {
+          "description": "Archive several broadcasts in one call (up to 500 `ids`), each as the one-broadcast call would. The answer lists the ids that were done and, for each one that was not, why (`failed[].code` and `message`); one failure does not stop the others.",
+          "operationId": "broadcasts.archiveMany",
+          "requestBody": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ManyIds"
+                }
+              }
+            },
+            "required": true
+          },
+          "responses": {
+            "200": {
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "$ref": "#/components/schemas/ManyResult"
+                  }
+                }
+              },
+              "description": "OK",
+              "headers": {
+                "RateLimit-Limit": {
+                  "$ref": "#/components/headers/RateLimit-Limit"
+                },
+                "RateLimit-Remaining": {
+                  "$ref": "#/components/headers/RateLimit-Remaining"
+                },
+                "RateLimit-Reset": {
+                  "$ref": "#/components/headers/RateLimit-Reset"
+                },
+                "X-Request-Id": {
+                  "$ref": "#/components/headers/X-Request-Id"
+                }
+              }
+            },
+            "429": {
+              "$ref": "#/components/responses/RateLimited"
+            },
+            "503": {
+              "$ref": "#/components/responses/Unavailable"
+            }
+          },
+          "security": [
+            {
+              "bearerAuth": []
+            }
+          ],
+          "summary": "Archive broadcasts",
+          "tags": [
+            "broadcasts"
+          ],
+          "x-errors": [
+            "invalid_options"
+          ],
+          "x-vocalstack-auth": "userOrKey",
+          "x-vocalstack-scopes": [
+            "write"
+          ]
+        }
+      },
+      "/v1/broadcasts/purge": {
+        "post": {
+          "description": "Purge several broadcasts in one call (up to 500 `ids`), each as the one-broadcast call would. The answer lists the ids that were done and, for each one that was not, why (`failed[].code` and `message`); one failure does not stop the others.",
+          "operationId": "broadcasts.purgeMany",
+          "requestBody": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ManyIds"
+                }
+              }
+            },
+            "required": true
+          },
+          "responses": {
+            "200": {
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "$ref": "#/components/schemas/ManyResult"
+                  }
+                }
+              },
+              "description": "OK",
+              "headers": {
+                "RateLimit-Limit": {
+                  "$ref": "#/components/headers/RateLimit-Limit"
+                },
+                "RateLimit-Remaining": {
+                  "$ref": "#/components/headers/RateLimit-Remaining"
+                },
+                "RateLimit-Reset": {
+                  "$ref": "#/components/headers/RateLimit-Reset"
+                },
+                "X-Request-Id": {
+                  "$ref": "#/components/headers/X-Request-Id"
+                }
+              }
+            },
+            "429": {
+              "$ref": "#/components/responses/RateLimited"
+            },
+            "503": {
+              "$ref": "#/components/responses/Unavailable"
+            }
+          },
+          "security": [
+            {
+              "bearerAuth": []
+            }
+          ],
+          "summary": "Purge broadcasts",
+          "tags": [
+            "broadcasts"
+          ],
+          "x-errors": [
+            "invalid_options"
+          ],
+          "x-vocalstack-auth": "userOrKey",
+          "x-vocalstack-scopes": [
+            "write"
+          ]
+        }
+      },
+      "/v1/broadcasts/restore": {
+        "post": {
+          "description": "Restore several broadcasts in one call (up to 500 `ids`), each as the one-broadcast call would. The answer lists the ids that were done and, for each one that was not, why (`failed[].code` and `message`); one failure does not stop the others.",
+          "operationId": "broadcasts.restoreMany",
+          "requestBody": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ManyIds"
+                }
+              }
+            },
+            "required": true
+          },
+          "responses": {
+            "200": {
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "$ref": "#/components/schemas/ManyResult"
+                  }
+                }
+              },
+              "description": "OK",
+              "headers": {
+                "RateLimit-Limit": {
+                  "$ref": "#/components/headers/RateLimit-Limit"
+                },
+                "RateLimit-Remaining": {
+                  "$ref": "#/components/headers/RateLimit-Remaining"
+                },
+                "RateLimit-Reset": {
+                  "$ref": "#/components/headers/RateLimit-Reset"
+                },
+                "X-Request-Id": {
+                  "$ref": "#/components/headers/X-Request-Id"
+                }
+              }
+            },
+            "429": {
+              "$ref": "#/components/responses/RateLimited"
+            },
+            "503": {
+              "$ref": "#/components/responses/Unavailable"
+            }
+          },
+          "security": [
+            {
+              "bearerAuth": []
+            }
+          ],
+          "summary": "Restore broadcasts",
+          "tags": [
+            "broadcasts"
+          ],
+          "x-errors": [
+            "invalid_options"
+          ],
+          "x-vocalstack-auth": "userOrKey",
+          "x-vocalstack-scopes": [
+            "write"
+          ]
+        }
+      },
       "/v1/broadcasts/{id}": {
         "get": {
           "description": "One broadcast of the acting principal's, by id.",
@@ -13199,6 +13477,198 @@
           "x-vocalstack-auth": "userOrKey",
           "x-vocalstack-scopes": [
             "recordings:publish"
+          ]
+        }
+      },
+      "/v1/recordings/archive": {
+        "post": {
+          "description": "Archive several recordings in one call (up to 500 `ids`), each as the one-recording call would. The answer lists the ids that were done and, for each one that was not, why (`failed[].code` and `message`); one failure does not stop the others.",
+          "operationId": "recordings.archiveMany",
+          "requestBody": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ManyIds"
+                }
+              }
+            },
+            "required": true
+          },
+          "responses": {
+            "200": {
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "$ref": "#/components/schemas/ManyResult"
+                  }
+                }
+              },
+              "description": "OK",
+              "headers": {
+                "RateLimit-Limit": {
+                  "$ref": "#/components/headers/RateLimit-Limit"
+                },
+                "RateLimit-Remaining": {
+                  "$ref": "#/components/headers/RateLimit-Remaining"
+                },
+                "RateLimit-Reset": {
+                  "$ref": "#/components/headers/RateLimit-Reset"
+                },
+                "X-Request-Id": {
+                  "$ref": "#/components/headers/X-Request-Id"
+                }
+              }
+            },
+            "429": {
+              "$ref": "#/components/responses/RateLimited"
+            },
+            "503": {
+              "$ref": "#/components/responses/Unavailable"
+            }
+          },
+          "security": [
+            {
+              "bearerAuth": []
+            }
+          ],
+          "summary": "Archive recordings",
+          "tags": [
+            "recordings"
+          ],
+          "x-errors": [
+            "invalid_options"
+          ],
+          "x-vocalstack-auth": "userOrKey",
+          "x-vocalstack-scopes": [
+            "write"
+          ]
+        }
+      },
+      "/v1/recordings/purge": {
+        "post": {
+          "description": "Purge several recordings in one call (up to 500 `ids`), each as the one-recording call would. The answer lists the ids that were done and, for each one that was not, why (`failed[].code` and `message`); one failure does not stop the others.",
+          "operationId": "recordings.purgeMany",
+          "requestBody": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ManyIds"
+                }
+              }
+            },
+            "required": true
+          },
+          "responses": {
+            "200": {
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "$ref": "#/components/schemas/ManyResult"
+                  }
+                }
+              },
+              "description": "OK",
+              "headers": {
+                "RateLimit-Limit": {
+                  "$ref": "#/components/headers/RateLimit-Limit"
+                },
+                "RateLimit-Remaining": {
+                  "$ref": "#/components/headers/RateLimit-Remaining"
+                },
+                "RateLimit-Reset": {
+                  "$ref": "#/components/headers/RateLimit-Reset"
+                },
+                "X-Request-Id": {
+                  "$ref": "#/components/headers/X-Request-Id"
+                }
+              }
+            },
+            "429": {
+              "$ref": "#/components/responses/RateLimited"
+            },
+            "503": {
+              "$ref": "#/components/responses/Unavailable"
+            }
+          },
+          "security": [
+            {
+              "bearerAuth": []
+            }
+          ],
+          "summary": "Purge recordings",
+          "tags": [
+            "recordings"
+          ],
+          "x-errors": [
+            "invalid_options"
+          ],
+          "x-vocalstack-auth": "userOrKey",
+          "x-vocalstack-scopes": [
+            "write"
+          ]
+        }
+      },
+      "/v1/recordings/restore": {
+        "post": {
+          "description": "Restore several recordings in one call (up to 500 `ids`), each as the one-recording call would. The answer lists the ids that were done and, for each one that was not, why (`failed[].code` and `message`); one failure does not stop the others.",
+          "operationId": "recordings.restoreMany",
+          "requestBody": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ManyIds"
+                }
+              }
+            },
+            "required": true
+          },
+          "responses": {
+            "200": {
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "$ref": "#/components/schemas/ManyResult"
+                  }
+                }
+              },
+              "description": "OK",
+              "headers": {
+                "RateLimit-Limit": {
+                  "$ref": "#/components/headers/RateLimit-Limit"
+                },
+                "RateLimit-Remaining": {
+                  "$ref": "#/components/headers/RateLimit-Remaining"
+                },
+                "RateLimit-Reset": {
+                  "$ref": "#/components/headers/RateLimit-Reset"
+                },
+                "X-Request-Id": {
+                  "$ref": "#/components/headers/X-Request-Id"
+                }
+              }
+            },
+            "429": {
+              "$ref": "#/components/responses/RateLimited"
+            },
+            "503": {
+              "$ref": "#/components/responses/Unavailable"
+            }
+          },
+          "security": [
+            {
+              "bearerAuth": []
+            }
+          ],
+          "summary": "Restore recordings",
+          "tags": [
+            "recordings"
+          ],
+          "x-errors": [
+            "invalid_options"
+          ],
+          "x-vocalstack-auth": "userOrKey",
+          "x-vocalstack-scopes": [
+            "write"
           ]
         }
       },
@@ -16303,6 +16773,70 @@
           ]
         }
       },
+      "/v1/transcriptions/archive": {
+        "post": {
+          "description": "Archive several transcriptions in one call (up to 500 `ids`), each as the one-transcription call would. The answer lists the ids that were done and, for each one that was not, why (`failed[].code` and `message`); one failure does not stop the others.",
+          "operationId": "transcriptions.archiveMany",
+          "requestBody": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ManyIds"
+                }
+              }
+            },
+            "required": true
+          },
+          "responses": {
+            "200": {
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "$ref": "#/components/schemas/ManyResult"
+                  }
+                }
+              },
+              "description": "OK",
+              "headers": {
+                "RateLimit-Limit": {
+                  "$ref": "#/components/headers/RateLimit-Limit"
+                },
+                "RateLimit-Remaining": {
+                  "$ref": "#/components/headers/RateLimit-Remaining"
+                },
+                "RateLimit-Reset": {
+                  "$ref": "#/components/headers/RateLimit-Reset"
+                },
+                "X-Request-Id": {
+                  "$ref": "#/components/headers/X-Request-Id"
+                }
+              }
+            },
+            "429": {
+              "$ref": "#/components/responses/RateLimited"
+            },
+            "503": {
+              "$ref": "#/components/responses/Unavailable"
+            }
+          },
+          "security": [
+            {
+              "bearerAuth": []
+            }
+          ],
+          "summary": "Archive transcriptions",
+          "tags": [
+            "transcriptions"
+          ],
+          "x-errors": [
+            "invalid_options"
+          ],
+          "x-vocalstack-auth": "userOrKey",
+          "x-vocalstack-scopes": [
+            "write"
+          ]
+        }
+      },
       "/v1/transcriptions/live": {
         "post": {
           "description": "Create a live transcription: captured as it is spoken — this device's microphone, or a stream the server pulls — rather than read from a file (`live: true`). It is created idle; `transcriptions.startRecording` starts it, and the recording's pause / resume / stop calls drive it. `broadcasts` attaches it to those broadcasts from the start. A stream `source.url` may be a web page that plays one (a radio station's page): the first live stream found on it becomes `source.url`, and a page with none is refused (`invalid_options`); searching a page counts against the link check's hourly allowance of web pages.",
@@ -16445,6 +16979,134 @@
           "x-vocalstack-auth": "userOrKey",
           "x-vocalstack-scopes": [
             "read"
+          ]
+        }
+      },
+      "/v1/transcriptions/purge": {
+        "post": {
+          "description": "Purge several transcriptions in one call (up to 500 `ids`), each as the one-transcription call would. The answer lists the ids that were done and, for each one that was not, why (`failed[].code` and `message`); one failure does not stop the others.",
+          "operationId": "transcriptions.purgeMany",
+          "requestBody": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ManyIds"
+                }
+              }
+            },
+            "required": true
+          },
+          "responses": {
+            "200": {
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "$ref": "#/components/schemas/ManyResult"
+                  }
+                }
+              },
+              "description": "OK",
+              "headers": {
+                "RateLimit-Limit": {
+                  "$ref": "#/components/headers/RateLimit-Limit"
+                },
+                "RateLimit-Remaining": {
+                  "$ref": "#/components/headers/RateLimit-Remaining"
+                },
+                "RateLimit-Reset": {
+                  "$ref": "#/components/headers/RateLimit-Reset"
+                },
+                "X-Request-Id": {
+                  "$ref": "#/components/headers/X-Request-Id"
+                }
+              }
+            },
+            "429": {
+              "$ref": "#/components/responses/RateLimited"
+            },
+            "503": {
+              "$ref": "#/components/responses/Unavailable"
+            }
+          },
+          "security": [
+            {
+              "bearerAuth": []
+            }
+          ],
+          "summary": "Purge transcriptions",
+          "tags": [
+            "transcriptions"
+          ],
+          "x-errors": [
+            "invalid_options"
+          ],
+          "x-vocalstack-auth": "userOrKey",
+          "x-vocalstack-scopes": [
+            "write"
+          ]
+        }
+      },
+      "/v1/transcriptions/restore": {
+        "post": {
+          "description": "Restore several transcriptions in one call (up to 500 `ids`), each as the one-transcription call would. The answer lists the ids that were done and, for each one that was not, why (`failed[].code` and `message`); one failure does not stop the others.",
+          "operationId": "transcriptions.restoreMany",
+          "requestBody": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ManyIds"
+                }
+              }
+            },
+            "required": true
+          },
+          "responses": {
+            "200": {
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "$ref": "#/components/schemas/ManyResult"
+                  }
+                }
+              },
+              "description": "OK",
+              "headers": {
+                "RateLimit-Limit": {
+                  "$ref": "#/components/headers/RateLimit-Limit"
+                },
+                "RateLimit-Remaining": {
+                  "$ref": "#/components/headers/RateLimit-Remaining"
+                },
+                "RateLimit-Reset": {
+                  "$ref": "#/components/headers/RateLimit-Reset"
+                },
+                "X-Request-Id": {
+                  "$ref": "#/components/headers/X-Request-Id"
+                }
+              }
+            },
+            "429": {
+              "$ref": "#/components/responses/RateLimited"
+            },
+            "503": {
+              "$ref": "#/components/responses/Unavailable"
+            }
+          },
+          "security": [
+            {
+              "bearerAuth": []
+            }
+          ],
+          "summary": "Restore transcriptions",
+          "tags": [
+            "transcriptions"
+          ],
+          "x-errors": [
+            "invalid_options"
+          ],
+          "x-vocalstack-auth": "userOrKey",
+          "x-vocalstack-scopes": [
+            "write"
           ]
         }
       },
@@ -17307,8 +17969,22 @@
       },
       "/v1/voices": {
         "get": {
-          "description": "The account's cloned voices, newest first.",
+          "description": "The account's cloned voices, newest first. `lifecycle=archived` lists the archived ones instead.",
           "operationId": "voices.list",
+          "parameters": [
+            {
+              "in": "query",
+              "name": "lifecycle",
+              "required": false,
+              "schema": {
+                "enum": [
+                  "active",
+                  "archived"
+                ],
+                "type": "string"
+              }
+            }
+          ],
           "responses": {
             "200": {
               "content": {
@@ -17358,13 +18034,16 @@
           "tags": [
             "voices"
           ],
+          "x-errors": [
+            "invalid_options"
+          ],
           "x-vocalstack-auth": "userOrKey",
           "x-vocalstack-scopes": [
             "read"
           ]
         },
         "post": {
-          "description": "Create a voice from a recorded sample and queue its training: multipart/form-data with a `sample` audio part and a `meta` JSON part. The sample needs at least 30 seconds of speech from one person: it is diarized, and the speaker with the most speech is cloned; the silence around them does not matter. The voice comes back `training` with progress 0; poll GET /v1/voices/{id}. Training reports a real state — it never fakes progress, and a voice that cannot be trained ends `failed` with the reason on `error`.",
+          "description": "Create a voice from a recorded sample and queue its training: multipart/form-data with a `sample` audio part and a `meta` JSON part. The sample needs at least 20 seconds of speech from one person: it is diarized, and the speaker with the most speech is cloned; the silence around them does not matter. The voice comes back `training` with progress 0; poll GET /v1/voices/{id}. Training reports a real state — it never fakes progress, and a voice that cannot be trained ends `failed` with the reason on `error`.",
           "operationId": "voices.create",
           "parameters": [
             {
@@ -17447,6 +18126,70 @@
             "invalid_options",
             "not_found",
             "idempotency_key_reused"
+          ],
+          "x-vocalstack-auth": "userOrKey",
+          "x-vocalstack-scopes": [
+            "write"
+          ]
+        }
+      },
+      "/v1/voices/archive": {
+        "post": {
+          "description": "Archive several voices in one call (up to 500 `ids`), each as the one-voice call would. The answer lists the ids that were done and, for each one that was not, why (`failed[].code` and `message`); one failure does not stop the others.",
+          "operationId": "voices.archiveMany",
+          "requestBody": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ManyIds"
+                }
+              }
+            },
+            "required": true
+          },
+          "responses": {
+            "200": {
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "$ref": "#/components/schemas/ManyResult"
+                  }
+                }
+              },
+              "description": "OK",
+              "headers": {
+                "RateLimit-Limit": {
+                  "$ref": "#/components/headers/RateLimit-Limit"
+                },
+                "RateLimit-Remaining": {
+                  "$ref": "#/components/headers/RateLimit-Remaining"
+                },
+                "RateLimit-Reset": {
+                  "$ref": "#/components/headers/RateLimit-Reset"
+                },
+                "X-Request-Id": {
+                  "$ref": "#/components/headers/X-Request-Id"
+                }
+              }
+            },
+            "429": {
+              "$ref": "#/components/responses/RateLimited"
+            },
+            "503": {
+              "$ref": "#/components/responses/Unavailable"
+            }
+          },
+          "security": [
+            {
+              "bearerAuth": []
+            }
+          ],
+          "summary": "Archive voices",
+          "tags": [
+            "voices"
+          ],
+          "x-errors": [
+            "invalid_options"
           ],
           "x-vocalstack-auth": "userOrKey",
           "x-vocalstack-scopes": [
@@ -17544,9 +18287,73 @@
           "x-vocalstack-scopes": []
         }
       },
+      "/v1/voices/delete": {
+        "post": {
+          "description": "Delete several voices in one call (up to 500 `ids`), each as the one-voice call would. The answer lists the ids that were done and, for each one that was not, why (`failed[].code` and `message`); one failure does not stop the others.",
+          "operationId": "voices.deleteMany",
+          "requestBody": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ManyIds"
+                }
+              }
+            },
+            "required": true
+          },
+          "responses": {
+            "200": {
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "$ref": "#/components/schemas/ManyResult"
+                  }
+                }
+              },
+              "description": "OK",
+              "headers": {
+                "RateLimit-Limit": {
+                  "$ref": "#/components/headers/RateLimit-Limit"
+                },
+                "RateLimit-Remaining": {
+                  "$ref": "#/components/headers/RateLimit-Remaining"
+                },
+                "RateLimit-Reset": {
+                  "$ref": "#/components/headers/RateLimit-Reset"
+                },
+                "X-Request-Id": {
+                  "$ref": "#/components/headers/X-Request-Id"
+                }
+              }
+            },
+            "429": {
+              "$ref": "#/components/responses/RateLimited"
+            },
+            "503": {
+              "$ref": "#/components/responses/Unavailable"
+            }
+          },
+          "security": [
+            {
+              "bearerAuth": []
+            }
+          ],
+          "summary": "Delete voices",
+          "tags": [
+            "voices"
+          ],
+          "x-errors": [
+            "invalid_options"
+          ],
+          "x-vocalstack-auth": "userOrKey",
+          "x-vocalstack-scopes": [
+            "write"
+          ]
+        }
+      },
       "/v1/voices/from-speaker": {
         "post": {
-          "description": "Create a voice from one speaker of a recording — no sample to upload, because the recording's own audio is the sample. Works while the recording is still running: the server joins the stretches that speaker actually spoke for and clones from those. Naming them here also labels them in the transcript and associates them with the new voice. Needs at least 30 seconds of that speaker's speech, their diarized turns added up; the refusal says how much there is. `consent: true` grants consent; when the speaker was already cloned automatically (and not refused), that clone is the one granted, named and saved (`auto` becomes false: it is kept when the recording goes).",
+          "description": "Create a voice from one speaker of a recording — no sample to upload, because the recording's own audio is the sample. Works while the recording is still running: the server joins the stretches that speaker actually spoke for and clones from those. Naming them here also labels them in the transcript and associates them with the new voice. Needs at least 20 seconds of that speaker's speech, their diarized turns added up; the refusal says how much there is. `consent: true` grants consent; when the speaker was already cloned automatically (and not refused), that clone is the one granted, named and saved (`auto` becomes false: it is kept when the recording goes). `spans` picks the stretches to clone from (media seconds, e.g. the transcript's sentences of that speaker): only that speaker's speech inside them is used, they must add up to 20–60 seconds (about 25 is plenty: the clearest complete sentence among them becomes the voice's reference), and a new voice is always made.",
           "operationId": "voices.createFromSpeaker",
           "parameters": [
             {
@@ -17711,6 +18518,70 @@
           ],
           "x-vocalstack-auth": "optional",
           "x-vocalstack-scopes": []
+        }
+      },
+      "/v1/voices/restore": {
+        "post": {
+          "description": "Restore several voices in one call (up to 500 `ids`), each as the one-voice call would. The answer lists the ids that were done and, for each one that was not, why (`failed[].code` and `message`); one failure does not stop the others.",
+          "operationId": "voices.restoreMany",
+          "requestBody": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ManyIds"
+                }
+              }
+            },
+            "required": true
+          },
+          "responses": {
+            "200": {
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "$ref": "#/components/schemas/ManyResult"
+                  }
+                }
+              },
+              "description": "OK",
+              "headers": {
+                "RateLimit-Limit": {
+                  "$ref": "#/components/headers/RateLimit-Limit"
+                },
+                "RateLimit-Remaining": {
+                  "$ref": "#/components/headers/RateLimit-Remaining"
+                },
+                "RateLimit-Reset": {
+                  "$ref": "#/components/headers/RateLimit-Reset"
+                },
+                "X-Request-Id": {
+                  "$ref": "#/components/headers/X-Request-Id"
+                }
+              }
+            },
+            "429": {
+              "$ref": "#/components/responses/RateLimited"
+            },
+            "503": {
+              "$ref": "#/components/responses/Unavailable"
+            }
+          },
+          "security": [
+            {
+              "bearerAuth": []
+            }
+          ],
+          "summary": "Restore voices",
+          "tags": [
+            "voices"
+          ],
+          "x-errors": [
+            "invalid_options"
+          ],
+          "x-vocalstack-auth": "userOrKey",
+          "x-vocalstack-scopes": [
+            "write"
+          ]
         }
       },
       "/v1/voices/{id}": {
@@ -17904,9 +18775,74 @@
           ]
         }
       },
+      "/v1/voices/{id}/archive": {
+        "post": {
+          "description": "Put a voice away: it no longer speaks, is not offered, and no longer names or stands for any speaker — speakers it was linked to are unlinked, and those it had named are back to their plain labels, so they can be cloned afresh. Its sample is kept; restore brings it back (speakers stay unlinked) and delete removes it for good. `archivedAt` says when.",
+          "operationId": "voices.archive",
+          "parameters": [
+            {
+              "in": "path",
+              "name": "id",
+              "required": true,
+              "schema": {
+                "type": "string"
+              }
+            }
+          ],
+          "responses": {
+            "200": {
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "$ref": "#/components/schemas/Voice"
+                  }
+                }
+              },
+              "description": "OK",
+              "headers": {
+                "RateLimit-Limit": {
+                  "$ref": "#/components/headers/RateLimit-Limit"
+                },
+                "RateLimit-Remaining": {
+                  "$ref": "#/components/headers/RateLimit-Remaining"
+                },
+                "RateLimit-Reset": {
+                  "$ref": "#/components/headers/RateLimit-Reset"
+                },
+                "X-Request-Id": {
+                  "$ref": "#/components/headers/X-Request-Id"
+                }
+              }
+            },
+            "429": {
+              "$ref": "#/components/responses/RateLimited"
+            },
+            "503": {
+              "$ref": "#/components/responses/Unavailable"
+            }
+          },
+          "security": [
+            {
+              "bearerAuth": []
+            }
+          ],
+          "summary": "Archive a voice",
+          "tags": [
+            "voices"
+          ],
+          "x-errors": [
+            "not_found",
+            "forbidden"
+          ],
+          "x-vocalstack-auth": "userOrKey",
+          "x-vocalstack-scopes": [
+            "write"
+          ]
+        }
+      },
       "/v1/voices/{id}/consent": {
         "post": {
-          "description": "Record whether the speaker agreed to their cloned voice. Every speaker with 30 seconds of speech in a recording is cloned automatically with `consent: \"pending\"`; a clone speaks, is offered in `GET /v1/voices/available` and has a preview only once its consent is `granted`. `granted` (optionally with a `name`, which also names the speaker in the recording it came from) makes it usable; `refused` deletes its audio and voice at once and it is not cloned again. Refusing later withdraws consent the same way. Each decision is recorded with who made it and when; `granted` on a voice already granted is recorded again (the host re-confirming permission). With `settings.voiceCloning` on, a transcription's automatic clones are granted on the host's word as they are made.",
+          "description": "Record whether the speaker agreed to their cloned voice. Every speaker with 20 seconds of speech in a recording is cloned automatically with `consent: \"pending\"`; a clone speaks, is offered in `GET /v1/voices/available` and has a preview only once its consent is `granted`. `granted` (optionally with a `name`, which also names the speaker in the recording it came from) makes it usable; `refused` deletes its audio and voice at once and it is not cloned again. Refusing later withdraws consent the same way. Each decision is recorded with who made it and when; `granted` on a voice already granted is recorded again (the host re-confirming permission). With `settings.voiceCloning` on, a transcription's automatic clones are granted on the host's word as they are made.",
           "operationId": "voices.setConsent",
           "parameters": [
             {
@@ -18106,6 +19042,71 @@
           "x-vocalstack-auth": "listener",
           "x-vocalstack-scopes": [
             "read"
+          ]
+        }
+      },
+      "/v1/voices/{id}/restore": {
+        "post": {
+          "description": "Bring an archived voice back into use. Speakers it was unlinked from when it was archived stay unlinked.",
+          "operationId": "voices.restore",
+          "parameters": [
+            {
+              "in": "path",
+              "name": "id",
+              "required": true,
+              "schema": {
+                "type": "string"
+              }
+            }
+          ],
+          "responses": {
+            "200": {
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "$ref": "#/components/schemas/Voice"
+                  }
+                }
+              },
+              "description": "OK",
+              "headers": {
+                "RateLimit-Limit": {
+                  "$ref": "#/components/headers/RateLimit-Limit"
+                },
+                "RateLimit-Remaining": {
+                  "$ref": "#/components/headers/RateLimit-Remaining"
+                },
+                "RateLimit-Reset": {
+                  "$ref": "#/components/headers/RateLimit-Reset"
+                },
+                "X-Request-Id": {
+                  "$ref": "#/components/headers/X-Request-Id"
+                }
+              }
+            },
+            "429": {
+              "$ref": "#/components/responses/RateLimited"
+            },
+            "503": {
+              "$ref": "#/components/responses/Unavailable"
+            }
+          },
+          "security": [
+            {
+              "bearerAuth": []
+            }
+          ],
+          "summary": "Restore a voice",
+          "tags": [
+            "voices"
+          ],
+          "x-errors": [
+            "not_found",
+            "forbidden"
+          ],
+          "x-vocalstack-auth": "userOrKey",
+          "x-vocalstack-scopes": [
+            "write"
           ]
         }
       },

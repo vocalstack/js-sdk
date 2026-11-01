@@ -911,11 +911,18 @@ export const CreateVoiceSchema = z.object({
 });
 export type CreateVoice = z.infer<typeof CreateVoiceSchema>;
 
+export const SampleSpanSchema = z.object({
+  "end": z.number(),
+  "start": z.number(),
+});
+export type SampleSpan = z.infer<typeof SampleSpanSchema>;
+
 export const CreateVoiceFromSpeakerSchema = z.object({
   "color": z.union([z.string(), z.null()]).optional(),
   "consent": z.boolean().optional(),
   "name": z.string(),
   "recordingId": z.string(),
+  "spans": z.union([z.array(SampleSpanSchema), z.null()]).optional(),
   "speaker": z.number().int(),
 });
 export type CreateVoiceFromSpeaker = z.infer<typeof CreateVoiceFromSpeakerSchema>;
@@ -1086,6 +1093,24 @@ export const LowBalanceAlertSettingsSchema = z.object({
   "threshold": z.union([z.number(), z.null()]).optional(),
 });
 export type LowBalanceAlertSettings = z.infer<typeof LowBalanceAlertSettingsSchema>;
+
+export const ManyFailureSchema = z.object({
+  "code": ErrorCodeSchema,
+  "id": z.string(),
+  "message": z.string(),
+});
+export type ManyFailure = z.infer<typeof ManyFailureSchema>;
+
+export const ManyIdsSchema = z.object({
+  "ids": z.array(z.string()),
+});
+export type ManyIds = z.infer<typeof ManyIdsSchema>;
+
+export const ManyResultSchema = z.object({
+  "done": z.array(z.string()),
+  "failed": z.array(ManyFailureSchema),
+});
+export type ManyResult = z.infer<typeof ManyResultSchema>;
 
 export const MediaSummarySchema = z.object({
   "bytes": z.number().int(),
@@ -1881,6 +1906,7 @@ export const UsageReportSchema = z.object({
 export type UsageReport = z.infer<typeof UsageReportSchema>;
 
 export const VoiceSchema = z.object({
+  "archivedAt": z.union([z.string(), z.null()]).optional(),
   "auto": z.boolean().optional(),
   "color": z.union([z.string(), z.null()]).optional(),
   "consent": ConsentSchema,

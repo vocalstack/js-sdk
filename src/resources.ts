@@ -74,6 +74,7 @@ import type {
   Voice,
   VoiceCatalogue,
   VoiceTrack,
+  ManyResult,
 } from '@vocalstack/contract';
 
 import { VocalStackError } from './errors.js';
@@ -146,6 +147,15 @@ abstract class ParentResource<T, U> {
   }
   async purge(id: string): Promise<void> {
     await this.t.json('POST', this.p(id, '/purge'));
+  }
+  archiveMany(ids: string[]): Promise<ManyResult> {
+    return this.t.json('POST', `${this.base}/archive`, { body: { ids } });
+  }
+  restoreMany(ids: string[]): Promise<ManyResult> {
+    return this.t.json('POST', `${this.base}/restore`, { body: { ids } });
+  }
+  purgeMany(ids: string[]): Promise<ManyResult> {
+    return this.t.json('POST', `${this.base}/purge`, { body: { ids } });
   }
   listRecordings(id: string, lifecycle: 'active' | 'archived' = 'active'): Promise<Recording[]> {
     return allPages(async (cursor) => {
@@ -349,6 +359,15 @@ export class Recordings {
   async purge(id: string): Promise<void> {
     await this.#t.json('POST', this.#p(id, '/purge'));
   }
+  archiveMany(ids: string[]): Promise<ManyResult> {
+    return this.#t.json('POST', '/v1/recordings/archive', { body: { ids } });
+  }
+  restoreMany(ids: string[]): Promise<ManyResult> {
+    return this.#t.json('POST', '/v1/recordings/restore', { body: { ids } });
+  }
+  purgeMany(ids: string[]): Promise<ManyResult> {
+    return this.#t.json('POST', '/v1/recordings/purge', { body: { ids } });
+  }
   transcript(id: string, opts: { after?: number; lang?: string; asListener?: boolean } & ReadAs = {}): Promise<TranscriptSnapshot> {
     return this.#t.json('GET', this.#p(id, '/transcript'), {
       query: { ...listenerQuery(opts), after: opts.after, lang: opts.lang, role: opts.asListener ? 'listener' : undefined },
@@ -532,12 +551,27 @@ export class Voices {
   constructor(t: Transport) {
     this.#t = t;
   }
-  async list(): Promise<Voice[]> {
-    const r = await this.#t.json<{ voices?: Voice[] }>('GET', '/v1/voices');
+  async list(opts: { lifecycle?: 'active' | 'archived' } = {}): Promise<Voice[]> {
+    const r = await this.#t.json<{ voices?: Voice[] }>('GET', '/v1/voices', { query: { lifecycle: opts.lifecycle } });
     return r.voices ?? [];
   }
   get(id: string): Promise<Voice> {
     return this.#t.json('GET', `/v1/voices/${seg(id)}`);
+  }
+  archive(id: string): Promise<Voice> {
+    return this.#t.json('POST', `/v1/voices/${seg(id)}/archive`);
+  }
+  restore(id: string): Promise<Voice> {
+    return this.#t.json('POST', `/v1/voices/${seg(id)}/restore`);
+  }
+  archiveMany(ids: string[]): Promise<ManyResult> {
+    return this.#t.json('POST', '/v1/voices/archive', { body: { ids } });
+  }
+  restoreMany(ids: string[]): Promise<ManyResult> {
+    return this.#t.json('POST', '/v1/voices/restore', { body: { ids } });
+  }
+  deleteMany(ids: string[]): Promise<ManyResult> {
+    return this.#t.json('POST', '/v1/voices/delete', { body: { ids } });
   }
   async create(
     req: { name: string; sample?: Upload; sampleUrl?: string; fileName?: string; gender?: 'male' | 'female'; color?: string; draft?: boolean },

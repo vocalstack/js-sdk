@@ -20,6 +20,22 @@ One line per change, naming the operation (`METHOD /path`, its
 
 ## [Unreleased]
 
+### A voice needs 20 seconds of speech, not 30 (2026-11-01, still `1.0.0-alpha.0`)
+
+- **Changed**: `POST /v1/voices` (`voices.create`), `POST /v1/voices/from-speaker` (`voices.createFromSpeaker`) and the automatic clone of every speaker accept 20 seconds of one person's speech instead of 30; `CreateVoiceFromSpeaker.spans` must add up to 20–60 s (about 25 is plenty). A voice made from a recording's speaker now takes its clearest complete sentence of 4–11 s, with its words, as the voice's reference; shapes are unchanged.
+
+### Clone from the samples you pick (2026-11-01, still `1.0.0-alpha.0`)
+
+- **Added**: `CreateVoiceFromSpeaker.spans` on `POST /v1/voices/from-speaker` (`voices.createFromSpeaker`): the stretches (`start`, `end` in media seconds) to clone from; only that speaker's speech inside them is used, they must add up to 30–60 s, and a new voice is always made. Without it the clone is made from the speaker's first 60 s, as before.
+
+### Archive, restore and delete many at once (2026-11-01, still `1.0.0-alpha.0`)
+
+- **Added**: one call for many: `POST /v1/transcriptions/archive|restore|purge` (`transcriptions.archiveMany`, `restoreMany`, `purgeMany`), the same on `/v1/broadcasts` (`broadcasts.*Many`) and `/v1/recordings` (`recordings.*Many`), and `POST /v1/voices/archive|restore|delete` (`voices.archiveMany`, `restoreMany`, `deleteMany`). Body `ManyIds` (`ids`, up to 500); answer `ManyResult`: `done` ids and `failed[]` with `id`, `code`, `message`. Each id is handled as its one-id call would be, and one failure does not stop the rest.
+
+### Archived voices (2026-11-01, still `1.0.0-alpha.0`)
+
+- **Added**: `POST /v1/voices/{id}/archive` (`voices.archive`) and `POST /v1/voices/{id}/restore` (`voices.restore`). An archived voice does not speak, is not offered and no longer stands for any speaker: the speakers it was linked to are unlinked and lose the name it gave them, so they can be cloned again. `Voice.archivedAt` says when; `GET /v1/voices` (`voices.list`) takes `lifecycle=archived` for the archived ones and lists only active voices by default.
+
 ### A language switch answers at once (2026-10-31, still `1.0.0-alpha.0`)
 
 - **Added**: `TranscriptSnapshot.translationPending` on `GET /v1/recordings/{id}/transcript` (`recordings.transcript`) with `lang`: true when some sentences are not translated yet. The fetch translates for up to 2.5 s and answers with what it has; the rest is translated in the background, so fetch again in a few seconds for it. It used to translate everything before answering (a minute on a long transcript).
