@@ -49,7 +49,9 @@ export {
   Tags,
   Transcriptions,
   Voices,
+  playableFormat,
 } from './resources.js';
+export type { AudioKind, MediaAuth, MediaFormat, RenderVoice } from './resources.js';
 export type { AddBatchFileInput, ConnectToken, ConnectTokenInput, CreateTranscriptionInput, LifecycleFilter, Me, PageOptions, RecordingPageOptions, SearchOptions, Upload, UsageChargesOptions, UsageOptions } from './resources.js';
 export type * from '@vocalstack/contract';
 

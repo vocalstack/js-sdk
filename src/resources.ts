@@ -56,6 +56,7 @@ import type {
   SearchResults,
   SettingsPatch,
   ShareLink,
+  SharedTranscript,
   StartRecording,
   StartJob,
   SummaryStatus,
@@ -399,14 +400,37 @@ export class Recordings {
     if (!location) throw new VocalStackError('not_found', 'no signed URL in the redirect');
     return location;
   }
+  audioSrc(id: string, opts: { kind?: AudioKind; lang?: string; voice?: string; format?: MediaFormat } & MediaAuth = {}): string {
+    return this.#t.url(this.#p(id, '/audio'), { kind: opts.kind ?? 'delivery', lang: opts.lang, format: opts.format, voice: opts.voice, ...mediaQuery(opts) });
+  }
+  clipSrc(id: string, startS: number, endS: number, opts: { clean?: boolean } & MediaAuth = {}): string {
+    return this.#t.url(this.#p(id, '/audio/clip'), { startS: startS.toFixed(2), endS: endS.toFixed(2), clean: opts.clean ? 'true' : undefined, ...mediaQuery(opts) });
+  }
+  voiceClipSrc(id: string, sentence: number, lang: string, opts: { voice?: string; format?: 'ogg' | 'caf'; part?: number; v?: string } & MediaAuth = {}): string {
+    return this.#t.url(this.#p(id, `/voice/${seg(sentence)}`), {
+      lang,
+      voice: opts.voice,
+      format: opts.format,
+      part: opts.part ? opts.part : undefined,
+      v: opts.v,
+      ...mediaQuery(opts),
+    });
+  }
   clip(id: string, startS: number, endS: number, as?: ReadAs): Promise<Response> {
     return this.#t.raw('GET', this.#p(id, '/audio/clip'), { headers: { accept: '*/*' }, query: { ...listenerQuery(as), startS, endS } });
   }
   voice(id: string, lang?: string, as?: ReadAs): Promise<VoiceTrack[]> {
     return this.#t.json('GET', this.#p(id, '/voice'), { query: { ...listenerQuery(as), lang } });
   }
-  renderVoice(id: string, langs: string[], call: CallOptions = {}): Promise<VoiceTrack[]> {
-    return this.#t.json('POST', this.#p(id, '/voice'), { body: { langs }, ...call });
+  renderVoice(id: string, langs: string[], call?: CallOptions): Promise<VoiceTrack[]>;
+  renderVoice(id: string, req: RenderVoice & ReadAs, call?: CallOptions): Promise<VoiceTrack[]>;
+  renderVoice(id: string, req: string[] | (RenderVoice & ReadAs), call: CallOptions = {}): Promise<VoiceTrack[]> {
+    const r: RenderVoice & ReadAs = Array.isArray(req) ? { langs: req } : req;
+    return this.#t.json('POST', this.#p(id, '/voice'), {
+      query: listenerQuery(r),
+      body: { langs: r.langs, voice: r.voice, voiceBySpeaker: r.voiceBySpeaker, near: r.near },
+      ...call,
+    });
   }
   voiceClip(id: string, sentence: number, lang: string, opts: { format?: 'ogg' | 'caf' } & ReadAs = {}): Promise<Response> {
     return this.#t.raw('GET', this.#p(id, `/voice/${seg(sentence)}`), { headers: { accept: '*/*' }, query: { ...listenerQuery(opts), lang, format: opts.format } });
@@ -444,6 +468,34 @@ export class Recordings {
         asListener: opts.asOwner === false,
       }),
     );
+  }
+}
+
+export type AudioKind = 'delivery' | 'voice' | 'background' | 'speech' | 'master' | 'source' | 'video';
+export type MediaFormat = 'ogg' | 'caf' | 'mp3';
+
+export interface RenderVoice {
+  langs: string[];
+  voice?: string;
+  voiceBySpeaker?: Record<string, string>;
+  near?: number;
+}
+
+export interface MediaAuth extends ReadAs {
+  token?: string;
+  media?: string;
+}
+
+function mediaQuery(a: MediaAuth): Query {
+  return { media: a.media, access_token: a.media ? undefined : a.token, listenerToken: a.listenerToken, shareCode: a.shareCode };
+}
+
+export function playableFormat(): 'ogg' | 'caf' {
+  try {
+    const doc = (globalThis as { document?: { createElement(t: string): { canPlayType?(t: string): string } } }).document;
+    return doc?.createElement('audio').canPlayType?.('audio/x-caf; codecs=opus') === 'probably' ? 'caf' : 'ogg';
+  } catch {
+    return 'ogg';
   }
 }
 
@@ -514,6 +566,9 @@ export class ShareLinks {
   readonly #t: Transport;
   constructor(t: Transport) {
     this.#t = t;
+  }
+  open(code: string): Promise<SharedTranscript> {
+    return this.#t.json('GET', `/v1/shares/${seg(code)}`, { anonymous: true });
   }
   update(id: string, req: UpdateShareLink): Promise<ShareLink> {
     return this.#t.json('PATCH', `/v1/share-links/${seg(id)}`, { body: req });

@@ -20,6 +20,13 @@ One line per change, naming the operation (`METHOD /path`, its
 
 ## [Unreleased]
 
+### Embeddable players (2026-11-02, still `1.0.0-alpha.0`)
+
+- **Added**: `GET /v1/shares/{code}` (`shareLinks.open`), with no credential: what a share link's code opens (schema `SharedTranscript`: `code`, `transcriptionId`, `name`, `sharedBy`, `allowDownload`, `allowExport`, `allowTranslate`, `recording`, `job`, `createdAt`). The same answer the dashboard's public page reads.
+- **Added**: `POST /v1/recordings/{id}/voice` (`recordings.renderVoice`) documents what it already accepts: `voice` and `voiceBySpeaker` in the body, and listeners (`shareCode`, `listenerToken`, `access_token`) as well as the owner. It no longer lists `bearerAuth` as required.
+- **Added**: the reader parameters each recording read already accepts, now listed: `shareCode`, `listenerToken`, `access_token` and, on media, `media` on `recordings.transcript`, `recordings.summary`, `recordings.translation`, `recordings.export`, `recordings.voice`, `recordings.voiceClip`, `recordings.audio` and `recordings.clip`; `voice` on `recordings.audio` and `recordings.voiceClip`; `part` on `recordings.voiceClip`.
+- **Changed**: any origin may call `/v1` from a browser without credentials (`Access-Control-Allow-Origin: *`, no `Access-Control-Allow-Credentials`); API keys are still refused from web pages. `X-Voice-Key` is now readable cross-origin.
+
 ### Separated sound while transcribing (2026-11-02, still `1.0.0-alpha.0`)
 
 - **Added**: `kind=background` and `kind=speech` on `GET /v1/recordings/{id}/audio` (`recordings.audio`) are made for every recording while it is transcribed, piece by piece (a live recording once it ends; earlier recordings are queued once), instead of on the first request, and asking for them never starts the work. Their 503 `engine_unavailable` now also carries `readyUntilS` (media seconds already separated) and `parts` (`[{startS, endS, url}]`, signed URLs in the asked format covering 0 to `readyUntilS`) so a player can use what is ready.

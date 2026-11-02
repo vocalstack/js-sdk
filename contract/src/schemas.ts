@@ -1633,6 +1633,21 @@ export const ShareLinkSchema = z.object({
 });
 export type ShareLink = z.infer<typeof ShareLinkSchema>;
 
+export const SharedTranscriptSchema = z.object({
+  "allowDownload": z.boolean(),
+  "allowExport": z.boolean(),
+  "allowTranslate": z.boolean(),
+  "broadcastId": z.union([z.string(), z.null()]).optional(),
+  "code": z.string(),
+  "createdAt": z.string(),
+  "job": z.union([TranscriptionJobSchema, z.null()]).optional(),
+  "name": z.string(),
+  "recording": RecordingSchema,
+  "sharedBy": z.string(),
+  "transcriptionId": z.union([z.string(), z.null()]).optional(),
+});
+export type SharedTranscript = z.infer<typeof SharedTranscriptSchema>;
+
 export const SpeakerViewSchema = z.object({
   "gender": z.union([z.string(), z.null()]).optional(),
   "genderConfidence": z.union([z.number(), z.null()]).optional(),

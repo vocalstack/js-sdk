@@ -6907,6 +6907,72 @@
           ],
           "type": "object"
         },
+        "SharedTranscript": {
+          "description": "What the public page learns from a code: the transcript's name, who\nshared it (display name only), what the link allows, and the recording\nplus job state to read from.",
+          "properties": {
+            "allowDownload": {
+              "type": "boolean"
+            },
+            "allowExport": {
+              "type": "boolean"
+            },
+            "allowTranslate": {
+              "description": "Off means `lang=` is refused everywhere this code is accepted, so\nthe public page must not offer a language picker.",
+              "type": "boolean"
+            },
+            "broadcastId": {
+              "description": "Set when it belongs to a broadcast.",
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "code": {
+              "type": "string"
+            },
+            "createdAt": {
+              "type": "string"
+            },
+            "job": {
+              "anyOf": [
+                {
+                  "$ref": "#/components/schemas/TranscriptionJob"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "name": {
+              "type": "string"
+            },
+            "recording": {
+              "$ref": "#/components/schemas/Recording"
+            },
+            "sharedBy": {
+              "description": "The owner's display name — nothing else about the owner.",
+              "type": "string"
+            },
+            "transcriptionId": {
+              "description": "Set when it belongs to a transcription.",
+              "type": [
+                "string",
+                "null"
+              ]
+            }
+          },
+          "required": [
+            "code",
+            "name",
+            "sharedBy",
+            "allowDownload",
+            "allowExport",
+            "allowTranslate",
+            "recording",
+            "createdAt"
+          ],
+          "type": "object"
+        },
         "SourceInfo": {
           "description": "What the recording was made from (design `j.meta`: \"M4A · 34.2 MB\",\n\"Video URL\").",
           "properties": {
@@ -13863,6 +13929,46 @@
                 ],
                 "type": "string"
               }
+            },
+            {
+              "description": "The voice, or the per-speaker cast (a `voiceKey` from `GET /v1/recordings/{id}/voice`), it is read in; omit for the recording's default cast.",
+              "in": "query",
+              "name": "voice",
+              "schema": {
+                "type": "string"
+              }
+            },
+            {
+              "description": "A share link's code: read as that link allows.",
+              "in": "query",
+              "name": "shareCode",
+              "schema": {
+                "type": "string"
+              }
+            },
+            {
+              "description": "The listener token of a private broadcast.",
+              "in": "query",
+              "name": "listenerToken",
+              "schema": {
+                "type": "string"
+              }
+            },
+            {
+              "description": "The bearer token (a session or a short-lived browser token), for a client that cannot set a header: an `<audio>` or `<video>` element, a link.",
+              "in": "query",
+              "name": "access_token",
+              "schema": {
+                "type": "string"
+              }
+            },
+            {
+              "description": "A media token from `GET /v1/recordings/{id}/media-token`, in place of `access_token`: the same string all day, so the browser's cache keeps the media.",
+              "in": "query",
+              "name": "media",
+              "schema": {
+                "type": "string"
+              }
             }
           ],
           "responses": {
@@ -13938,6 +14044,38 @@
               "required": false,
               "schema": {
                 "type": "boolean"
+              }
+            },
+            {
+              "description": "A share link's code: read as that link allows.",
+              "in": "query",
+              "name": "shareCode",
+              "schema": {
+                "type": "string"
+              }
+            },
+            {
+              "description": "The listener token of a private broadcast.",
+              "in": "query",
+              "name": "listenerToken",
+              "schema": {
+                "type": "string"
+              }
+            },
+            {
+              "description": "The bearer token (a session or a short-lived browser token), for a client that cannot set a header: an `<audio>` or `<video>` element, a link.",
+              "in": "query",
+              "name": "access_token",
+              "schema": {
+                "type": "string"
+              }
+            },
+            {
+              "description": "A media token from `GET /v1/recordings/{id}/media-token`, in place of `access_token`: the same string all day, so the browser's cache keeps the media.",
+              "in": "query",
+              "name": "media",
+              "schema": {
+                "type": "string"
               }
             }
           ],
@@ -14266,6 +14404,22 @@
             {
               "in": "query",
               "name": "shareCode",
+              "schema": {
+                "type": "string"
+              }
+            },
+            {
+              "description": "The listener token of a private broadcast.",
+              "in": "query",
+              "name": "listenerToken",
+              "schema": {
+                "type": "string"
+              }
+            },
+            {
+              "description": "The bearer token (a session or a short-lived browser token), for a client that cannot set a header: an `<audio>` or `<video>` element, a link.",
+              "in": "query",
+              "name": "access_token",
               "schema": {
                 "type": "string"
               }
@@ -15358,6 +15512,22 @@
               "schema": {
                 "type": "string"
               }
+            },
+            {
+              "description": "The listener token of a private broadcast.",
+              "in": "query",
+              "name": "listenerToken",
+              "schema": {
+                "type": "string"
+              }
+            },
+            {
+              "description": "The bearer token (a session or a short-lived browser token), for a client that cannot set a header: an `<audio>` or `<video>` element, a link.",
+              "in": "query",
+              "name": "access_token",
+              "schema": {
+                "type": "string"
+              }
             }
           ],
           "responses": {
@@ -15438,6 +15608,22 @@
               "description": "listener token (a private broadcast)",
               "in": "query",
               "name": "listenerToken",
+              "schema": {
+                "type": "string"
+              }
+            },
+            {
+              "description": "A share link's code: read as that link allows.",
+              "in": "query",
+              "name": "shareCode",
+              "schema": {
+                "type": "string"
+              }
+            },
+            {
+              "description": "The bearer token (a session or a short-lived browser token), for a client that cannot set a header: an `<audio>` or `<video>` element, a link.",
+              "in": "query",
+              "name": "access_token",
               "schema": {
                 "type": "string"
               }
@@ -15526,6 +15712,14 @@
               "schema": {
                 "type": "string"
               }
+            },
+            {
+              "description": "The bearer token (a session or a short-lived browser token), for a client that cannot set a header: an `<audio>` or `<video>` element, a link.",
+              "in": "query",
+              "name": "access_token",
+              "schema": {
+                "type": "string"
+              }
             }
           ],
           "responses": {
@@ -15609,6 +15803,30 @@
               "schema": {
                 "type": "string"
               }
+            },
+            {
+              "description": "A share link's code: read as that link allows.",
+              "in": "query",
+              "name": "shareCode",
+              "schema": {
+                "type": "string"
+              }
+            },
+            {
+              "description": "The listener token of a private broadcast.",
+              "in": "query",
+              "name": "listenerToken",
+              "schema": {
+                "type": "string"
+              }
+            },
+            {
+              "description": "The bearer token (a session or a short-lived browser token), for a client that cannot set a header: an `<audio>` or `<video>` element, a link.",
+              "in": "query",
+              "name": "access_token",
+              "schema": {
+                "type": "string"
+              }
             }
           ],
           "responses": {
@@ -15656,13 +15874,37 @@
           ]
         },
         "post": {
-          "description": "Render spoken tracks for a finished recording, one job per language (1–10 codes, each one /v1/languages says has a voice). Owner only.",
+          "description": "Render spoken tracks for a finished recording, one job per language (1–10 codes, each one /v1/languages says has a voice). The owner, or any listener who can reach its broadcast or transcription (`listenerToken`, `shareCode`, or a bearer token in `access_token`); through a share link a language other than the spoken one needs the link's `allowTranslate`. `voice` reads every speaker in one voice and `voiceBySpeaker` gives each speaker their own; with neither, the recording's default cast speaks (each speaker's granted clone when `voiceCloning` is on, else distinct stock voices of their gender). Every voice named must be one `GET /v1/voices/available?lang=…&recording={id}` offers for each language.",
           "operationId": "recordings.renderVoice",
           "parameters": [
             {
               "in": "path",
               "name": "id",
               "required": true,
+              "schema": {
+                "type": "string"
+              }
+            },
+            {
+              "description": "A share link's code: read as that link allows.",
+              "in": "query",
+              "name": "shareCode",
+              "schema": {
+                "type": "string"
+              }
+            },
+            {
+              "description": "The listener token of a private broadcast.",
+              "in": "query",
+              "name": "listenerToken",
+              "schema": {
+                "type": "string"
+              }
+            },
+            {
+              "description": "The bearer token (a session or a short-lived browser token), for a client that cannot set a header: an `<audio>` or `<video>` element, a link.",
+              "in": "query",
+              "name": "access_token",
               "schema": {
                 "type": "string"
               }
@@ -15693,6 +15935,17 @@
                     "near": {
                       "description": "On an ended recording: the sentence (`sentences[].sentenceId`) being listened to. The lines are spoken from there outwards, nearest first, as they are listed in GET /v1/recordings/{id}/voice, and the call answers at once (also while a voice server starts); call it again with a new `near` after a seek. Fetch only the clips listed: no clip is asked for before it is made.",
                       "type": "integer"
+                    },
+                    "voice": {
+                      "description": "One voice id for every speaker, from `GET /v1/voices/available`.",
+                      "type": "string"
+                    },
+                    "voiceBySpeaker": {
+                      "additionalProperties": {
+                        "type": "string"
+                      },
+                      "description": "A voice id per speaker, keyed by the speaker's number (`\"0\"`, `\"1\"`…); it wins over `voice`. A speaker left out is read in the default cast.",
+                      "type": "object"
                     }
                   },
                   "required": [
@@ -15739,11 +15992,6 @@
               "$ref": "#/components/responses/Unavailable"
             }
           },
-          "security": [
-            {
-              "bearerAuth": []
-            }
-          ],
           "summary": "Render voice tracks",
           "tags": [
             "recordings"
@@ -15797,6 +16045,56 @@
                   "ogg",
                   "caf"
                 ],
+                "type": "string"
+              }
+            },
+            {
+              "description": "The voice, or the per-speaker cast (a `voiceKey` from `GET /v1/recordings/{id}/voice`), it is read in; omit for the recording's default cast.",
+              "in": "query",
+              "name": "voice",
+              "schema": {
+                "type": "string"
+              }
+            },
+            {
+              "description": "A long line is spoken in pieces: which one, from 0 (`clipParts` in `GET /v1/recordings/{id}/voice`).",
+              "in": "query",
+              "name": "part",
+              "schema": {
+                "default": 0,
+                "minimum": 0,
+                "type": "integer"
+              }
+            },
+            {
+              "description": "A share link's code: read as that link allows.",
+              "in": "query",
+              "name": "shareCode",
+              "schema": {
+                "type": "string"
+              }
+            },
+            {
+              "description": "The listener token of a private broadcast.",
+              "in": "query",
+              "name": "listenerToken",
+              "schema": {
+                "type": "string"
+              }
+            },
+            {
+              "description": "The bearer token (a session or a short-lived browser token), for a client that cannot set a header: an `<audio>` or `<video>` element, a link.",
+              "in": "query",
+              "name": "access_token",
+              "schema": {
+                "type": "string"
+              }
+            },
+            {
+              "description": "A media token from `GET /v1/recordings/{id}/media-token`, in place of `access_token`: the same string all day, so the browser's cache keeps the media.",
+              "in": "query",
+              "name": "media",
+              "schema": {
                 "type": "string"
               }
             }
@@ -16301,6 +16599,64 @@
           "x-vocalstack-scopes": [
             "write"
           ]
+        }
+      },
+      "/v1/shares/{code}": {
+        "get": {
+          "description": "What a share link's code opens, with no credential: the transcription's name, who shared it (`sharedBy`, a display name only), what the link allows (`allowDownload`, `allowExport`, `allowTranslate`), its latest recording (`recording`, read as a listener sees it) and, for a file or a link, the recording's job. Pass the same code as `shareCode` to the recording's reads: `GET /v1/recordings/{id}/transcript`, `/summary`, `/translation`, `/voice`, `/voice/{sentence}`, `/audio`, `/audio/clip`, `/export` and the `subscribe` socket. A revoked or unknown code is `not_found`, and so is a link whose transcription has no recording yet. Each call counts as a view of the link.",
+          "operationId": "shareLinks.open",
+          "parameters": [
+            {
+              "description": "The share link's `code`.",
+              "in": "path",
+              "name": "code",
+              "required": true,
+              "schema": {
+                "type": "string"
+              }
+            }
+          ],
+          "responses": {
+            "200": {
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "$ref": "#/components/schemas/SharedTranscript"
+                  }
+                }
+              },
+              "description": "OK",
+              "headers": {
+                "RateLimit-Limit": {
+                  "$ref": "#/components/headers/RateLimit-Limit"
+                },
+                "RateLimit-Remaining": {
+                  "$ref": "#/components/headers/RateLimit-Remaining"
+                },
+                "RateLimit-Reset": {
+                  "$ref": "#/components/headers/RateLimit-Reset"
+                },
+                "X-Request-Id": {
+                  "$ref": "#/components/headers/X-Request-Id"
+                }
+              }
+            },
+            "429": {
+              "$ref": "#/components/responses/RateLimited"
+            },
+            "503": {
+              "$ref": "#/components/responses/Unavailable"
+            }
+          },
+          "summary": "Open a share code",
+          "tags": [
+            "share-links"
+          ],
+          "x-errors": [
+            "not_found"
+          ],
+          "x-vocalstack-auth": "public",
+          "x-vocalstack-scopes": []
         }
       },
       "/v1/tags": {
