@@ -921,6 +921,7 @@ export const CreateVoiceFromSpeakerSchema = z.object({
   "color": z.union([z.string(), z.null()]).optional(),
   "consent": z.boolean().optional(),
   "draft": z.boolean().optional(),
+  "library": z.boolean().optional(),
   "name": z.string(),
   "recordingId": z.string(),
   "spans": z.union([z.array(SampleSpanSchema), z.null()]).optional(),
@@ -1134,6 +1135,7 @@ export const PatchVoiceSchema = z.object({
   "draft": z.union([z.boolean(), z.null()]).optional(),
   "enabled": z.union([z.boolean(), z.null()]).optional(),
   "gender": z.union([z.string(), z.null()]).optional(),
+  "library": z.union([z.boolean(), z.null()]).optional(),
   "name": z.union([z.string(), z.null()]).optional(),
 });
 export type PatchVoice = z.infer<typeof PatchVoiceSchema>;
@@ -1918,6 +1920,7 @@ export const VoiceSchema = z.object({
   "error": z.union([z.string(), z.null()]).optional(),
   "gender": z.union([z.string(), z.null()]).optional(),
   "id": z.string(),
+  "library": z.boolean().optional(),
   "name": z.string(),
   "previewUrl": z.union([z.string(), z.null()]).optional(),
   "progress": z.number().int(),
@@ -1940,6 +1943,7 @@ export const VoiceOptionSchema = z.object({
   "gender": z.union([z.string(), z.null()]).optional(),
   "id": z.string(),
   "lagS": z.union([z.number(), z.null()]).optional(),
+  "library": z.union([z.boolean(), z.null()]).optional(),
   "name": z.string(),
   "previewUrl": z.union([z.string(), z.null()]).optional(),
   "quality": z.number().int(),

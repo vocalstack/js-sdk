@@ -20,6 +20,23 @@ One line per change, naming the operation (`METHOD /path`, its
 
 ## [Unreleased]
 
+### A voice for one recording only (2026-11-02, still `1.0.0-alpha.0`)
+
+- **Added**: `CreateVoiceFromSpeaker.library` (`voices.createFromSpeaker`), default `true`. `false` keeps the new voice with that recording only: it speaks for the speaker there, is not offered in other transcriptions, and goes when the recording does.
+- **Added**: `Voice.library` and `VoiceOption.library` (false for a voice kept with its recording only, including automatic clones), and `PatchVoice.library` (`voices.update`): `true` adds such a voice to the library (an automatic clone also needs `consent: true`).
+
+### Cleaned audio clips (2026-11-02, still `1.0.0-alpha.0`)
+
+- **Added**: `clean=true` on `GET /v1/recordings/{id}/audio/clip` (`recordings.clip`): the clip as a voice is made from it, background taken out and denoised (at most 60 s). While the voice server is starting it comes back as recorded with `Retry-After`. Voice samples are now cleaned the same way before a voice is made from them.
+
+### Picked samples need 5 seconds, not 20 (2026-11-02, still `1.0.0-alpha.0`)
+
+- **Changed**: `CreateVoiceFromSpeaker.spans` (`voices.createFromSpeaker`) may add up to 5–60 s instead of 20–60 s; under 20 s makes a weaker voice, about 25 s is plenty. Without `spans`, and for uploaded samples, the 20 s minimum is unchanged; shapes are unchanged.
+
+### Background sound under spoken translations (2026-11-02, still `1.0.0-alpha.0`)
+
+- **Added**: `kind=background` on `GET /v1/recordings/{id}/audio` (`recordings.audio`): the recording's sound with the voices taken out (music and ambience), to play under a spoken track. Made on the first request, which answers 503 `engine_unavailable` with `retryAfterS` until it is ready; `format=ogg` or `caf`.
+
 ### Which voice a clip was read in (2026-11-01, still `1.0.0-alpha.0`)
 
 - **Added**: the `X-Voice-Key` response header on `GET /v1/recordings/{id}/voice/{sentence}` (`recordings.voiceClip`): the voice, or per-speaker cast, the clip was read in (with no `voice` asked, the default cast it resolved to).
