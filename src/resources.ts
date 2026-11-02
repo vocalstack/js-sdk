@@ -391,7 +391,7 @@ export class Recordings {
     const token = opts.shareCode || opts.listenerToken ? undefined : await this.#t.bearer();
     return this.#t.url(this.#p(id, '/export'), { format, lang: opts.lang, shareCode: opts.shareCode, listenerToken: opts.listenerToken, access_token: token });
   }
-  async audioUrl(id: string, opts: { kind?: 'delivery' | 'background' | 'master' | 'source' | 'video'; lang?: string; format?: string } & ReadAs = {}): Promise<string> {
+  async audioUrl(id: string, opts: { kind?: 'delivery' | 'background' | 'speech' | 'master' | 'source' | 'video'; lang?: string; format?: string } & ReadAs = {}): Promise<string> {
     const res = await this.#t.raw('GET', this.#p(id, '/audio'), {
       query: { ...listenerQuery(opts), kind: opts.kind, lang: opts.lang, format: opts.format },
     });

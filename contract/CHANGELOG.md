@@ -20,6 +20,10 @@ One line per change, naming the operation (`METHOD /path`, its
 
 ## [Unreleased]
 
+### The speech without its background (2026-11-02, still `1.0.0-alpha.0`)
+
+- **Added**: `kind=speech` on `GET /v1/recordings/{id}/audio` (`recordings.audio`): the recording's sound with the background taken out (music, ambience and noise such as drilling or traffic), aligned with the original to play in its place. Made in the same pass as `kind=background`, with the same access rules, the same 503 `engine_unavailable` with `retryAfterS` while it is being made, and `format=ogg` or `caf`.
+
 ### A voice for one recording only (2026-11-02, still `1.0.0-alpha.0`)
 
 - **Added**: `CreateVoiceFromSpeaker.library` (`voices.createFromSpeaker`), default `true`. `false` keeps the new voice with that recording only: it speaks for the speaker there, is not offered in other transcriptions, and goes when the recording does.
