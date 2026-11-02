@@ -20,6 +20,10 @@ One line per change, naming the operation (`METHOD /path`, its
 
 ## [Unreleased]
 
+### Separated sound while transcribing (2026-11-02, still `1.0.0-alpha.0`)
+
+- **Added**: `kind=background` and `kind=speech` on `GET /v1/recordings/{id}/audio` (`recordings.audio`) are made for every recording while it is transcribed, piece by piece (a live recording once it ends; earlier recordings are queued once), instead of on the first request, and asking for them never starts the work. Their 503 `engine_unavailable` now also carries `readyUntilS` (media seconds already separated) and `parts` (`[{startS, endS, url}]`, signed URLs in the asked format covering 0 to `readyUntilS`) so a player can use what is ready.
+
 ### The speech without its background (2026-11-02, still `1.0.0-alpha.0`)
 
 - **Added**: `kind=speech` on `GET /v1/recordings/{id}/audio` (`recordings.audio`): the recording's sound with the background taken out (music, ambience and noise such as drilling or traffic), aligned with the original to play in its place. Made in the same pass as `kind=background`, with the same access rules, the same 503 `engine_unavailable` with `retryAfterS` while it is being made, and `format=ogg` or `caf`.
