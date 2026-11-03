@@ -36,7 +36,7 @@ Every transcription is real usage: its audio spends the account's credit at the 
 
 ## 4. Next
 
-- [Transcribe a link](transcribe-a-link.md): the server fetches a public URL or a YouTube video.
+- [Transcribe a link](transcribe-a-link.md): the server fetches a public URL, a YouTube video, or a recording on Vimeo, SoundCloud, TikTok, X and other sites.
 - [Stream a microphone](stream-a-microphone.md): live audio in, transcript events out, over one WebSocket.
 - [Errors, retries and limits](errors-and-limits.md): what to do with a 402, a 429 or a 503.
 

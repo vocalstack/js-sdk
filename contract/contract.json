@@ -3597,6 +3597,14 @@
         },
         "LinkProbe": {
           "properties": {
+            "durationS": {
+              "description": "The recording's length in seconds, when the site gives one (absent\nfor a live stream).",
+              "format": "double",
+              "type": [
+                "number",
+                "null"
+              ]
+            },
             "kind": {
               "$ref": "#/components/schemas/LinkKind"
             },
@@ -3629,8 +3637,15 @@
               ],
               "description": "Why the link is not one to transcribe, when `ok` is `false`: for a\nclient to pick its own next step (`problem` says what is wrong, never\nwhat to do).  Absent when `ok`."
             },
+            "site": {
+              "description": "The site the link is from, by id (`youtube`, `loom`, `vimeo`,\n`soundcloud`, `twitch`…), for a site VocalStack reads; `siteName` is\nits display name.",
+              "type": [
+                "string",
+                "null"
+              ]
+            },
             "siteName": {
-              "description": "The site's name with `site_not_fetched` and `meeting`: `Vimeo`,\n`Google Meet`.",
+              "description": "The site's name: with `site_not_fetched` and `meeting` (`Spotify`,\n`Google Meet`), and for a link from a site VocalStack reads\n(`Vimeo`, `SoundCloud`, `Twitch`…).",
               "type": [
                 "string",
                 "null"
@@ -3639,6 +3654,20 @@
             "source": {
               "description": "`youtube` or `radio` — the live form's source for it.",
               "type": "string"
+            },
+            "thumbnailUrl": {
+              "description": "An image of the recording on its site (`https://`), when it has one.",
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "title": {
+              "description": "The recording's title on its site, when the site gives one.",
+              "type": [
+                "string",
+                "null"
+              ]
             }
           },
           "required": [
@@ -4430,7 +4459,7 @@
             },
             {
               "const": "site_not_fetched",
-              "description": "A site VocalStack never fetches from (Vimeo, Spotify, Kick…).",
+              "description": "A site VocalStack never fetches from (Spotify, Apple Podcasts, TuneIn…).",
               "type": "string"
             },
             {
@@ -6991,6 +7020,13 @@
                 "null"
               ]
             },
+            "embedId": {
+              "description": "For a link to a video the site can embed: its id there, for the\nsite's own player, never the link itself. YouTube `dQw4w9WgXcQ`;\nLoom the 32-hex id; Vimeo `76979871`, or `76979871/<hash>` for an\nunlisted video (the embed's `h=`); Dailymotion `x5kesuj`; Twitch\n`v635475444` (a video), `clip:<slug>` or `channel:<name>`; TikTok and\nX the numeric post id; Instagram the post's code; Kick\n`channel:<name>`; Streamable the id; Facebook the numeric video id;\nLinkedIn `activity:<id>`, `ugcPost:<id>` or `share:<id>`; TED the\ntalk's slug; Internet Archive the item; Wistia, Vidyard, JW Player,\nBitChute, Niconico, Pinterest, Google Drive, Spreaker and Audioboom\ntheir media id; VK `<owner>_<video>`; SoundCloud and Mixcloud\n`<user>/<track>`; Odysee `@<channel>:<claim>/<name>:<claim>`;\nBluesky `<handle or did>/<rkey>`. Absent for other sites and links. VocalStack keeps\nno video of a link: its picture is the site's own player.",
+              "type": [
+                "string",
+                "null"
+              ]
+            },
             "format": {
               "description": "Upper-case container label (\"M4A\", \"MP4\"), from the name or the mime type.",
               "type": [
@@ -7010,6 +7046,20 @@
             "name": {
               "description": "The file's name, or the URL without its scheme.",
               "type": "string"
+            },
+            "site": {
+              "description": "For a link: the site it is from, by id (`youtube`, `loom`, `vimeo`,\n`soundcloud`, `twitch`…); absent for a file or another link.",
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "thumbnailUrl": {
+              "description": "For a link from a site: the recording's image there (`https://`),\nonce known (at once for YouTube, after the fetch for the others).",
+              "type": [
+                "string",
+                "null"
+              ]
             },
             "url": {
               "type": [
@@ -8061,7 +8111,7 @@
               ]
             },
             "state": {
-              "description": "`ready`: the recording carries a title and summary.  `pending`: the\npass is queued or running; read the recording again shortly.\n`unavailable`: this server has no summariser configured.\n`not_requested`: the recording was made without `summary` (or is\nshorter than a minute, which never gets one); `POST .../summarize`\nasks for it.",
+              "description": "`ready`: the recording carries a title and summary.  `pending`: the\npass is queued or running; read the recording again shortly.\n`unavailable`: this server has no summariser configured, or the\nrecording has no transcript (nothing was said).\n`not_requested`: the recording was made without `summary` (or is\nshorter than a minute, which never gets one); `POST .../summarize`\nasks for it.",
               "type": "string"
             },
             "summary": {
@@ -8551,6 +8601,21 @@
           ],
           "type": "object"
         },
+        "TranscriptionLookup": {
+          "properties": {
+            "transcription": {
+              "anyOf": [
+                {
+                  "$ref": "#/components/schemas/Transcription"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            }
+          },
+          "type": "object"
+        },
         "TranscriptionPage": {
           "description": "`GET /v1/transcriptions`: one page, newest first.",
           "properties": {
@@ -9018,6 +9083,13 @@
             },
             "createdAt": {
               "type": "string"
+            },
+            "disabledAt": {
+              "description": "When the voice was last switched off (`enabled` false); absent while it is on.",
+              "type": [
+                "string",
+                "null"
+              ]
             },
             "draft": {
               "type": "boolean"
@@ -13882,7 +13954,7 @@
       },
       "/v1/recordings/{id}/audio": {
         "get": {
-          "description": "302 to a freshly signed URL. kind=delivery (owner + listeners, 1 h), voice (a rendered spoken track, needs lang=, owner + listeners, 1 h; through a share link a language other than the spoken one needs the link's `allowTranslate`), background (the recording's sound with the voices taken out, music and ambience, to play under a spoken track; owner + listeners, 1 h; format=ogg or caf), speech (the recording's sound with the background taken out: the speech alone, without music, ambience or noise, aligned with the original to play in its place; same access; format=ogg or caf). Both are made for every recording while it is transcribed, piece by piece (a live recording once it ends; earlier recordings are queued once); asking for them never starts the work. Until the whole track is ready they answer 503 engine_unavailable with `retryAfterS`, `readyUntilS` (the media seconds already separated, from 0) and `parts`: `[{startS, endS, url}]`, consecutive pieces covering 0 to `readyUntilS`, each a signed URL (1 h) in the asked format, to play in place of the original up to `readyUntilS`. The other kinds: source (owner or a link that allows downloads), video (the source's video as it came, kept beside its audio on a plan that stores source video, Job.hasVideo; owner or a link that allows downloads) or master (owner, 5 min). Through a share link EVERY kind needs the link's `allowDownload` — streaming a file and saving it are the same request, so a link with audio off plays nothing either. The delivery is Opus in two containers: format=ogg (default) and format=caf, the one Safari/iOS plays (WebKit rejects or mis-times Ogg); pick by canPlayType('audio/x-caf; codecs=opus'). format=mp3 is for SAVING (delivery and voice): the one container every player opens, encoded on first request and kept (kinds delivery_mp3, voice_mp3:<lang>). The recording's `media` lists which renditions are sealed (kinds delivery, delivery_caf, delivery_mp3); the CAF is remuxed on first request when it is not there yet.",
+          "description": "302 to a freshly signed URL. kind=delivery (owner + listeners, 1 h), voice (a rendered spoken track, needs lang=, owner + listeners, 1 h; through a share link a language other than the spoken one needs the link's `allowTranslate`; a track not made yet is queued, from the clips already spoken where there are any, and answers 503 engine_unavailable with `retryAfterS` until it is ready, or 429 rate_limited when the recording already has as many readings being made as it may), background (the recording's sound with the voices taken out, music and ambience, to play under a spoken track; owner + listeners, 1 h; format=ogg or caf), speech (the recording's sound with the background taken out: the speech alone, without music, ambience or noise, aligned with the original to play in its place; same access; format=ogg or caf). Both are made for every recording while it is transcribed, piece by piece (a live recording once it ends; earlier recordings are queued once); asking for them never starts the work. Until the whole track is ready they answer 503 engine_unavailable with `retryAfterS`, `readyUntilS` (the media seconds already separated, from 0) and `parts`: `[{startS, endS, url}]`, consecutive pieces covering 0 to `readyUntilS`, each a signed URL (1 h) in the asked format, to play in place of the original up to `readyUntilS`. The other kinds: source (owner or a link that allows downloads), video (the source's video as it came, kept beside its audio on a plan that stores source video, Job.hasVideo; owner or a link that allows downloads) or master (owner, 5 min). Through a share link EVERY kind needs the link's `allowDownload` — streaming a file and saving it are the same request, so a link with audio off plays nothing either. The delivery is Opus in two containers: format=ogg (default) and format=caf, the one Safari/iOS plays (WebKit rejects or mis-times Ogg); pick by canPlayType('audio/x-caf; codecs=opus'). format=mp3 is for SAVING (delivery and voice): the one container every player opens, encoded on first request and kept (kinds delivery_mp3, voice_mp3:<lang>). The recording's `media` lists which renditions are sealed (kinds delivery, delivery_caf, delivery_mp3); the CAF is remuxed on first request when it is not there yet.",
           "operationId": "recordings.audio",
           "parameters": [
             {
@@ -13955,7 +14027,7 @@
               }
             },
             {
-              "description": "The bearer token (a session or a short-lived browser token), for a client that cannot set a header: an `<audio>` or `<video>` element, a link.",
+              "description": "The bearer token (a signed-in user's token or a short-lived browser token), for a client that cannot set a header: an `<audio>` or `<video>` element, a link.",
               "in": "query",
               "name": "access_token",
               "schema": {
@@ -14063,7 +14135,7 @@
               }
             },
             {
-              "description": "The bearer token (a session or a short-lived browser token), for a client that cannot set a header: an `<audio>` or `<video>` element, a link.",
+              "description": "The bearer token (a signed-in user's token or a short-lived browser token), for a client that cannot set a header: an `<audio>` or `<video>` element, a link.",
               "in": "query",
               "name": "access_token",
               "schema": {
@@ -14417,7 +14489,7 @@
               }
             },
             {
-              "description": "The bearer token (a session or a short-lived browser token), for a client that cannot set a header: an `<audio>` or `<video>` element, a link.",
+              "description": "The bearer token (a signed-in user's token or a short-lived browser token), for a client that cannot set a header: an `<audio>` or `<video>` element, a link.",
               "in": "query",
               "name": "access_token",
               "schema": {
@@ -15411,7 +15483,7 @@
       },
       "/v1/recordings/{id}/summarize": {
         "post": {
-          "description": "Ask for the recording's AI title and summary. A recording made with `summary` gets them after finalize on its own; asking turns `summary` and `title` on for one made without them. Call this when a finished recording has none (or its pass failed) and poll the recording: `ready` carries them, `pending` means the pass is queued or running, `not_requested` that the recording is under a minute or a file of a batch (never summarised), `unavailable` that this server has no summariser.",
+          "description": "Ask for the recording's AI title and summary. A recording made with `summary` gets them after finalize on its own; asking turns `summary` and `title` on for one made without them. Call this when a finished recording has none (or its pass failed) and poll the recording: `ready` carries them, `pending` means the pass is queued or running, `not_requested` that the recording is under a minute or a file of a batch (never summarised), `unavailable` that this server has no summariser or the recording has no transcript (nothing was said).",
           "operationId": "recordings.summarize",
           "parameters": [
             {
@@ -15522,7 +15594,7 @@
               }
             },
             {
-              "description": "The bearer token (a session or a short-lived browser token), for a client that cannot set a header: an `<audio>` or `<video>` element, a link.",
+              "description": "The bearer token (a signed-in user's token or a short-lived browser token), for a client that cannot set a header: an `<audio>` or `<video>` element, a link.",
               "in": "query",
               "name": "access_token",
               "schema": {
@@ -15621,7 +15693,7 @@
               }
             },
             {
-              "description": "The bearer token (a session or a short-lived browser token), for a client that cannot set a header: an `<audio>` or `<video>` element, a link.",
+              "description": "The bearer token (a signed-in user's token or a short-lived browser token), for a client that cannot set a header: an `<audio>` or `<video>` element, a link.",
               "in": "query",
               "name": "access_token",
               "schema": {
@@ -15714,7 +15786,7 @@
               }
             },
             {
-              "description": "The bearer token (a session or a short-lived browser token), for a client that cannot set a header: an `<audio>` or `<video>` element, a link.",
+              "description": "The bearer token (a signed-in user's token or a short-lived browser token), for a client that cannot set a header: an `<audio>` or `<video>` element, a link.",
               "in": "query",
               "name": "access_token",
               "schema": {
@@ -15821,7 +15893,7 @@
               }
             },
             {
-              "description": "The bearer token (a session or a short-lived browser token), for a client that cannot set a header: an `<audio>` or `<video>` element, a link.",
+              "description": "The bearer token (a signed-in user's token or a short-lived browser token), for a client that cannot set a header: an `<audio>` or `<video>` element, a link.",
               "in": "query",
               "name": "access_token",
               "schema": {
@@ -15902,7 +15974,7 @@
               }
             },
             {
-              "description": "The bearer token (a session or a short-lived browser token), for a client that cannot set a header: an `<audio>` or `<video>` element, a link.",
+              "description": "The bearer token (a signed-in user's token or a short-lived browser token), for a client that cannot set a header: an `<audio>` or `<video>` element, a link.",
               "in": "query",
               "name": "access_token",
               "schema": {
@@ -16083,7 +16155,7 @@
               }
             },
             {
-              "description": "The bearer token (a session or a short-lived browser token), for a client that cannot set a header: an `<audio>` or `<video>` element, a link.",
+              "description": "The bearer token (a signed-in user's token or a short-lived browser token), for a client that cannot set a header: an `<audio>` or `<video>` element, a link.",
               "in": "query",
               "name": "access_token",
               "schema": {
@@ -16984,7 +17056,7 @@
       },
       "/v1/transcriptions": {
         "get": {
-          "description": "Transcriptions owned by the acting principal (file, link and live), newest first (by `createdAt`), a page at a time: follow `nextCursor` (absent on the last page) as `cursor`. A cursor is never an offset: transcriptions created, changed or archived while you page are neither repeated nor skipped among the rest. `lifecycle=all` is the active and the archived in one list.",
+          "description": "Transcriptions owned by the acting principal (file, link and live), newest first (by `createdAt`), a page at a time: follow `nextCursor` (absent on the last page) as `cursor`. A cursor is never an offset: transcriptions created, changed or archived while you page are neither repeated nor skipped among the rest. `lifecycle=all` is the active and the archived in one list. `site` keeps only the transcriptions made from a link to that site.",
           "operationId": "transcriptions.list",
           "parameters": [
             {
@@ -17017,6 +17089,14 @@
                 "maximum": 200,
                 "minimum": 1,
                 "type": "integer"
+              }
+            },
+            {
+              "description": "Only transcriptions of a link from this site, by its id as in `job.source.site` (`youtube`, `loom`, `vimeo`, `soundcloud`, `twitch`…).",
+              "in": "query",
+              "name": "site",
+              "schema": {
+                "type": "string"
               }
             }
           ],
@@ -17310,6 +17390,71 @@
           "x-vocalstack-auth": "userOrKey",
           "x-vocalstack-scopes": [
             "write"
+          ]
+        }
+      },
+      "/v1/transcriptions/lookup": {
+        "get": {
+          "description": "The caller's own transcription of a link, if there is one: the newest active (not archived or purged) transcription whose recording was transcribed from `url`. A YouTube link matches any link to the same video (`watch?v=`, `youtu.be`, `shorts`, `embed`, `live`); any other link matches the same URL, its scheme and host in any case, without its `#fragment` and with or without a trailing slash. A finished one is preferred to one still being transcribed, and either to one that failed or was stopped. `transcription` is null when there is none; the link is not fetched.",
+          "operationId": "transcriptions.lookup",
+          "parameters": [
+            {
+              "description": "The link, as a person would paste it.",
+              "in": "query",
+              "name": "url",
+              "required": true,
+              "schema": {
+                "type": "string"
+              }
+            }
+          ],
+          "responses": {
+            "200": {
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "$ref": "#/components/schemas/TranscriptionLookup"
+                  }
+                }
+              },
+              "description": "OK",
+              "headers": {
+                "RateLimit-Limit": {
+                  "$ref": "#/components/headers/RateLimit-Limit"
+                },
+                "RateLimit-Remaining": {
+                  "$ref": "#/components/headers/RateLimit-Remaining"
+                },
+                "RateLimit-Reset": {
+                  "$ref": "#/components/headers/RateLimit-Reset"
+                },
+                "X-Request-Id": {
+                  "$ref": "#/components/headers/X-Request-Id"
+                }
+              }
+            },
+            "429": {
+              "$ref": "#/components/responses/RateLimited"
+            },
+            "503": {
+              "$ref": "#/components/responses/Unavailable"
+            }
+          },
+          "security": [
+            {
+              "bearerAuth": []
+            }
+          ],
+          "summary": "Find a link's transcription",
+          "tags": [
+            "transcriptions"
+          ],
+          "x-errors": [
+            "invalid_options"
+          ],
+          "x-vocalstack-auth": "userOrKey",
+          "x-vocalstack-scopes": [
+            "read"
           ]
         }
       },

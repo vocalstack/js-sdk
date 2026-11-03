@@ -20,6 +20,32 @@ One line per change, naming the operation (`METHOD /path`, its
 
 ## [Unreleased]
 
+### Links from video and audio sites (2026-11-03, still `1.0.0-alpha.0`)
+
+- **Added**: `embedId` on schema `SourceInfo` (`job.source`, for owners and for share links alike): the site's own id of a linked video for its player, never the link: YouTube `dQw4w9WgXcQ`; Loom the 32-hex id; Vimeo `76979871`, or `76979871/<hash>` for an unlisted one (the embed's `h=`); Dailymotion `x5kesuj`; Twitch `v635475444` (a video), `clip:<slug>` or `channel:<name>`; TikTok and X the numeric post id; Instagram the post's code; Kick `channel:<name>`; Streamable the id; Facebook the numeric video id; LinkedIn `activity:<id>`, `ugcPost:<id>` or `share:<id>`; TED the talk's slug; Internet Archive the item; Wistia, Vidyard, JW Player, BitChute, Niconico, Pinterest, Google Drive, Spreaker and Audioboom their media id; VK `<owner>_<video>`; SoundCloud and Mixcloud `<user>/<track>`; Odysee `@<channel>:<claim>/<name>:<claim>`; Bluesky `<handle or did>/<rkey>`. Absent for other sites. A link's picture comes only from its site's own player; VocalStack keeps no video of a link. A share link still carries only the link's origin in `url`.
+- **Added**: `site` and `thumbnailUrl` on schema `SourceInfo` (`job.source` in `transcriptions.*` and `jobs.get`): the site a link is from, by id (`youtube`, `loom`, `vimeo`, `soundcloud`, `twitch`…), and the recording's image there. `name` becomes the recording's title on its site once it is fetched, unless the caller named it.
+- **Added**: `site` on schema `LinkProbe` (`transcriptions.probe`), the same id; `siteName`, `title`, `thumbnailUrl` and `durationS` are now also given for YouTube and Loom links.
+- **Added**: query `site` on `GET /v1/transcriptions` (`transcriptions.list`): only the transcriptions made from a link to that site. `listPage({ site })` in the TypeScript SDK, `list_page(site=)` in Python, `listPage(site:)` in PHP.
+- **Added**: `title`, `durationS` and `thumbnailUrl` on schema `LinkProbe` (`GET /v1/transcriptions/probe`, `transcriptions.probe`): the recording's title, length in seconds and image on its site, where the site gives them.
+- **Changed**: links to a recording or live stream on Twitch, Facebook, Instagram, Vimeo, Dailymotion, TikTok, X, SoundCloud, Kick, Mixcloud, Bandcamp, LinkedIn, TED, Internet Archive, Streamable, Odysee, Niconico, VK, BitChute, Wistia, Vidyard, Kaltura, JW Player, Pinterest, Bluesky, Google Drive, Spreaker, iHeartRadio, Audioboom and CNN are transcribed (only the audio is downloaded when the site offers it alone) like a YouTube link. `transcriptions.probe` answers `ok: true` with `kind` `file` or `live` and `siteName` for them instead of `reason: site_not_fetched`, and `POST /v1/transcriptions` (`transcriptions.create`), `POST /v1/transcriptions/live` and `POST /v1/broadcasts` accept them. A post that needs a sign-in or is private is refused with reason `forbidden`, one that is gone with `not_found`.
+- **Changed**: `GET /v1/recordings/{id}/audio?kind=video` and `kind=source` (`recordings.audio`) also answer a listener token (`listenerToken`) made for that recording, as they do a share code or the owner.
+
+### A spoken track is made when it is asked for (2026-11-03, still `1.0.0-alpha.0`)
+
+- **Changed**: `GET /v1/recordings/{id}/audio?kind=voice` (`recordings.audio`) queues a spoken track that is not made yet, from the clips already spoken where there are any, and answers 503 `engine_unavailable` with `retryAfterS` until it is ready (429 `rate_limited` when the recording already has as many readings being made as it may), instead of 404 `not_found`. Asking a kind that has no CAF or MP3 for `format=caf` or `format=mp3` names the kind in its 400 `invalid_options`.
+
+### No summary for a recording with no speech (2026-11-02, still `1.0.0-alpha.0`)
+
+- **Changed**: `POST /v1/recordings/{id}/summarize` (`recordings.summarize`) answers `unavailable` on schema `SummaryStatus` when the recording has no transcript (nothing was said), instead of `pending` forever.
+
+### When a voice was switched off (2026-11-02, still `1.0.0-alpha.0`)
+
+- **Added**: `disabledAt` on schema `Voice` (`voices.list`, `voices.get`, `voices.update`, …): when the voice was last switched off (`enabled: false`); absent while it is on.
+
+### A link's own transcription (2026-11-02, still `1.0.0-alpha.0`)
+
+- **Added**: `GET /v1/transcriptions/lookup?url=` (`transcriptions.lookup`), schema `TranscriptionLookup` (`{ transcription: Transcription | null }`): the caller's newest active transcription of a link (any link to the same YouTube video, else the same URL, its scheme and host in any case, without fragment, with or without a trailing slash), a finished one before one in progress, before a failed or stopped one. Bearer, `read` scope. The link is not fetched.
+
 ### Embeddable players (2026-11-02, still `1.0.0-alpha.0`)
 
 - **Added**: `GET /v1/shares/{code}` (`shareLinks.open`), with no credential: what a share link's code opens (schema `SharedTranscript`: `code`, `transcriptionId`, `name`, `sharedBy`, `allowDownload`, `allowExport`, `allowTranslate`, `recording`, `job`, `createdAt`). The same answer the dashboard's public page reads.

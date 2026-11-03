@@ -2,7 +2,7 @@
 
 # Transcribe a link
 
-> The server fetches a public URL or a YouTube video, then transcribes it like a file. Asynchronous, with a fetch phase first.
+> The server fetches a public URL, a YouTube video or a recording on a video or audio site, then transcribes it like a file. Asynchronous, with a fetch phase first.
 
 | Endpoint | What it does |
 |---|---|
@@ -11,11 +11,11 @@
 | `GET /v1/recordings/{id}/job` | Get a job |
 | `GET /v1/recordings/{id}/transcript` | Get a transcript |
 
-Give the API a link instead of a file and it fetches the media itself: a public `http(s)` address (an mp3, a video, a podcast episode) or a YouTube video. The rest is [Transcribe a file](transcribe-a-file.md): a job to wait on, then the transcript.
+Give the API a link instead of a file and it fetches the media itself: a public `http(s)` address (an mp3, a video, a podcast episode), a YouTube video, or a public recording on Twitch, Facebook, Instagram, Vimeo, Dailymotion, TikTok, X, SoundCloud, Kick, Mixcloud, Bandcamp, LinkedIn, TED, Internet Archive, Streamable, Odysee, Niconico, VK, BitChute, Wistia, Vidyard, Kaltura, JW Player, Pinterest, Bluesky, Google Drive, Spreaker, iHeartRadio, Audioboom, CNN or Loom (only its audio is downloaded when the site offers it alone). The rest is [Transcribe a file](transcribe-a-file.md): a job to wait on, then the transcript.
 
 ## 1. Check the link
 
-`GET /v1/transcriptions/probe` says what a link is before anything is stored: `kind` is `file` (transcribe it here), `live` (a YouTube live, an endless radio stream, an HLS playlist with no end) or `unknown`, and `ok` is `false` with a `problem` sentence when the link did not open as media (a web page, an error). A live link never ends, so it is not a file: record it with a live transcription whose source is the link instead ([Go live](go-live.md)).
+`GET /v1/transcriptions/probe` says what a link is before anything is stored: `kind` is `file` (transcribe it here), `live` (a YouTube or Twitch live, an endless radio stream, an HLS playlist with no end) or `unknown`, and `ok` is `false` with a `problem` sentence when the link did not open as media (a web page, an error). For a link from a video or audio site, `siteName` names the site and `title`, `durationS` and `thumbnailUrl` describe the recording where the site gives them; a private post, or one that needs a sign-in, is `ok: false` with `reason` `forbidden`. A live link never ends, so it is not a file: record it with a live transcription whose source is the link instead ([Go live](go-live.md)).
 
 The probe is optional, and limited to 60 calls a minute. Links to private, loopback or cloud metadata addresses are refused.
 

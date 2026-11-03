@@ -53,3 +53,11 @@ test('shareLinks.open reads a share code with no credential', async () => {
   assert.equal(calls[0].method, 'GET');
   assert.equal(calls[0].headers.authorization, undefined);
 });
+
+test('transcriptions.lookup asks by link and gives null when there is none', async () => {
+  const { fetch, calls } = fakeFetch({ transcription: null });
+  const vs = new VocalStack({ baseUrl: 'https://api.test', token: 'session', fetch });
+  assert.equal(await vs.transcriptions.lookup('https://youtu.be/dQw4w9WgXcQ?t=3'), null);
+  assert.equal(calls[0].url, 'https://api.test/v1/transcriptions/lookup?url=https%3A%2F%2Fyoutu.be%2FdQw4w9WgXcQ%3Ft%3D3');
+  assert.equal(calls[0].headers.authorization, 'Bearer session');
+});

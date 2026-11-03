@@ -233,10 +233,13 @@ export type SourceKind = z.infer<typeof SourceKindSchema>;
 export const SourceInfoSchema = z.object({
   "bytes": z.union([z.number().int(), z.null()]).optional(),
   "durationS": z.union([z.number(), z.null()]).optional(),
+  "embedId": z.union([z.string(), z.null()]).optional(),
   "format": z.union([z.string(), z.null()]).optional(),
   "kind": SourceKindSchema,
   "mime": z.union([z.string(), z.null()]).optional(),
   "name": z.string(),
+  "site": z.union([z.string(), z.null()]).optional(),
+  "thumbnailUrl": z.union([z.string(), z.null()]).optional(),
   "url": z.union([z.string(), z.null()]).optional(),
 });
 export type SourceInfo = z.infer<typeof SourceInfoSchema>;
@@ -1070,13 +1073,17 @@ export const ProbeReasonSchema = z.union([z.literal("web_page"), z.literal("site
 export type ProbeReason = z.infer<typeof ProbeReasonSchema>;
 
 export const LinkProbeSchema = z.object({
+  "durationS": z.union([z.number(), z.null()]).optional(),
   "kind": LinkKindSchema,
   "media": z.array(PageMediaSchema).optional(),
   "ok": z.boolean(),
   "problem": z.union([z.string(), z.null()]).optional(),
   "reason": z.union([ProbeReasonSchema, z.null()]).optional(),
+  "site": z.union([z.string(), z.null()]).optional(),
   "siteName": z.union([z.string(), z.null()]).optional(),
   "source": z.string(),
+  "thumbnailUrl": z.union([z.string(), z.null()]).optional(),
+  "title": z.union([z.string(), z.null()]).optional(),
 });
 export type LinkProbe = z.infer<typeof LinkProbeSchema>;
 
@@ -1830,6 +1837,11 @@ export const TranscriptSnapshotSchema = z.object({
 });
 export type TranscriptSnapshot = z.infer<typeof TranscriptSnapshotSchema>;
 
+export const TranscriptionLookupSchema = z.object({
+  "transcription": z.union([TranscriptionSchema, z.null()]).optional(),
+});
+export type TranscriptionLookup = z.infer<typeof TranscriptionLookupSchema>;
+
 export const TranscriptionPageSchema = z.object({
   "nextCursor": z.union([z.string(), z.null()]).optional(),
   "transcriptions": z.array(TranscriptionSchema),
@@ -1930,6 +1942,7 @@ export const VoiceSchema = z.object({
   "consent": ConsentSchema,
   "consentAt": z.union([z.string(), z.null()]).optional(),
   "createdAt": z.string(),
+  "disabledAt": z.union([z.string(), z.null()]).optional(),
   "draft": z.boolean(),
   "enabled": z.boolean(),
   "error": z.union([z.string(), z.null()]).optional(),

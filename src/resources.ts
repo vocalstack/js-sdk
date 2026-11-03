@@ -210,8 +210,8 @@ export class Transcriptions extends ParentResource<Transcription, UpdateTranscri
   protected readonly base = '/v1/transcriptions' as const;
   protected readonly key = 'transcriptions' as const;
 
-  listPage(opts: PageOptions & { lifecycle?: LifecycleFilter } = {}): Promise<TranscriptionPage> {
-    return this.t.json('GET', this.base, { query: { lifecycle: opts.lifecycle, cursor: opts.cursor, limit: opts.limit } });
+  listPage(opts: PageOptions & { lifecycle?: LifecycleFilter; site?: string } = {}): Promise<TranscriptionPage> {
+    return this.t.json('GET', this.base, { query: { lifecycle: opts.lifecycle, cursor: opts.cursor, limit: opts.limit, site: opts.site } });
   }
   uploadRecording(id: string, req: UploadRecording = {}, call: CallOptions = {}): Promise<PublishGrant> {
     return this.t.json('POST', this.p(id, '/recordings/upload'), { body: req, ...call });
@@ -231,6 +231,10 @@ export class Transcriptions extends ParentResource<Transcription, UpdateTranscri
   }
   createLive(req: CreateLiveTranscription, call: CallOptions = {}): Promise<Transcription> {
     return this.t.json('POST', `${this.base}/live`, { body: req, ...call });
+  }
+  async lookup(url: string): Promise<Transcription | null> {
+    const r = await this.t.json<{ transcription?: Transcription | null }>('GET', `${this.base}/lookup`, { query: { url } });
+    return r.transcription ?? null;
   }
   probe(url: string): Promise<LinkProbe> {
     return this.t.json('GET', `${this.base}/probe`, { query: { url } });
