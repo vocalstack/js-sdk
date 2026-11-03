@@ -1844,6 +1844,7 @@ export type TranscriptionLookup = z.infer<typeof TranscriptionLookupSchema>;
 
 export const TranscriptionPageSchema = z.object({
   "nextCursor": z.union([z.string(), z.null()]).optional(),
+  "total": z.union([z.number().int(), z.null()]).optional(),
   "transcriptions": z.array(TranscriptionSchema),
 });
 export type TranscriptionPage = z.infer<typeof TranscriptionPageSchema>;

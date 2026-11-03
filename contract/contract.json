@@ -8626,6 +8626,14 @@
                 "null"
               ]
             },
+            "total": {
+              "description": "How many transcriptions match this list across every page.",
+              "format": "int64",
+              "type": [
+                "integer",
+                "null"
+              ]
+            },
             "transcriptions": {
               "items": {
                 "$ref": "#/components/schemas/Transcription"

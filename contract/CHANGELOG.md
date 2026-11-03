@@ -20,6 +20,10 @@ One line per change, naming the operation (`METHOD /path`, its
 
 ## [Unreleased]
 
+### Exact list totals (2026-11-03, still `1.0.0-alpha.0`)
+
+- **Added**: `total` on schema `TranscriptionPage` (`GET /v1/transcriptions`, `transcriptions.list`): how many transcriptions match the list (its `lifecycle`, `site` and the key's reach) across every page, on every page. `listPage()` returns it in each SDK.
+
 ### Links from video and audio sites (2026-11-03, still `1.0.0-alpha.0`)
 
 - **Added**: `embedId` on schema `SourceInfo` (`job.source`, for owners and for share links alike): the site's own id of a linked video for its player, never the link: YouTube `dQw4w9WgXcQ`; Loom the 32-hex id; Vimeo `76979871`, or `76979871/<hash>` for an unlisted one (the embed's `h=`); Dailymotion `x5kesuj`; Twitch `v635475444` (a video), `clip:<slug>` or `channel:<name>`; TikTok and X the numeric post id; Instagram the post's code; Kick `channel:<name>`; Streamable the id; Facebook the numeric video id; LinkedIn `activity:<id>`, `ugcPost:<id>` or `share:<id>`; TED the talk's slug; Internet Archive the item; Wistia, Vidyard, JW Player, BitChute, Niconico, Pinterest, Google Drive, Spreaker and Audioboom their media id; VK `<owner>_<video>`; SoundCloud and Mixcloud `<user>/<track>`; Odysee `@<channel>:<claim>/<name>:<claim>`; Bluesky `<handle or did>/<rkey>`. Absent for other sites. A link's picture comes only from its site's own player; VocalStack keeps no video of a link. A share link still carries only the link's origin in `url`.
