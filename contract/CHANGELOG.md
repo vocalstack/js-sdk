@@ -20,6 +20,28 @@ One line per change, naming the operation (`METHOD /path`, its
 
 ## [Unreleased]
 
+### No anonymous lookup of a link (2026-11-04, still `1.0.0-alpha.0`)
+
+- **Removed**: `GET /v1/shares` (`shareLinks.find`) and schema `PublishedShare`. A link is found only in the signed-in caller's own transcriptions (`GET /v1/transcriptions/lookup`); a share code still opens with no credential (`GET /v1/shares/{code}`, `shareLinks.open`). Each SDK's `shareLinks.find()` is gone.
+
+### Filtered transcript search (2026-11-04, still `1.0.0-alpha.0`)
+
+- **Added**: optional query parameters on `GET /v1/search` (`search.query`) with the meanings they have on `transcriptions.list`: `site`, `language`, `kind`, `origin`, `tag`, `createdAfter`, `createdBefore` and `shared`. Given any, the search covers only the caller's own transcriptions that match every one; a malformed value is 400 `invalid_options`. Each SDK's `search.query()` takes them.
+- **Added**: `shareCode` on schema `SearchHit`: the code of the hit's transcription's newest live share link, for `@vocalstack/player`'s `id` (with `mediaStart` as `startAt`); absent when it has none.
+
+### Disabled transcriptions (2026-11-04, still `1.0.0-alpha.0`)
+
+- **Added**: `blocked` on schema `Transcription` (`at`, `reason`, `contact`), present when VocalStack disabled the transcription for breaking the Terms of Service or blocked it while it is reviewed. It stays in `transcriptions.list`.
+- **Changed**: every other call on a blocked transcription or its recordings answers `403 forbidden` with `data.details: { blocked: true, reason, contact }`, until it is restored; its share links answer `404 not_found`.
+
+### Speaker display numbers (2026-11-04, still `1.0.0-alpha.0`)
+
+- **Added**: subscriber frame `transcript.speakerNumbers` (schema `SpeakerNumber`: `speaker`, `number`, optional `name`): every speaker's display number and name, in full, sent after any frame that changes them. Show `name`, else "Speaker <number>"; the raw `speaker` id is no longer meant for display. Numbers follow first-spoken order and stay with their speaker; a merge hands the lower number to the speaker that took over, and a finished recording numbers its speakers 1..N.
+- **Added**: server frame `transcript.speakerNumbers` on a realtime session socket (`/v1/realtime/sessions/{token}/socket`) with no recording behind it, same shape and rules: such a session numbers its speakers too.
+- **Added**: `number` on schema `SpeakerView` (`TranscriptSnapshot.speakers[]`, `GET /v1/recordings/{id}/transcript`): the same display number. `speakers[]` now lists every numbered speaker, in number order.
+- **Changed**: `SpeakerView.name` is empty instead of a generic "Speaker <n>" name.
+- **Changed**: exports (`recordings.export`), the MCP transcript tool and the summary's speaker labels use the server's numbers.
+
 ### Searching transcriptions (2026-11-04, still `1.0.0-alpha.0`)
 
 - **Added**: optional query parameters on `GET /v1/transcriptions` (`transcriptions.list`), applied before paging and counted in `total`: `q` (every word in the name, the source's name or its link, any case), `language` (spoken language), `kind` (`file`, `link`, `live`), `origin`, `tag` (id or name), `broadcast` (id), `createdAfter` / `createdBefore` (RFC 3339 time or `YYYY-MM-DD`), and `shared` (`true`: only those with a live share link; `false`: only those with none). A malformed value is 400 `invalid_options`. Each SDK's `list()` and `listPage()` take them.
@@ -30,6 +52,11 @@ One line per change, naming the operation (`METHOD /path`, its
 - **Changed**: `GET /v1/shares` also finds a link by the page address the player was given, when the transcription was made from the media file that page leads to (a Wikimedia Commons file page and its `upload.wikimedia.org` file).
 - **Changed**: `job.source.url` on a share (`shareLinks.open`) is the whole address, not only its origin, for a media file on a public file host (`upload.wikimedia.org`, Internet Archive downloads) with no query string, so a player can show that file's own picture.
 - **Added**: `GET /v1/shares` (`shareLinks.find`), with no credential: `url` and `site` give the share code (schema `PublishedShare`) of the newest finished transcription of that link a VocalStack player published on that site; `code` is `null` otherwise.
+
+### Consent for cloned voices (2026-11-04, still `1.0.0-alpha.0`)
+
+- **Added**: optional `consent` (boolean) on the body of `POST /v1/recordings/{id}/voice` (`recordings.renderVoice`): `true` confirms the speakers agreed to have their voices cloned.
+- **Changed**: `recordings.renderVoice` refuses (400 `invalid_options`) a `voice` or `voiceBySpeaker` that names a cloned voice (`clone:…`) unless `consent` is `true`; with no voice named, the default cast uses cloned voices only when `consent` is `true` and reads in stock voices otherwise.
 
 ### Exact list totals (2026-11-03, still `1.0.0-alpha.0`)
 

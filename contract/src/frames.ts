@@ -14,6 +14,7 @@ export const SERVER_FRAME_TYPES = [
   "transcript.speaker",
   "transcript.speakerGender",
   "transcript.speakerIdentified",
+  "transcript.speakerNumbers",
   "transcript.sentence",
   "transcript.translated",
   "transcript.voice",

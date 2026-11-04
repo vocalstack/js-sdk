@@ -458,7 +458,7 @@ export class Recordings {
     const r: RenderVoice & ReadAs = Array.isArray(req) ? { langs: req } : req;
     return this.#t.json('POST', this.#p(id, '/voice'), {
       query: listenerQuery(r),
-      body: { langs: r.langs, voice: r.voice, voiceBySpeaker: r.voiceBySpeaker, near: r.near },
+      body: { langs: r.langs, voice: r.voice, voiceBySpeaker: r.voiceBySpeaker, near: r.near, consent: r.consent },
       ...call,
     });
   }
@@ -509,6 +509,7 @@ export interface RenderVoice {
   voice?: string;
   voiceBySpeaker?: Record<string, string>;
   near?: number;
+  consent?: boolean;
 }
 
 export interface MediaAuth extends ReadAs {
@@ -599,9 +600,6 @@ export class ShareLinks {
   }
   open(code: string): Promise<SharedTranscript> {
     return this.#t.json('GET', `/v1/shares/${seg(code)}`, { anonymous: true });
-  }
-  find(url: string, site: string): Promise<{ code: string | null }> {
-    return this.#t.json('GET', '/v1/shares', { anonymous: true, query: { url, site } });
   }
   update(id: string, req: UpdateShareLink): Promise<ShareLink> {
     return this.#t.json('PATCH', `/v1/share-links/${seg(id)}`, { body: req });
@@ -707,7 +705,7 @@ export class Voices {
   }
 }
 
-export interface SearchOptions {
+export interface SearchOptions extends Omit<TranscriptionFilters, 'lifecycle' | 'q' | 'broadcast'> {
   broadcasts?: string[];
   listenerTokens?: string[];
   recording?: string;
@@ -722,6 +720,7 @@ export class Search {
   }
   query(q: string, opts: SearchOptions = {}): Promise<SearchResults> {
     const query: Query = {
+      ...filterQuery({ site: opts.site, language: opts.language, kind: opts.kind, origin: opts.origin, tag: opts.tag, createdAfter: opts.createdAfter, createdBefore: opts.createdBefore, shared: opts.shared }),
       q,
       broadcasts: opts.broadcasts?.join(','),
       listenerTokens: opts.listenerTokens?.join(','),

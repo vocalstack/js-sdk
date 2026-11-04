@@ -42,6 +42,8 @@ test('renderVoice takes the old langs array and the full request with a share co
   assert.equal(calls[1].url, `https://api.test/v1/recordings/${R}/voice?shareCode=abc`);
   assert.deepEqual(JSON.parse(calls[1].body), { langs: ['es', 'fr'], voiceBySpeaker: { 0: 'stock-a' }, near: 12 });
   assert.equal(calls[1].headers['idempotency-key'], 'k');
+  await vs.recordings.renderVoice(R, { langs: ['es'], voiceBySpeaker: { 0: 'clone:abc' }, consent: true });
+  assert.deepEqual(JSON.parse(calls[2].body), { langs: ['es'], voiceBySpeaker: { 0: 'clone:abc' }, consent: true });
 });
 
 test('shareLinks.open reads a share code with no credential', async () => {

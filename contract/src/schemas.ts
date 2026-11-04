@@ -179,6 +179,13 @@ export const BatchCountsSchema = z.object({
 });
 export type BatchCounts = z.infer<typeof BatchCountsSchema>;
 
+export const BlockedSchema = z.object({
+  "at": z.string(),
+  "contact": z.string(),
+  "reason": z.string(),
+});
+export type Blocked = z.infer<typeof BlockedSchema>;
+
 export const BroadcastRefSchema = z.object({
   "access": AccessSchema,
   "code": z.string(),
@@ -330,6 +337,7 @@ export type TagRef = z.infer<typeof TagRefSchema>;
 export const TranscriptionSchema = z.object({
   "archivedAt": z.union([z.string(), z.null()]).optional(),
   "batchId": z.union([z.string(), z.null()]).optional(),
+  "blocked": z.union([BlockedSchema, z.null()]).optional(),
   "broadcasts": z.array(BroadcastRefSchema).optional(),
   "code": z.string(),
   "createdAt": z.string(),
@@ -1313,11 +1321,6 @@ export const PublishGrantSchema = z.object({
 });
 export type PublishGrant = z.infer<typeof PublishGrantSchema>;
 
-export const PublishedShareSchema = z.object({
-  "code": z.union([z.string(), z.null()]).optional(),
-});
-export type PublishedShare = z.infer<typeof PublishedShareSchema>;
-
 export const PullStateSchema = z.union([z.literal("connecting"), z.literal("streaming"), z.literal("reconnecting"), z.literal("failed")]);
 export type PullState = z.infer<typeof PullStateSchema>;
 
@@ -1368,6 +1371,7 @@ export const SearchHitSchema = z.object({
   "rendered": z.union([z.string(), z.null()]).optional(),
   "score": z.number(),
   "sentenceId": z.number().int(),
+  "shareCode": z.union([z.string(), z.null()]).optional(),
   "speaker": z.number().int(),
   "text": z.string(),
   "transcriptionId": z.string(),
@@ -1453,6 +1457,13 @@ export const SentenceViewSchema = z.object({
 });
 export type SentenceView = z.infer<typeof SentenceViewSchema>;
 
+export const SpeakerNumberSchema = z.object({
+  "name": z.union([z.string(), z.null()]).optional(),
+  "number": z.number().int(),
+  "speaker": z.number().int(),
+});
+export type SpeakerNumber = z.infer<typeof SpeakerNumberSchema>;
+
 export const VoiceStatusStateSchema = z.union([z.literal("preparing"), z.literal("unavailable")]);
 export type VoiceStatusState = z.infer<typeof VoiceStatusStateSchema>;
 
@@ -1510,6 +1521,9 @@ export const ServerFrameSchema = z.discriminatedUnion('type', [z.object({
   "tone": z.boolean().optional(),
   "type": z.literal("transcript.speakerIdentified"),
   "voiceId": z.union([z.string(), z.null()]).optional(),
+}), z.object({
+  "speakers": z.array(SpeakerNumberSchema),
+  "type": z.literal("transcript.speakerNumbers"),
 }), z.object({
   "sentence": SentenceSegmentSchema,
   "type": z.literal("transcript.sentence"),
@@ -1667,6 +1681,7 @@ export const SpeakerViewSchema = z.object({
   "identified": z.boolean().optional(),
   "identifiedConfidence": z.union([z.number(), z.null()]).optional(),
   "name": z.string(),
+  "number": z.union([z.number().int(), z.null()]).optional(),
   "speaker": z.number().int(),
   "speechS": z.union([z.number(), z.null()]).optional(),
   "voiceColor": z.union([z.string(), z.null()]).optional(),
@@ -1757,6 +1772,9 @@ export const SubscriberFrameSchema = z.discriminatedUnion('type', [z.object({
   "name": z.union([z.string(), z.null()]).optional(),
   "speaker": z.number().int(),
   "type": z.literal("transcript.speakerNamed"),
+}), z.object({
+  "speakers": z.array(SpeakerNumberSchema),
+  "type": z.literal("transcript.speakerNumbers"),
 }), z.object({
   "recordingId": z.string(),
   "transcriptionId": z.string(),
