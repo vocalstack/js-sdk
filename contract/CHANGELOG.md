@@ -20,6 +20,17 @@ One line per change, naming the operation (`METHOD /path`, its
 
 ## [Unreleased]
 
+### Searching transcriptions (2026-11-04, still `1.0.0-alpha.0`)
+
+- **Added**: optional query parameters on `GET /v1/transcriptions` (`transcriptions.list`), applied before paging and counted in `total`: `q` (every word in the name, the source's name or its link, any case), `language` (spoken language), `kind` (`file`, `link`, `live`), `origin`, `tag` (id or name), `broadcast` (id), `createdAfter` / `createdBefore` (RFC 3339 time or `YYYY-MM-DD`), and `shared` (`true`: only those with a live share link; `false`: only those with none). A malformed value is 400 `invalid_options`. Each SDK's `list()` and `listPage()` take them.
+- **Added**: `shareCode` on schema `Transcription`: the code of its newest live share link, for `@vocalstack/player`'s `id`; absent when it has none.
+
+### Finding a link a player published (2026-11-04, still `1.0.0-alpha.0`)
+
+- **Changed**: `GET /v1/shares` also finds a link by the page address the player was given, when the transcription was made from the media file that page leads to (a Wikimedia Commons file page and its `upload.wikimedia.org` file).
+- **Changed**: `job.source.url` on a share (`shareLinks.open`) is the whole address, not only its origin, for a media file on a public file host (`upload.wikimedia.org`, Internet Archive downloads) with no query string, so a player can show that file's own picture.
+- **Added**: `GET /v1/shares` (`shareLinks.find`), with no credential: `url` and `site` give the share code (schema `PublishedShare`) of the newest finished transcription of that link a VocalStack player published on that site; `code` is `null` otherwise.
+
 ### Exact list totals (2026-11-03, still `1.0.0-alpha.0`)
 
 - **Added**: `total` on schema `TranscriptionPage` (`GET /v1/transcriptions`, `transcriptions.list`): how many transcriptions match the list (its `lifecycle`, `site` and the key's reach) across every page, on every page. `listPage()` returns it in each SDK.

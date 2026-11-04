@@ -88,6 +88,25 @@ export type Upload = Blob | Uint8Array | ArrayBuffer | string;
 
 export type LifecycleFilter = 'active' | 'archived' | 'all';
 
+export interface TranscriptionFilters {
+  lifecycle?: LifecycleFilter;
+  q?: string;
+  site?: string;
+  language?: string;
+  kind?: 'file' | 'link' | 'live';
+  origin?: Transcription['origin'];
+  tag?: string;
+  broadcast?: string;
+  createdAfter?: string | Date;
+  createdBefore?: string | Date;
+  shared?: boolean;
+}
+
+function filterQuery(f: TranscriptionFilters) {
+  const at = (d: string | Date | undefined) => (d instanceof Date ? d.toISOString() : d);
+  return { lifecycle: f.lifecycle, q: f.q, site: f.site, language: f.language, kind: f.kind, origin: f.origin, tag: f.tag, broadcast: f.broadcast, createdAfter: at(f.createdAfter), createdBefore: at(f.createdBefore), shared: f.shared };
+}
+
 async function toBlob(file: Upload): Promise<{ blob: Blob; name?: string }> {
   if (typeof file === 'string') {
     const fsSpecifier = 'node:' + 'fs';
@@ -210,8 +229,15 @@ export class Transcriptions extends ParentResource<Transcription, UpdateTranscri
   protected readonly base = '/v1/transcriptions' as const;
   protected readonly key = 'transcriptions' as const;
 
-  listPage(opts: PageOptions & { lifecycle?: LifecycleFilter; site?: string } = {}): Promise<TranscriptionPage> {
-    return this.t.json('GET', this.base, { query: { lifecycle: opts.lifecycle, cursor: opts.cursor, limit: opts.limit, site: opts.site } });
+  override list(opts: LifecycleFilter | TranscriptionFilters = 'active'): Promise<Transcription[]> {
+    const f = typeof opts === 'string' ? { lifecycle: opts } : opts;
+    return allPages(async (cursor) => {
+      const r = await this.listPage({ ...f, cursor });
+      return { items: r.transcriptions, nextCursor: r.nextCursor };
+    });
+  }
+  listPage(opts: PageOptions & TranscriptionFilters = {}): Promise<TranscriptionPage> {
+    return this.t.json('GET', this.base, { query: { ...filterQuery(opts), cursor: opts.cursor, limit: opts.limit } });
   }
   uploadRecording(id: string, req: UploadRecording = {}, call: CallOptions = {}): Promise<PublishGrant> {
     return this.t.json('POST', this.p(id, '/recordings/upload'), { body: req, ...call });
@@ -573,6 +599,9 @@ export class ShareLinks {
   }
   open(code: string): Promise<SharedTranscript> {
     return this.#t.json('GET', `/v1/shares/${seg(code)}`, { anonymous: true });
+  }
+  find(url: string, site: string): Promise<{ code: string | null }> {
+    return this.#t.json('GET', '/v1/shares', { anonymous: true, query: { url, site } });
   }
   update(id: string, req: UpdateShareLink): Promise<ShareLink> {
     return this.#t.json('PATCH', `/v1/share-links/${seg(id)}`, { body: req });

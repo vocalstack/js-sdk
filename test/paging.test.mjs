@@ -55,3 +55,26 @@ test('recordings.events starts after a seq, then follows the cursor', async () =
   assert.equal(urls[1].searchParams.get('cursor'), '5');
   assert.equal(urls[1].searchParams.get('limit'), '2');
 });
+
+test('transcriptions.list and listPage send the search filters', async () => {
+  const { fetch, urls } = fakeFetch([{ transcriptions: [{ id: 't1', shareCode: 'abc' }], nextCursor: 'c1' }, { transcriptions: [{ id: 't2', shareCode: 'def' }] }]);
+  const vs = new VocalStack({ baseUrl: 'http://api.test', apiKey: 'vs_key_x', fetch });
+  const all = await vs.transcriptions.list({ shared: true, q: 'team meeting', site: 'youtube', language: 'en', kind: 'link', tag: 'Talks', createdAfter: '2026-01-01', createdBefore: new Date('2026-02-01T00:00:00Z') });
+  assert.deepEqual(all.map((t) => t.shareCode), ['abc', 'def']);
+  assert.deepEqual(urls.map((u) => u.searchParams.get('cursor')), [null, 'c1']);
+  for (const u of urls) {
+    assert.equal(u.searchParams.get('shared'), 'true');
+    assert.equal(u.searchParams.get('q'), 'team meeting');
+    assert.equal(u.searchParams.get('site'), 'youtube');
+    assert.equal(u.searchParams.get('language'), 'en');
+    assert.equal(u.searchParams.get('kind'), 'link');
+    assert.equal(u.searchParams.get('tag'), 'Talks');
+    assert.equal(u.searchParams.get('createdAfter'), '2026-01-01');
+    assert.equal(u.searchParams.get('createdBefore'), '2026-02-01T00:00:00.000Z');
+    assert.equal(u.searchParams.get('origin'), null);
+  }
+  const one = fakeFetch([{ transcriptions: [] }]);
+  const vs2 = new VocalStack({ baseUrl: 'http://api.test', apiKey: 'vs_key_x', fetch: one.fetch });
+  await vs2.transcriptions.listPage({ shared: false, origin: 'api', broadcast: 'b1', limit: 5 });
+  assert.deepEqual(Object.fromEntries(one.urls[0].searchParams), { shared: 'false', origin: 'api', broadcast: 'b1', limit: '5' });
+});

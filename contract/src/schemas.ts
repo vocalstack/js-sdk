@@ -348,6 +348,7 @@ export const TranscriptionSchema = z.object({
   "purgeAfter": z.union([z.string(), z.null()]).optional(),
   "recordingCount": z.number().int(),
   "settings": SettingsSchema,
+  "shareCode": z.union([z.string(), z.null()]).optional(),
   "shareUrl": z.string(),
   "source": CaptureSourceSchema,
   "tags": z.array(TagRefSchema).optional(),
@@ -1311,6 +1312,11 @@ export const PublishGrantSchema = z.object({
   "streamUrl": z.union([z.string(), z.null()]).optional(),
 });
 export type PublishGrant = z.infer<typeof PublishGrantSchema>;
+
+export const PublishedShareSchema = z.object({
+  "code": z.union([z.string(), z.null()]).optional(),
+});
+export type PublishedShare = z.infer<typeof PublishedShareSchema>;
 
 export const PullStateSchema = z.union([z.literal("connecting"), z.literal("streaming"), z.literal("reconnecting"), z.literal("failed")]);
 export type PullState = z.infer<typeof PullStateSchema>;
