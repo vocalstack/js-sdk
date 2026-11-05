@@ -20,6 +20,10 @@ One line per change, naming the operation (`METHOD /path`, its
 
 ## [Unreleased]
 
+### Voices lists only the voices the account made (2026-11-05, still `1.0.0-alpha.0`)
+
+- **Changed**: `GET /v1/voices` (`voices.list`) lists only the voices the account made and kept in its Voices (the dashboard's Voices page): no automatic speaker clones and no voice kept with one transcription only. Those are still reached by id (`GET /v1/voices/{id}`).
+
 ### Ten languages a recording (2026-11-05, still `1.0.0-alpha.0`)
 
 - **Added**: error code `language_limit_reached` (409). A recording has at most 10 languages besides the one it was spoken in, counting every language it was translated into or read aloud in, live or afterwards. Asking for an 11th is refused on `GET /v1/recordings/{id}/translation` (`recordings.translation`), `GET /v1/recordings/{id}/export` (`recordings.export`) and `GET /v1/recordings/{id}/summary` (`recordings.summary`) with `lang`, `POST /v1/recordings/{id}/voice` (`recordings.renderVoice`), `GET /v1/recordings/{id}/voice/{sentence}` (`recordings.voiceClip`), `GET /v1/recordings/{id}/audio?kind=voice` (`recordings.audio`) and the `/v1/recordings/{id}/subscribe` upgrade with `lang`; a `subscribe.update` to an 11th language closes the socket with 1008. A language the recording already has is never refused, in any voice. `data.details` carries `limit`, `languages` and `refused`.

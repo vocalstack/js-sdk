@@ -18825,7 +18825,7 @@
       },
       "/v1/voices": {
         "get": {
-          "description": "The account's cloned voices, newest first. `lifecycle=archived` lists the archived ones instead.",
+          "description": "The voices the account made and kept in its Voices, newest first: what the dashboard's Voices page lists. `lifecycle=archived` lists the archived ones instead.",
           "operationId": "voices.list",
           "parameters": [
             {
