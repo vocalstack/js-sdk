@@ -5303,6 +5303,11 @@
               },
               "type": "array"
             },
+            "more": {
+              "default": false,
+              "description": "More sentences matched than `limit` returned.",
+              "type": "boolean"
+            },
             "query": {
               "type": "string"
             },
@@ -16584,7 +16589,7 @@
       },
       "/v1/search": {
         "get": {
-          "description": "Sentence search via the English pivot ∪ literal match; results rendered into lang on demand. An owner searches their own transcriptions and broadcasts; a listener names the broadcasts to search by their codes. The filters (`site`, `language`, `kind`, `origin`, `tag`, `createdAfter`, `createdBefore`, `shared`) mean what they mean on `transcriptions.list` and narrow the search to the caller's own transcriptions that match every one given. A hit's `shareCode` plays in `@vocalstack/player` with no key, from `mediaStart` given as `startAt`.",
+          "description": "Sentence search via the English pivot ∪ literal match; results rendered into lang on demand. An owner searches their own transcriptions and broadcasts; a listener names the broadcasts to search by their codes. The filters (`site`, `language`, `kind`, `origin`, `tag`, `createdAfter`, `createdBefore`, `shared`) mean what they mean on `transcriptions.list` and narrow the search to the caller's own transcriptions that match every one given. A hit's `shareCode` plays in `@vocalstack/player` with no key, from `mediaStart` given as `startAt`. Whole words rank first: a sentence where the query starts a word (or matches the English index) comes before one where it sits inside a word or only resembles it. `more` says whether more sentences matched than `limit` returned.",
           "operationId": "search.query",
           "parameters": [
             {
@@ -16614,6 +16619,14 @@
             {
               "in": "query",
               "name": "recording",
+              "schema": {
+                "type": "string"
+              }
+            },
+            {
+              "description": "Only this transcription (id), among those the caller may search; one it may not search gives no hits.",
+              "in": "query",
+              "name": "transcription",
               "schema": {
                 "type": "string"
               }

@@ -1381,6 +1381,7 @@ export type SearchHit = z.infer<typeof SearchHitSchema>;
 
 export const SearchResultsSchema = z.object({
   "hits": z.array(SearchHitSchema),
+  "more": z.boolean().optional(),
   "query": z.string(),
   "queryEn": z.string(),
 });

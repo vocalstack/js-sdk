@@ -709,6 +709,7 @@ export interface SearchOptions extends Omit<TranscriptionFilters, 'lifecycle' | 
   broadcasts?: string[];
   listenerTokens?: string[];
   recording?: string;
+  transcription?: string;
   lang?: string;
   limit?: number;
 }
@@ -725,6 +726,7 @@ export class Search {
       broadcasts: opts.broadcasts?.join(','),
       listenerTokens: opts.listenerTokens?.join(','),
       recording: opts.recording,
+      transcription: opts.transcription,
       lang: opts.lang,
       limit: opts.limit,
     };

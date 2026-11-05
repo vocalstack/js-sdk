@@ -20,6 +20,12 @@ One line per change, naming the operation (`METHOD /path`, its
 
 ## [Unreleased]
 
+### Search ranks whole words first and says when there is more (2026-11-05, still `1.0.0-alpha.0`)
+
+- **Added**: `GET /v1/search` (`search.query`) takes `transcription` (an id) to search one transcription among those the caller may search; one it may not search gives no hits.
+- **Added**: `SearchResults.more`: `true` when more sentences matched than `limit` returned.
+- **Changed**: `GET /v1/search` (`search.query`) ranks a sentence where the query starts a word (or matches the English index) above one where it sits inside a word or only resembles it (`test` finds "tested" before "latest").
+
 ### Voices lists only the voices the account made (2026-11-05, still `1.0.0-alpha.0`)
 
 - **Changed**: `GET /v1/voices` (`voices.list`) lists only the voices the account made and kept in its Voices (the dashboard's Voices page): no automatic speaker clones and no voice kept with one transcription only. Those are still reached by id (`GET /v1/voices/{id}`).
