@@ -430,15 +430,16 @@ export class Recordings {
     if (!location) throw new VocalStackError('not_found', 'no signed URL in the redirect');
     return location;
   }
-  audioSrc(id: string, opts: { kind?: AudioKind; lang?: string; voice?: string; format?: MediaFormat } & MediaAuth = {}): string {
-    return this.#t.url(this.#p(id, '/audio'), { kind: opts.kind ?? 'delivery', lang: opts.lang, format: opts.format, voice: opts.voice, ...mediaQuery(opts) });
+  audioSrc(id: string, opts: { kind?: AudioKind; lang?: string; voices?: VoicesChoice; voice?: string; format?: MediaFormat } & MediaAuth = {}): string {
+    return this.#t.url(this.#p(id, '/audio'), { kind: opts.kind ?? 'delivery', lang: opts.lang, format: opts.format, voices: opts.voices, voice: opts.voice, ...mediaQuery(opts) });
   }
   clipSrc(id: string, startS: number, endS: number, opts: { clean?: boolean } & MediaAuth = {}): string {
     return this.#t.url(this.#p(id, '/audio/clip'), { startS: startS.toFixed(2), endS: endS.toFixed(2), clean: opts.clean ? 'true' : undefined, ...mediaQuery(opts) });
   }
-  voiceClipSrc(id: string, sentence: number, lang: string, opts: { voice?: string; format?: 'ogg' | 'caf'; part?: number; v?: string } & MediaAuth = {}): string {
+  voiceClipSrc(id: string, sentence: number, lang: string, opts: { voices?: VoicesChoice; voice?: string; format?: 'ogg' | 'caf'; part?: number; v?: string } & MediaAuth = {}): string {
     return this.#t.url(this.#p(id, `/voice/${seg(sentence)}`), {
       lang,
+      voices: opts.voices,
       voice: opts.voice,
       format: opts.format,
       part: opts.part ? opts.part : undefined,
@@ -458,12 +459,12 @@ export class Recordings {
     const r: RenderVoice & ReadAs = Array.isArray(req) ? { langs: req } : req;
     return this.#t.json('POST', this.#p(id, '/voice'), {
       query: listenerQuery(r),
-      body: { langs: r.langs, voice: r.voice, voiceBySpeaker: r.voiceBySpeaker, near: r.near, consent: r.consent },
+      body: { langs: r.langs, voices: r.voices, voice: r.voice, voiceBySpeaker: r.voiceBySpeaker, near: r.near, consent: r.consent },
       ...call,
     });
   }
-  voiceClip(id: string, sentence: number, lang: string, opts: { format?: 'ogg' | 'caf' } & ReadAs = {}): Promise<Response> {
-    return this.#t.raw('GET', this.#p(id, `/voice/${seg(sentence)}`), { headers: { accept: '*/*' }, query: { ...listenerQuery(opts), lang, format: opts.format } });
+  voiceClip(id: string, sentence: number, lang: string, opts: { format?: 'ogg' | 'caf'; voices?: VoicesChoice } & ReadAs = {}): Promise<Response> {
+    return this.#t.raw('GET', this.#p(id, `/voice/${seg(sentence)}`), { headers: { accept: '*/*' }, query: { ...listenerQuery(opts), lang, format: opts.format, voices: opts.voices } });
   }
   mediaToken(id: string): Promise<{ token: string; expiresAt: string }> {
     return this.#t.json('GET', this.#p(id, '/media-token'));
@@ -504,8 +505,11 @@ export class Recordings {
 export type AudioKind = 'delivery' | 'voice' | 'background' | 'speech' | 'master' | 'source' | 'video';
 export type MediaFormat = 'ogg' | 'caf' | 'mp3';
 
+export type VoicesChoice = 'cloned' | 'synthetic';
+
 export interface RenderVoice {
   langs: string[];
+  voices?: VoicesChoice;
   voice?: string;
   voiceBySpeaker?: Record<string, string>;
   near?: number;

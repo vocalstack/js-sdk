@@ -9514,6 +9514,13 @@
             "voiceKey": {
               "type": "string"
             },
+            "voices": {
+              "description": "What the track is read in: `cloned` (every speaker in their own cloned voice), `synthetic` (stock voices only) or `mixed` (some speakers had no usable clone and are read in a stock voice). Absent on a track read before this was recorded.",
+              "type": [
+                "string",
+                "null"
+              ]
+            },
             "wordTimes": {
               "additionalProperties": false,
               "patternProperties": {
@@ -14139,7 +14146,19 @@
               }
             },
             {
-              "description": "The voice, or the per-speaker cast (a `voiceKey` from `GET /v1/recordings/{id}/voice`), it is read in; omit for the recording's default cast.",
+              "description": "`cloned`: each speaker in their own cloned voice where one can be used, else a stock voice of their gender; `synthetic`: stock voices only. Omit for the recording's default cast. Not with `voice`.",
+              "in": "query",
+              "name": "voices",
+              "schema": {
+                "enum": [
+                  "cloned",
+                  "synthetic"
+                ],
+                "type": "string"
+              }
+            },
+            {
+              "description": "Prefer `voices`. The voice, or the per-speaker cast (a `voiceKey` from `GET /v1/recordings/{id}/voice`), it is read in; omit for the recording's default cast.",
               "in": "query",
               "name": "voice",
               "schema": {
@@ -16149,15 +16168,23 @@
                       "type": "integer"
                     },
                     "voice": {
-                      "description": "One voice id for every speaker, from `GET /v1/voices/available`.",
+                      "description": "Prefer `voices`. One voice id for every speaker, from `GET /v1/voices/available`.",
                       "type": "string"
                     },
                     "voiceBySpeaker": {
                       "additionalProperties": {
                         "type": "string"
                       },
-                      "description": "A voice id per speaker, keyed by the speaker's number (`\"0\"`, `\"1\"`…); it wins over `voice`. A speaker left out is read in the default cast.",
+                      "description": "Prefer `voices`. A voice id per speaker, keyed by the speaker's number (`\"0\"`, `\"1\"`…); it wins over `voice`. A speaker left out is read in the default cast.",
                       "type": "object"
+                    },
+                    "voices": {
+                      "description": "Which kind of voice reads the recording. `cloned`: each speaker in their own cloned voice where one can be used (the recording has `voiceCloning` on, or the speaker has a saved voice, and the speaker's consent is granted); a speaker with no usable clone is read in a stock voice of their gender, so the track may be `mixed` or `synthetic` (see `voices` on each returned track). `synthetic`: every speaker in a distinct stock voice of their gender. Not with `voice` or `voiceBySpeaker`.",
+                      "enum": [
+                        "cloned",
+                        "synthetic"
+                      ],
+                      "type": "string"
                     }
                   },
                   "required": [
@@ -16221,7 +16248,7 @@
       },
       "/v1/recordings/{id}/voice/{sentence}": {
         "get": {
-          "description": "One spoken sentence, Ogg/Opus (`format=caf` for Apple's media stack). `sentence` is a sentence's `sentenceId` from the transcript (`sentences[].sentenceId`), not a segment's position; one the recording does not have is a 404. With no `voice`, each speaker is read in their own cloned voice when its consent is granted and the recording has `voiceCloning` on, else in a stock voice of their gender, a different one for each speaker. The `X-Voice-Key` response header names the voice, or the per-speaker cast, the clip was read in. The owner, or any listener who can reach its broadcast or transcription. A clip in a language the recording was not spoken in is a spoken translation: through a share link it needs `allowTranslate`.",
+          "description": "One spoken sentence, Ogg/Opus (`format=caf` for Apple's media stack). `sentence` is a sentence's `sentenceId` from the transcript (`sentences[].sentenceId`), not a segment's position; one the recording does not have is a 404. With no `voice`, each speaker is read in their own cloned voice when its consent is granted and the recording has `voiceCloning` on, else in a stock voice of their gender, a different one for each speaker. `voices=cloned` or `voices=synthetic` picks the kind of voice as on `POST /v1/recordings/{id}/voice`; cloned falls back to a stock voice for a speaker with no usable clone. The `X-Voice-Key` response header names the voice, or the per-speaker cast, the clip was read in, and `X-Voices` says whether that was `cloned`, `synthetic` or `mixed`. The owner, or any listener who can reach its broadcast or transcription. A clip in a language the recording was not spoken in is a spoken translation: through a share link it needs `allowTranslate`.",
           "operationId": "recordings.voiceClip",
           "parameters": [
             {
@@ -16261,7 +16288,19 @@
               }
             },
             {
-              "description": "The voice, or the per-speaker cast (a `voiceKey` from `GET /v1/recordings/{id}/voice`), it is read in; omit for the recording's default cast.",
+              "description": "`cloned`: each speaker in their own cloned voice where one can be used, else a stock voice of their gender; `synthetic`: stock voices only. Omit for the recording's default cast. Not with `voice`.",
+              "in": "query",
+              "name": "voices",
+              "schema": {
+                "enum": [
+                  "cloned",
+                  "synthetic"
+                ],
+                "type": "string"
+              }
+            },
+            {
+              "description": "Prefer `voices`. The voice, or the per-speaker cast (a `voiceKey` from `GET /v1/recordings/{id}/voice`), it is read in; omit for the recording's default cast.",
               "in": "query",
               "name": "voice",
               "schema": {

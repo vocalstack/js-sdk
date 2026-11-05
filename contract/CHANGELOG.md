@@ -20,6 +20,13 @@ One line per change, naming the operation (`METHOD /path`, its
 
 ## [Unreleased]
 
+### Cloned or synthetic voices (2026-11-05, still `1.0.0-alpha.0`)
+
+- **Added**: `POST /v1/recordings/{id}/voice` (`recordings.renderVoice`) takes `voices`: `cloned` reads each speaker in their own cloned voice where one can be used and in a stock voice of their gender otherwise; `synthetic` reads every speaker in a distinct stock voice. Not with `voice` or `voiceBySpeaker` (`invalid_options`).
+- **Added**: `GET /v1/recordings/{id}/voice/{sentence}` (`recordings.voiceClip`) and `GET /v1/recordings/{id}/audio` (`recordings.audio`, `kind=voice`) take the same `voices` query parameter; a clip answers with an `X-Voices` header (`cloned`, `synthetic` or `mixed`).
+- **Added**: `VoiceTrack.voices`: `cloned`, `synthetic` or `mixed` (some speakers had no usable clone).
+- **Changed**: `voice` and `voiceBySpeaker` are documented as the second choice after `voices`.
+
 ### Search ranks whole words first and says when there is more (2026-11-05, still `1.0.0-alpha.0`)
 
 - **Added**: `GET /v1/search` (`search.query`) takes `transcription` (an id) to search one transcription among those the caller may search; one it may not search gives no hits.

@@ -2030,6 +2030,7 @@ export const VoiceTrackSchema = z.object({
   "state": z.string(),
   "voice": z.union([z.string(), z.null()]).optional(),
   "voiceKey": z.string(),
+  "voices": z.union([z.string(), z.null()]).optional(),
   "wordTimes": z.object({
 
 }).optional(),
