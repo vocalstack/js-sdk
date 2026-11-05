@@ -20,6 +20,10 @@ One line per change, naming the operation (`METHOD /path`, its
 
 ## [Unreleased]
 
+### Ten languages a recording (2026-11-05, still `1.0.0-alpha.0`)
+
+- **Added**: error code `language_limit_reached` (409). A recording has at most 10 languages besides the one it was spoken in, counting every language it was translated into or read aloud in, live or afterwards. Asking for an 11th is refused on `GET /v1/recordings/{id}/translation` (`recordings.translation`), `GET /v1/recordings/{id}/export` (`recordings.export`) and `GET /v1/recordings/{id}/summary` (`recordings.summary`) with `lang`, `POST /v1/recordings/{id}/voice` (`recordings.renderVoice`), `GET /v1/recordings/{id}/voice/{sentence}` (`recordings.voiceClip`), `GET /v1/recordings/{id}/audio?kind=voice` (`recordings.audio`) and the `/v1/recordings/{id}/subscribe` upgrade with `lang`; a `subscribe.update` to an 11th language closes the socket with 1008. A language the recording already has is never refused, in any voice. `data.details` carries `limit`, `languages` and `refused`.
+
 ### No anonymous lookup of a link (2026-11-04, still `1.0.0-alpha.0`)
 
 - **Removed**: `GET /v1/shares` (`shareLinks.find`) and schema `PublishedShare`. A link is found only in the signed-in caller's own transcriptions (`GET /v1/transcriptions/lookup`); a share code still opens with no credential (`GET /v1/shares/{code}`, `shareLinks.open`). Each SDK's `shareLinks.find()` is gone.

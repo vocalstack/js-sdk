@@ -2787,6 +2787,11 @@
               "type": "string"
             },
             {
+              "const": "language_limit_reached",
+              "description": "The recording already has as many languages as one recording may\nhave (HTTP 409): 10, besides the language it was spoken in, counting\nevery language it was translated into or read aloud in, live or\nafterwards.  A language it already has is never refused, in any\nvoice.  `data.details` carries `limit`, `languages` (the ones it\nhas) and `refused`.  Not retryable: use one of `languages`.",
+              "type": "string"
+            },
+            {
               "const": "unavailable",
               "description": "The service is starting up or briefly cannot reach its database\n(HTTP 503, with `Retry-After`).  Nothing was wrong with the\nrequest: send it again after `Retry-After` seconds.",
               "type": "string"
@@ -15871,7 +15876,7 @@
       },
       "/v1/recordings/{id}/translation": {
         "get": {
-          "description": "Sentences of the transcript translated into `lang` (a translation target), by sentence id (`sentences`, comma separated): what a reader in another language pages through. The owner, or any listener who can reach its broadcast or transcription; through a share link it needs `allowTranslate`. A listener's new (recording, language) pairs are limited per network an hour.",
+          "description": "Sentences of the transcript translated into `lang` (a translation target), by sentence id (`sentences`, comma separated): what a reader in another language pages through. The owner, or any listener who can reach its broadcast or transcription; through a share link it needs `allowTranslate`. A listener's new (recording, language) pairs are limited per network an hour. A recording has at most 10 languages besides the one it was spoken in (translated or read aloud, live or afterwards): an 11th is 409 `language_limit_reached`, and one it already has always works.",
           "operationId": "recordings.translation",
           "parameters": [
             {
@@ -16072,7 +16077,7 @@
           ]
         },
         "post": {
-          "description": "Render spoken tracks for a finished recording, one job per language (1–10 codes, each one /v1/languages says has a voice). The owner, or any listener who can reach its broadcast or transcription (`listenerToken`, `shareCode`, or a bearer token in `access_token`); through a share link a language other than the spoken one needs the link's `allowTranslate`. `voice` reads every speaker in one voice and `voiceBySpeaker` gives each speaker their own; with neither, the recording's default cast speaks (each speaker's granted clone when `voiceCloning` is on, else distinct stock voices of their gender). Every voice named must be one `GET /v1/voices/available?lang=…&recording={id}` offers for each language.",
+          "description": "An 11th language besides the one spoken is 409 `language_limit_reached` (a recording has at most 10; one it already has, in any voice, is never refused). Render spoken tracks for a finished recording, one job per language (1–10 codes, each one /v1/languages says has a voice). The owner, or any listener who can reach its broadcast or transcription (`listenerToken`, `shareCode`, or a bearer token in `access_token`); through a share link a language other than the spoken one needs the link's `allowTranslate`. `voice` reads every speaker in one voice and `voiceBySpeaker` gives each speaker their own; with neither, the recording's default cast speaks (each speaker's granted clone when `voiceCloning` is on, else distinct stock voices of their gender). Every voice named must be one `GET /v1/voices/available?lang=…&recording={id}` offers for each language.",
           "operationId": "recordings.renderVoice",
           "parameters": [
             {
