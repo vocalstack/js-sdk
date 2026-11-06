@@ -133,6 +133,34 @@
           },
           "type": "object"
         },
+        "Allowance": {
+          "properties": {
+            "limit": {
+              "format": "uint32",
+              "minimum": 0,
+              "type": [
+                "integer",
+                "null"
+              ]
+            },
+            "remaining": {
+              "format": "uint32",
+              "minimum": 0,
+              "type": [
+                "integer",
+                "null"
+              ]
+            },
+            "resetsAt": {
+              "description": "When the next search frees up (RFC 3339); `null` with no limit.",
+              "type": [
+                "string",
+                "null"
+              ]
+            }
+          },
+          "type": "object"
+        },
         "AmendTail": {
           "description": "The words an amend gave a segment's end: `words` replace its last\n`replaced` words.",
           "properties": {
@@ -3996,6 +4024,28 @@
           "required": [
             "url",
             "kind"
+          ],
+          "type": "object"
+        },
+        "Passage": {
+          "description": "The whole paragraph the hit was found in, as spoken: give it to your own\nmodel as context, with `mediaStart` to cite or play the moment.",
+          "properties": {
+            "mediaEnd": {
+              "format": "double",
+              "type": "number"
+            },
+            "mediaStart": {
+              "format": "double",
+              "type": "number"
+            },
+            "text": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "text",
+            "mediaStart",
+            "mediaEnd"
           ],
           "type": "object"
         },
@@ -9215,6 +9265,129 @@
             "id",
             "name",
             "revoked"
+          ],
+          "type": "object"
+        },
+        "VectorHit": {
+          "properties": {
+            "linkCode": {
+              "description": "The link that opens the hit: the code of the broadcast it was found\nthrough when a listener searched broadcasts, otherwise its\ntranscription's own.",
+              "type": "string"
+            },
+            "linkName": {
+              "description": "The name of what `linkCode` opens.",
+              "type": "string"
+            },
+            "live": {
+              "type": "boolean"
+            },
+            "mediaStart": {
+              "format": "double",
+              "type": "number"
+            },
+            "passage": {
+              "$ref": "#/components/schemas/Passage"
+            },
+            "recordedAt": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "recordingId": {
+              "type": "string"
+            },
+            "rendered": {
+              "description": "In the requested `lang`, when it differs and could be rendered.",
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "score": {
+              "format": "double",
+              "type": "number"
+            },
+            "sentenceId": {
+              "format": "int64",
+              "type": "integer"
+            },
+            "shareCode": {
+              "description": "The code of the transcription's newest live share link: pass it to `@vocalstack/player` as `id`, with `mediaStart` as `startAt` to play from the hit. Absent when it has none.",
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "similarity": {
+              "description": "How close the paragraph is to the query in meaning, 0 to 1.",
+              "format": "double",
+              "type": "number"
+            },
+            "speaker": {
+              "format": "int32",
+              "type": "integer"
+            },
+            "text": {
+              "description": "As spoken.",
+              "type": "string"
+            },
+            "transcriptionId": {
+              "description": "The transcription the recording is in.",
+              "type": "string"
+            },
+            "vector": {
+              "description": "Always `true`: found by meaning, not by its words.",
+              "type": "boolean"
+            },
+            "wallStart": {
+              "format": "double",
+              "type": "number"
+            }
+          },
+          "required": [
+            "recordingId",
+            "transcriptionId",
+            "linkCode",
+            "linkName",
+            "sentenceId",
+            "speaker",
+            "mediaStart",
+            "wallStart",
+            "text",
+            "score",
+            "live",
+            "vector",
+            "similarity",
+            "passage"
+          ],
+          "type": "object"
+        },
+        "VectorResults": {
+          "properties": {
+            "allowance": {
+              "$ref": "#/components/schemas/Allowance",
+              "description": "The plan's vector searches this hour: `limit` and `remaining` are\n`null` on a plan with no limit."
+            },
+            "hits": {
+              "items": {
+                "$ref": "#/components/schemas/VectorHit"
+              },
+              "type": "array"
+            },
+            "query": {
+              "type": "string"
+            },
+            "state": {
+              "description": "`ready`; `off` where vector search is not set up; `unavailable` when\nthe search could not run just now (try again); `limited` on the\nDashboard once the plan's hour is used (the API answers\n`rate_limited` instead).",
+              "type": "string"
+            }
+          },
+          "required": [
+            "query",
+            "state",
+            "hits",
+            "allowance"
           ],
           "type": "object"
         },
@@ -16842,6 +17015,167 @@
             "rate_limited"
           ],
           "x-vocalstack-auth": "optional",
+          "x-vocalstack-scopes": [
+            "read"
+          ]
+        }
+      },
+      "/v1/search/vector": {
+        "get": {
+          "description": "Vector search over the caller's own transcriptions: finds the paragraphs closest in meaning to `q`, in any language, even when they share none of its words. Up to 10 hits, closest first, each with the line that best matches (`sentenceId`, `mediaStart`, `text`, as on `search.query`), its `similarity` (0 to 1) and the whole paragraph as `passage`, ready to give your own model as context (retrieval for RAG). A live transcription is searchable by meaning once it finishes. The filters mean what they mean on `search.query`. On a plan with a limit (`Limits.vectorSearchesPerHour`; Pay as you go 60 an hour, the Dashboard's searches included), every response carries `X-Vector-Search-Limit`, `X-Vector-Search-Remaining` and `X-Vector-Search-Reset` (seconds; apart from the per-minute `RateLimit-*` every response carries), and `allowance` says the same; a search the account repeated within the hour is not counted. Past the limit the answer is `rate_limited` with `Retry-After` and `data.details` `{ metric: \"vector_search\", limit, resetsAt, retryAfterS }`. `state` is `off` where vector search is not set up and `unavailable` when it could not run just now (try again).",
+          "operationId": "search.vector",
+          "parameters": [
+            {
+              "in": "query",
+              "name": "q",
+              "required": true,
+              "schema": {
+                "type": "string"
+              }
+            },
+            {
+              "in": "query",
+              "name": "recording",
+              "schema": {
+                "type": "string"
+              }
+            },
+            {
+              "description": "Only this transcription (id), among the caller's own.",
+              "in": "query",
+              "name": "transcription",
+              "schema": {
+                "type": "string"
+              }
+            },
+            {
+              "description": "As on `search.query`.",
+              "in": "query",
+              "name": "site",
+              "schema": {
+                "type": "string"
+              }
+            },
+            {
+              "description": "As on `search.query`.",
+              "in": "query",
+              "name": "language",
+              "schema": {
+                "type": "string"
+              }
+            },
+            {
+              "description": "As on `search.query`.",
+              "in": "query",
+              "name": "kind",
+              "schema": {
+                "enum": [
+                  "file",
+                  "link",
+                  "live"
+                ],
+                "type": "string"
+              }
+            },
+            {
+              "description": "As on `search.query`.",
+              "in": "query",
+              "name": "origin",
+              "schema": {
+                "enum": [
+                  "dashboard",
+                  "api",
+                  "extension",
+                  "desktop_app",
+                  "obs",
+                  "wordpress",
+                  "payload",
+                  "strapi",
+                  "sanity",
+                  "contentful",
+                  "mcp",
+                  "batch_api",
+                  "broadcast",
+                  "unknown"
+                ],
+                "type": "string"
+              }
+            },
+            {
+              "description": "As on `search.query`.",
+              "in": "query",
+              "name": "tag",
+              "schema": {
+                "type": "string"
+              }
+            },
+            {
+              "description": "As on `search.query`.",
+              "in": "query",
+              "name": "createdAfter",
+              "schema": {
+                "type": "string"
+              }
+            },
+            {
+              "description": "As on `search.query`.",
+              "in": "query",
+              "name": "createdBefore",
+              "schema": {
+                "type": "string"
+              }
+            },
+            {
+              "description": "As on `search.query`.",
+              "in": "query",
+              "name": "shared",
+              "schema": {
+                "type": "boolean"
+              }
+            }
+          ],
+          "responses": {
+            "200": {
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "$ref": "#/components/schemas/VectorResults"
+                  }
+                }
+              },
+              "description": "OK",
+              "headers": {
+                "RateLimit-Limit": {
+                  "$ref": "#/components/headers/RateLimit-Limit"
+                },
+                "RateLimit-Remaining": {
+                  "$ref": "#/components/headers/RateLimit-Remaining"
+                },
+                "RateLimit-Reset": {
+                  "$ref": "#/components/headers/RateLimit-Reset"
+                },
+                "X-Request-Id": {
+                  "$ref": "#/components/headers/X-Request-Id"
+                }
+              }
+            },
+            "429": {
+              "$ref": "#/components/responses/RateLimited"
+            },
+            "503": {
+              "$ref": "#/components/responses/Unavailable"
+            }
+          },
+          "summary": "Search transcripts by meaning",
+          "tags": [
+            "search"
+          ],
+          "x-errors": [
+            "invalid_options",
+            "rate_limited",
+            "unauthorized"
+          ],
+          "x-vocalstack-auth": "userOrKey",
           "x-vocalstack-scopes": [
             "read"
           ]

@@ -54,6 +54,7 @@ import type {
   RetranscribeLine,
   RtmpStatus,
   SearchResults,
+  VectorResults,
   SettingsPatch,
   ShareLink,
   SharedTranscript,
@@ -736,7 +737,18 @@ export class Search {
     };
     return this.#t.json('GET', '/v1/search', { query });
   }
+  vector(q: string, opts: VectorSearchOptions = {}): Promise<VectorResults> {
+    const query: Query = {
+      ...filterQuery({ site: opts.site, language: opts.language, kind: opts.kind, origin: opts.origin, tag: opts.tag, createdAfter: opts.createdAfter, createdBefore: opts.createdBefore, shared: opts.shared }),
+      q,
+      recording: opts.recording,
+      transcription: opts.transcription,
+    };
+    return this.#t.json('GET', '/v1/search/vector', { query });
+  }
 }
+
+export type VectorSearchOptions = Omit<SearchOptions, 'broadcasts' | 'listenerTokens' | 'lang' | 'limit'>;
 
 export interface Me {
   userId?: string | null;

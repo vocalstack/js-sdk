@@ -22,6 +22,7 @@ One line per change, naming the operation (`METHOD /path`, its
 
 ### Vector search and assistant limits (2026-11-06, still `1.0.0-alpha.0`)
 
+- **Added**: `GET /v1/search/vector` (`search.vector`): vector search over the caller's own transcriptions, by meaning and across languages. Up to 10 `VectorHit`s, each a `SearchHit` with `vector: true`, `similarity` (0 to 1) and `passage` (`text`, `mediaStart`, `mediaEnd`: the whole paragraph, as context for your own model). `VectorResults.state` (`ready`, `off`, `unavailable`) and `allowance` (`limit`, `remaining`, `resetsAt`; `null` with no limit). On a plan with `Limits.vectorSearchesPerHour`, `X-Vector-Search-Limit`, `X-Vector-Search-Remaining` and `X-Vector-Search-Reset`, and past it `rate_limited` with `data.details.metric` `vector_search`. In every SDK as `search.vector`, and as the MCP tool `search_by_meaning`.
 - **Added**: `Limits.vectorSearchesPerHour` (`GET /v1/billing/plans`, the account's plan): vector searches a rolling hour, in the Dashboard and through the API together; a search repeated within the hour is not counted. Pay as you go 60, Premium and Enterprise no limit (`null`).
 - **Added**: `Limits.questionsPerDay`: questions a day (UTC) to the Dashboard assistant. Pay as you go 30, Premium and Enterprise no limit (`null`).
 

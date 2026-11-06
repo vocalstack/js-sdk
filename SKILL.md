@@ -179,6 +179,16 @@ for (const h of hits) {
 }
 ```
 
+By meaning, in any language, even with none of the words (vector search). Each
+hit's `passage` is its whole paragraph: give the passages to your own model as
+context to answer questions about what was said (RAG). Pay as you go counts 60
+an hour (`allowance`); Premium and Enterprise have no limit.
+
+```js
+const { hits: found } = await vs.search.vector('how much does housing cost');
+for (const h of found) console.log(h.similarity.toFixed(2), h.passage.mediaStart, h.passage.text);
+```
+
 ## 6. A batch of files
 
 Many files at once cost less as a batch: one create, one minimum charge for

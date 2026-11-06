@@ -17,6 +17,13 @@ export const ActorSchema = z.object({
 });
 export type Actor = z.infer<typeof ActorSchema>;
 
+export const AllowanceSchema = z.object({
+  "limit": z.union([z.number().int(), z.null()]).optional(),
+  "remaining": z.union([z.number().int(), z.null()]).optional(),
+  "resetsAt": z.union([z.string(), z.null()]).optional(),
+});
+export type Allowance = z.infer<typeof AllowanceSchema>;
+
 export const WordAltSchema = z.object({
   "prob": z.number(),
   "text": z.string(),
@@ -1148,6 +1155,13 @@ export const NameSpeakerSchema = z.object({
 });
 export type NameSpeaker = z.infer<typeof NameSpeakerSchema>;
 
+export const PassageSchema = z.object({
+  "mediaEnd": z.number(),
+  "mediaStart": z.number(),
+  "text": z.string(),
+});
+export type Passage = z.infer<typeof PassageSchema>;
+
 export const PatchVoiceSchema = z.object({
   "color": z.union([z.string(), z.null()]).optional(),
   "consent": z.union([z.boolean(), z.null()]).optional(),
@@ -1964,6 +1978,35 @@ export const UsageReportSchema = z.object({
   "tz": z.string(),
 });
 export type UsageReport = z.infer<typeof UsageReportSchema>;
+
+export const VectorHitSchema = z.object({
+  "linkCode": z.string(),
+  "linkName": z.string(),
+  "live": z.boolean(),
+  "mediaStart": z.number(),
+  "passage": PassageSchema,
+  "recordedAt": z.union([z.string(), z.null()]).optional(),
+  "recordingId": z.string(),
+  "rendered": z.union([z.string(), z.null()]).optional(),
+  "score": z.number(),
+  "sentenceId": z.number().int(),
+  "shareCode": z.union([z.string(), z.null()]).optional(),
+  "similarity": z.number(),
+  "speaker": z.number().int(),
+  "text": z.string(),
+  "transcriptionId": z.string(),
+  "vector": z.boolean(),
+  "wallStart": z.number(),
+});
+export type VectorHit = z.infer<typeof VectorHitSchema>;
+
+export const VectorResultsSchema = z.object({
+  "allowance": AllowanceSchema,
+  "hits": z.array(VectorHitSchema),
+  "query": z.string(),
+  "state": z.string(),
+});
+export type VectorResults = z.infer<typeof VectorResultsSchema>;
 
 export const VoiceSchema = z.object({
   "archivedAt": z.union([z.string(), z.null()]).optional(),
