@@ -8532,6 +8532,11 @@
               "description": "Captured live (a microphone or a stream) rather than read from a\nfile or a link: it has recordings to start and stop, no job, and\ncan feed broadcasts.",
               "type": "boolean"
             },
+            "locked": {
+              "default": false,
+              "description": "Locked by its owner (`transcriptions.update` with `locked`):\narchiving it, and so purging it, is refused until it is unlocked.",
+              "type": "boolean"
+            },
             "name": {
               "type": "string"
             },
@@ -8927,6 +8932,14 @@
           "additionalProperties": false,
           "description": "`PATCH /v1/transcriptions/{id}`: fields left out are unchanged. A\ntranscription is shared through its share links, so it has no access,\npassword or link to change here.",
           "properties": {
+            "locked": {
+              "default": null,
+              "description": "`true` locks it: it cannot be archived (nor so purged) until it is\nunlocked with `false`.",
+              "type": [
+                "boolean",
+                "null"
+              ]
+            },
             "name": {
               "default": null,
               "type": [

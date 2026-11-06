@@ -350,6 +350,7 @@ export const TranscriptionSchema = z.object({
   "lastRecording": z.union([LastRecordingSchema, z.null()]).optional(),
   "lifecycle": LifecycleSchema,
   "live": z.boolean().optional(),
+  "locked": z.boolean().optional(),
   "name": z.string(),
   "origin": z.enum(['dashboard', 'api', 'extension', 'desktop_app', 'obs', 'wordpress', 'payload', 'strapi', 'sanity', 'contentful', 'mcp', 'batch_api', 'broadcast', 'unknown']),
   "ownerPrincipalId": z.string(),
@@ -1898,6 +1899,7 @@ export const UpdateTagSchema = z.object({
 export type UpdateTag = z.infer<typeof UpdateTagSchema>;
 
 export const UpdateTranscriptionSchema = z.object({
+  "locked": z.union([z.boolean(), z.null()]).optional(),
   "name": z.union([z.string(), z.null()]).optional(),
   "settings": z.union([SettingsPatchSchema, z.null()]).optional(),
 });

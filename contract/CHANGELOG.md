@@ -20,6 +20,11 @@ One line per change, naming the operation (`METHOD /path`, its
 
 ## [Unreleased]
 
+### Locked transcriptions (2026-11-06, still `1.0.0-alpha.0`)
+
+- **Added**: `PATCH /v1/transcriptions/{id}` (`transcriptions.update`) takes `locked`: `true` locks the transcription, `false` unlocks it.
+- **Added**: `Transcription.locked`. While it is `true`, `POST /v1/transcriptions/{id}/archive` (`transcriptions.archive`), `POST /v1/transcriptions/{id}/purge` (`transcriptions.purge`), the bulk `POST /v1/transcriptions/archive` and `/purge`, and archiving or purging one of its recordings answer `invalid_state`.
+
 ### Cloned or synthetic voices (2026-11-05, still `1.0.0-alpha.0`)
 
 - **Added**: `POST /v1/recordings/{id}/voice` (`recordings.renderVoice`) takes `voices`: `cloned` reads each speaker in their own cloned voice where one can be used and in a stock voice of their gender otherwise; `synthetic` reads every speaker in a distinct stock voice. Not with `voice` or `voiceBySpeaker` (`invalid_options`).
