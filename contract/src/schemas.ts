@@ -429,11 +429,13 @@ export const Limits2Schema = z.object({
   "filesPerBatch": z.union([z.number().int(), z.null()]).optional(),
   "maxFileBytes": z.union([z.number().int(), z.null()]).optional(),
   "maxLiveSeconds": z.union([z.number().int(), z.null()]).optional(),
+  "questionsPerDay": z.union([z.number().int(), z.null()]).optional(),
   "requestsPerMin": z.union([z.number().int(), z.null()]).optional(),
   "retentionAudioDays": z.union([z.number().int(), z.null()]).optional(),
   "retentionTranscriptionsDays": z.union([z.number().int(), z.null()]).optional(),
   "retentionVideoDays": z.union([z.number().int(), z.null()]).optional(),
   "retentionVoicesDays": z.union([z.number().int(), z.null()]).optional(),
+  "vectorSearchesPerHour": z.union([z.number().int(), z.null()]).optional(),
 });
 export type Limits2 = z.infer<typeof Limits2Schema>;
 

@@ -3495,6 +3495,15 @@
                 "null"
               ]
             },
+            "questionsPerDay": {
+              "default": null,
+              "description": "Questions a day (UTC) to the Dashboard assistant, about\ntranscriptions or about VocalStack.  None: no limit.",
+              "format": "int32",
+              "type": [
+                "integer",
+                "null"
+              ]
+            },
             "requestsPerMin": {
               "description": "API requests a minute across the account's keys.",
               "format": "int32",
@@ -3530,6 +3539,15 @@
             },
             "retentionVoicesDays": {
               "description": "Days a voice is kept.",
+              "format": "int32",
+              "type": [
+                "integer",
+                "null"
+              ]
+            },
+            "vectorSearchesPerHour": {
+              "default": null,
+              "description": "Vector searches a rolling hour, in the Dashboard and through the API\ntogether; a search the account repeated within the hour is not\ncounted.  None: no limit.",
               "format": "int32",
               "type": [
                 "integer",

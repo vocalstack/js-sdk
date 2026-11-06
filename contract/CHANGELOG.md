@@ -20,6 +20,11 @@ One line per change, naming the operation (`METHOD /path`, its
 
 ## [Unreleased]
 
+### Vector search and assistant limits (2026-11-06, still `1.0.0-alpha.0`)
+
+- **Added**: `Limits.vectorSearchesPerHour` (`GET /v1/billing/plans`, the account's plan): vector searches a rolling hour, in the Dashboard and through the API together; a search repeated within the hour is not counted. Pay as you go 60, Premium and Enterprise no limit (`null`).
+- **Added**: `Limits.questionsPerDay`: questions a day (UTC) to the Dashboard assistant. Pay as you go 30, Premium and Enterprise no limit (`null`).
+
 ### Locked transcriptions (2026-11-06, still `1.0.0-alpha.0`)
 
 - **Added**: `PATCH /v1/transcriptions/{id}` (`transcriptions.update`) takes `locked`: `true` locks the transcription, `false` unlocks it.
