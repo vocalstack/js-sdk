@@ -223,7 +223,7 @@ try {
 - The other groups: `vs.transcriptions` (`list`, `get`, `update`, `archive`,
   `restore`, `purge`, `listShareLinks`, `createShareLink`), `vs.recordings`
   (`get`, `summarize`, `summary`, `translation`, `audioUrl`, `subscribe` for a
-  live transcript feed), `vs.corrections`, `vs.shareLinks`, `vs.voices`,
+  live transcript feed), `vs.corrections`, `vs.shareLinks`, `vs.speakers`, `vs.voices`,
   `vs.broadcasts`, `vs.me` (`get`, `usage`), `vs.languages`,
   `vs.rtmp`, `vs.events`, `vs.meta`. Each method is named after its operation
   in the OpenAPI document (`transcriptions.create` is `POST /v1/transcriptions`).

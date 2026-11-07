@@ -63,3 +63,21 @@ test('transcriptions.lookup asks by link and gives null when there is none', asy
   assert.equal(calls[0].url, 'https://api.test/v1/transcriptions/lookup?url=https%3A%2F%2Fyoutu.be%2FdQw4w9WgXcQ%3Ft%3D3');
   assert.equal(calls[0].headers.authorization, 'Bearer session');
 });
+
+test('speakers.create and createFromAppearance send consent only when the caller gives it', async () => {
+  const { fetch, calls } = fakeFetch({ id: 'spk-1' });
+  const vs = new VocalStack({ baseUrl: 'https://api.test', fetch });
+  await vs.speakers.create({ name: 'Ana', sample: new Uint8Array([1, 2, 3]) });
+  assert.equal(calls[0].url, 'https://api.test/v1/speakers');
+  assert.deepEqual(JSON.parse(calls[0].body.get('meta')), { name: 'Ana' });
+  assert.ok(calls[0].body.get('sample'));
+  await vs.speakers.create({ name: 'Ana', consent: true });
+  assert.deepEqual(JSON.parse(calls[1].body.get('meta')), { name: 'Ana', consent: true });
+  await vs.speakers.createFromAppearance({ transcriptionId: 'tx-1', appearance: 2, name: 'Ana' });
+  assert.equal(calls[2].url, 'https://api.test/v1/speakers/from-appearance');
+  assert.deepEqual(JSON.parse(calls[2].body), { transcriptionId: 'tx-1', appearance: 2, name: 'Ana' });
+  await vs.transcriptions.nameAppearance('tx-1', 2, 'Host');
+  assert.equal(calls[3].url, 'https://api.test/v1/transcriptions/tx-1/appearances/2');
+  assert.equal(calls[3].method, 'PUT');
+  assert.deepEqual(JSON.parse(calls[3].body), { name: 'Host' });
+});

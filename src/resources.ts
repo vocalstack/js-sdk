@@ -31,7 +31,8 @@ import type {
   CreateShareLink,
   CreateTag,
   CreateTranscription,
-  CreateVoiceFromSpeaker,
+  CreateSpeaker,
+  CreateSpeakerFromAppearance,
   CreatedAppStreamKey,
   ChargePage,
   ExportFormat,
@@ -41,7 +42,7 @@ import type {
   LanguageLists,
   LedgerPage,
   LinkProbe,
-  PatchVoice,
+  PatchSpeaker,
   PlanList,
   PublishGrant,
   Recording,
@@ -70,7 +71,7 @@ import type {
   UpdateTranscription,
   UpdateShareLink,
   UploadRecording,
-  Voice,
+  Speaker,
   VoiceCatalogue,
   VoiceTrack,
   ManyResult,
@@ -269,6 +270,9 @@ export class Transcriptions extends ParentResource<Transcription, UpdateTranscri
   detachBroadcast(id: string, broadcastId: string): Promise<Transcription> {
     return this.t.json('DELETE', this.p(id, `/broadcasts/${seg(broadcastId)}`));
   }
+  async nameAppearance(id: string, appearance: number, name: string | null): Promise<void> {
+    await this.t.json('PUT', this.p(id, `/appearances/${seg(appearance)}`), { body: { name } });
+  }
 }
 
 export class Recordings {
@@ -396,9 +400,6 @@ export class Recordings {
   }
   mediaToken(id: string): Promise<{ token: string; expiresAt: string }> {
     return this.#t.json('GET', this.#p(id, '/media-token'));
-  }
-  async nameSpeaker(id: string, speaker: number, name: string | null): Promise<void> {
-    await this.#t.json('PUT', this.#p(id, `/speakers/${seg(speaker)}`), { body: { name } });
   }
   events(id: string, opts: { after?: number; limit?: number } = {}): Promise<RecordingEvent[]> {
     return allPages(async (cursor) => {
@@ -564,57 +565,71 @@ export class Tags {
   }
 }
 
-export class Voices {
+export class Speakers {
   readonly #t: Transport;
   constructor(t: Transport) {
     this.#t = t;
   }
-  async list(opts: { lifecycle?: 'active' | 'archived' } = {}): Promise<Voice[]> {
-    const r = await this.#t.json<{ voices?: Voice[] }>('GET', '/v1/voices', { query: { lifecycle: opts.lifecycle } });
-    return r.voices ?? [];
+  async list(opts: { lifecycle?: 'active' | 'archived' } = {}): Promise<Speaker[]> {
+    const r = await this.#t.json<{ speakers?: Speaker[] }>('GET', '/v1/speakers', { query: { lifecycle: opts.lifecycle } });
+    return r.speakers ?? [];
   }
-  get(id: string): Promise<Voice> {
-    return this.#t.json('GET', `/v1/voices/${seg(id)}`);
+  get(id: string): Promise<Speaker> {
+    return this.#t.json('GET', `/v1/speakers/${seg(id)}`);
   }
-  archive(id: string): Promise<Voice> {
-    return this.#t.json('POST', `/v1/voices/${seg(id)}/archive`);
+  archive(id: string): Promise<Speaker> {
+    return this.#t.json('POST', `/v1/speakers/${seg(id)}/archive`);
   }
-  restore(id: string): Promise<Voice> {
-    return this.#t.json('POST', `/v1/voices/${seg(id)}/restore`);
+  restore(id: string): Promise<Speaker> {
+    return this.#t.json('POST', `/v1/speakers/${seg(id)}/restore`);
   }
   archiveMany(ids: string[]): Promise<ManyResult> {
-    return this.#t.json('POST', '/v1/voices/archive', { body: { ids } });
+    return this.#t.json('POST', '/v1/speakers/archive', { body: { ids } });
   }
   restoreMany(ids: string[]): Promise<ManyResult> {
-    return this.#t.json('POST', '/v1/voices/restore', { body: { ids } });
+    return this.#t.json('POST', '/v1/speakers/restore', { body: { ids } });
   }
   deleteMany(ids: string[]): Promise<ManyResult> {
-    return this.#t.json('POST', '/v1/voices/delete', { body: { ids } });
+    return this.#t.json('POST', '/v1/speakers/delete', { body: { ids } });
   }
-  async create(
-    req: { name: string; sample?: Upload; sampleUrl?: string; fileName?: string; gender?: 'male' | 'female'; color?: string; draft?: boolean },
-    call: CallOptions = {},
-  ): Promise<Voice> {
+  async create(req: CreateSpeaker & { sample?: Upload; fileName?: string }, call: CallOptions = {}): Promise<Speaker> {
     const { sample, fileName, ...meta } = req;
     const form = new FormData();
-    form.append('meta', JSON.stringify({ consent: !meta.draft, ...meta }));
+    form.append('meta', JSON.stringify(meta));
     if (sample !== undefined) {
       const { blob, name } = await toBlob(sample);
       form.append('sample', blob, fileName ?? name ?? 'sample.webm');
     }
-    return this.#t.json('POST', '/v1/voices', { body: form, ...call });
+    return this.#t.json('POST', '/v1/speakers', { body: form, ...call });
   }
-  createFromSpeaker(req: Omit<CreateVoiceFromSpeaker, 'consent'>, call: CallOptions = {}): Promise<Voice> {
-    return this.#t.json('POST', '/v1/voices/from-speaker', { body: { consent: true, ...req }, ...call });
+  createFromAppearance(req: CreateSpeakerFromAppearance, call: CallOptions = {}): Promise<Speaker> {
+    return this.#t.json('POST', '/v1/speakers/from-appearance', { body: req, ...call });
   }
-  setConsent(id: string, consent: 'granted' | 'refused', opts: { name?: string } = {}): Promise<Voice> {
-    return this.#t.json('POST', `/v1/voices/${seg(id)}/consent`, { body: { consent, ...opts } });
+  setConsent(id: string, consent: 'granted' | 'refused', opts: { name?: string } = {}): Promise<Speaker> {
+    return this.#t.json('POST', `/v1/speakers/${seg(id)}/consent`, { body: { consent, ...opts } });
   }
-  update(id: string, patch: PatchVoice): Promise<Voice> {
-    return this.#t.json('PATCH', `/v1/voices/${seg(id)}`, { body: patch });
+  update(id: string, patch: PatchSpeaker): Promise<Speaker> {
+    return this.#t.json('PATCH', `/v1/speakers/${seg(id)}`, { body: patch });
   }
   async delete(id: string): Promise<void> {
-    await this.#t.json('DELETE', `/v1/voices/${seg(id)}`);
+    await this.#t.json('DELETE', `/v1/speakers/${seg(id)}`);
+  }
+  voicePreview(id: string, opts: { lang?: string; format?: 'ogg' | 'caf'; recording?: string; asOwner?: boolean } & ReadAs = {}): Promise<Response> {
+    return this.#t.raw('GET', `/v1/speakers/${seg(id)}/preview`, {
+      headers: { accept: '*/*' },
+      query: { ...listenerQuery(opts), lang: opts.lang, format: opts.format, recording: opts.recording },
+      anonymous: opts.asOwner === false,
+    });
+  }
+  sample(id: string): Promise<Response> {
+    return this.#t.raw('GET', `/v1/speakers/${seg(id)}/sample`, { headers: { accept: '*/*' } });
+  }
+}
+
+export class Voices {
+  readonly #t: Transport;
+  constructor(t: Transport) {
+    this.#t = t;
   }
   available(lang: string, opts: { recording?: string; asOwner?: boolean } & ReadAs = {}): Promise<VoiceCatalogue> {
     return this.#t.json('GET', '/v1/voices/available', {
@@ -624,16 +639,6 @@ export class Voices {
   }
   preview(voice: string, lang: string, opts: { format?: 'ogg' | 'caf' } = {}): Promise<Response> {
     return this.#t.raw('GET', '/v1/voices/preview', { headers: { accept: '*/*' }, query: { voice, lang, format: opts.format } });
-  }
-  clonePreview(id: string, opts: { lang?: string; format?: 'ogg' | 'caf'; recording?: string; asOwner?: boolean } & ReadAs = {}): Promise<Response> {
-    return this.#t.raw('GET', `/v1/voices/${seg(id)}/preview`, {
-      headers: { accept: '*/*' },
-      query: { ...listenerQuery(opts), lang: opts.lang, format: opts.format, recording: opts.recording },
-      anonymous: opts.asOwner === false,
-    });
-  }
-  sample(id: string): Promise<Response> {
-    return this.#t.raw('GET', `/v1/voices/${seg(id)}/sample`, { headers: { accept: '*/*' } });
   }
 }
 

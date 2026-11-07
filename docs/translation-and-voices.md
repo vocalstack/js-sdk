@@ -22,7 +22,7 @@ A realtime session (and every recording, for its listeners) can translate what i
 
 ## 1. Pick the languages
 
-`GET /v1/languages` lists what can be transcribed (`transcription`), translated into (`translation`) and spoken (`voice`), with names. `GET /v1/voices/available?lang=es` lists the voices that speak a language, best first; `default` marks the one used when none is named, and with a key your own cloned voices are there too.
+`GET /v1/languages` lists what can be transcribed (`transcription`), translated into (`translation`) and spoken (`voice`), with names. `GET /v1/voices/available?lang=es` lists the voices that speak a language, best first; `default` marks the one used when none is named, and with a key the cloned voices of your saved speakers are there too.
 
 ## 2. Ask for translations
 

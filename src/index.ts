@@ -14,6 +14,7 @@ import {
   Rtmp,
   Search,
   ShareLinks,
+  Speakers,
   Tags,
   Transcriptions,
   Voices,
@@ -44,6 +45,7 @@ export {
   Rtmp,
   Search,
   ShareLinks,
+  Speakers,
   Tags,
   Transcriptions,
   Voices,
@@ -65,6 +67,7 @@ export class VocalStack {
   readonly corrections: Corrections;
   readonly shareLinks: ShareLinks;
   readonly tags: Tags;
+  readonly speakers: Speakers;
   readonly voices: Voices;
   readonly search: Search;
   readonly me: MeApi;
@@ -86,6 +89,7 @@ export class VocalStack {
     this.corrections = new Corrections(t);
     this.shareLinks = new ShareLinks(t);
     this.tags = new Tags(t);
+    this.speakers = new Speakers(t);
     this.voices = new Voices(t);
     this.search = new Search(t);
     this.me = new MeApi(t);

@@ -76,6 +76,27 @@ export const AppStreamKeySchema = z.object({
 });
 export type AppStreamKey = z.infer<typeof AppStreamKeySchema>;
 
+export const CloneRefSchema = z.object({
+  "id": z.string(),
+});
+export type CloneRef = z.infer<typeof CloneRefSchema>;
+
+export const AppearanceViewSchema = z.object({
+  "gender": z.union([z.string(), z.null()]).optional(),
+  "genderConfidence": z.union([z.number(), z.null()]).optional(),
+  "identified": z.boolean().optional(),
+  "identifiedConfidence": z.union([z.number(), z.null()]).optional(),
+  "name": z.string(),
+  "number": z.union([z.number().int(), z.null()]).optional(),
+  "returning": z.boolean().optional(),
+  "speaker": z.number().int(),
+  "speakerColor": z.union([z.string(), z.null()]).optional(),
+  "speakerId": z.union([z.string(), z.null()]).optional(),
+  "speechS": z.union([z.number(), z.null()]).optional(),
+  "voice": z.union([CloneRefSchema, z.null()]).optional(),
+});
+export type AppearanceView = z.infer<typeof AppearanceViewSchema>;
+
 export const AudioEncodingSchema = z.enum(['pcm_f32le']);
 export type AudioEncoding = z.infer<typeof AudioEncodingSchema>;
 
@@ -212,9 +233,9 @@ export const Limits2Schema = z.object({
   "questionsPerDay": z.union([z.number().int(), z.null()]).optional(),
   "requestsPerMin": z.union([z.number().int(), z.null()]).optional(),
   "retentionAudioDays": z.union([z.number().int(), z.null()]).optional(),
+  "retentionSpeakersDays": z.union([z.number().int(), z.null()]).optional(),
   "retentionTranscriptionsDays": z.union([z.number().int(), z.null()]).optional(),
   "retentionVideoDays": z.union([z.number().int(), z.null()]).optional(),
-  "retentionVoicesDays": z.union([z.number().int(), z.null()]).optional(),
   "vectorSearchesPerHour": z.union([z.number().int(), z.null()]).optional(),
 });
 export type Limits2 = z.infer<typeof Limits2Schema>;
@@ -602,6 +623,20 @@ export const ClientPolicySchema = z.object({
 });
 export type ClientPolicy = z.infer<typeof ClientPolicySchema>;
 
+export const CloneSchema = z.object({
+  "disabledAt": z.union([z.string(), z.null()]).optional(),
+  "enabled": z.boolean(),
+  "error": z.union([z.string(), z.null()]).optional(),
+  "id": z.string(),
+  "previewUrl": z.union([z.string(), z.null()]).optional(),
+  "progress": z.number().int(),
+  "sampleS": z.number(),
+  "speechS": z.number().optional(),
+  "state": z.string(),
+  "uses": z.number().int(),
+});
+export type Clone = z.infer<typeof CloneSchema>;
+
 export const DecoderSchema = z.union([z.literal("fast"), z.literal("accuracy")]);
 export type Decoder = z.infer<typeof DecoderSchema>;
 
@@ -732,6 +767,35 @@ export const CreateShareLinkSchema = z.object({
 });
 export type CreateShareLink = z.infer<typeof CreateShareLinkSchema>;
 
+export const CreateSpeakerSchema = z.object({
+  "color": z.union([z.string(), z.null()]).optional(),
+  "consent": z.boolean().optional(),
+  "draft": z.boolean().optional(),
+  "gender": z.union([z.string(), z.null()]).optional(),
+  "name": z.string(),
+  "sampleUrl": z.union([z.string(), z.null()]).optional(),
+});
+export type CreateSpeaker = z.infer<typeof CreateSpeakerSchema>;
+
+export const SampleSpanSchema = z.object({
+  "end": z.number(),
+  "start": z.number(),
+});
+export type SampleSpan = z.infer<typeof SampleSpanSchema>;
+
+export const CreateSpeakerFromAppearanceSchema = z.object({
+  "appearance": z.number().int(),
+  "color": z.union([z.string(), z.null()]).optional(),
+  "consent": z.boolean().optional(),
+  "draft": z.boolean().optional(),
+  "library": z.boolean().optional(),
+  "name": z.string(),
+  "recordingId": z.union([z.string(), z.null()]).optional(),
+  "spans": z.union([z.array(SampleSpanSchema), z.null()]).optional(),
+  "transcriptionId": z.string(),
+});
+export type CreateSpeakerFromAppearance = z.infer<typeof CreateSpeakerFromAppearanceSchema>;
+
 export const CreateTagSchema = z.object({
   "color": z.enum(['coral', 'amber', 'lime', 'green', 'teal', 'blue', 'violet', 'pink']).optional(),
   "name": z.string(),
@@ -767,34 +831,6 @@ export const CreateTranscriptionSchema = z.object({
   "url": z.union([z.string(), z.null()]).optional(),
 });
 export type CreateTranscription = z.infer<typeof CreateTranscriptionSchema>;
-
-export const CreateVoiceSchema = z.object({
-  "color": z.union([z.string(), z.null()]).optional(),
-  "consent": z.boolean().optional(),
-  "draft": z.boolean().optional(),
-  "gender": z.union([z.string(), z.null()]).optional(),
-  "name": z.string(),
-  "sampleUrl": z.union([z.string(), z.null()]).optional(),
-});
-export type CreateVoice = z.infer<typeof CreateVoiceSchema>;
-
-export const SampleSpanSchema = z.object({
-  "end": z.number(),
-  "start": z.number(),
-});
-export type SampleSpan = z.infer<typeof SampleSpanSchema>;
-
-export const CreateVoiceFromSpeakerSchema = z.object({
-  "color": z.union([z.string(), z.null()]).optional(),
-  "consent": z.boolean().optional(),
-  "draft": z.boolean().optional(),
-  "library": z.boolean().optional(),
-  "name": z.string(),
-  "recordingId": z.string(),
-  "spans": z.union([z.array(SampleSpanSchema), z.null()]).optional(),
-  "speaker": z.number().int(),
-});
-export type CreateVoiceFromSpeaker = z.infer<typeof CreateVoiceFromSpeakerSchema>;
 
 export const CreatedAppStreamKeySchema = z.object({
   "createdAt": z.string(),
@@ -893,12 +929,12 @@ export type JobQueue = z.infer<typeof JobQueueSchema>;
 export const JobStateSchema = z.union([z.literal("queued"), z.literal("fetching"), z.literal("transcribing"), z.literal("done"), z.literal("failed"), z.literal("cropping"), z.literal("stopped")]);
 export type JobState = z.infer<typeof JobStateSchema>;
 
-export const KnownVoiceSchema = z.object({
+export const KnownSpeakerSchema = z.object({
   "color": z.union([z.string(), z.null()]).optional(),
   "id": z.string(),
   "name": z.string(),
 });
-export type KnownVoice = z.infer<typeof KnownVoiceSchema>;
+export type KnownSpeaker = z.infer<typeof KnownSpeakerSchema>;
 
 export const LanguageInfoSchema = z.object({
   "code": z.string(),
@@ -1038,7 +1074,7 @@ export const PassageSchema = z.object({
 });
 export type Passage = z.infer<typeof PassageSchema>;
 
-export const PatchVoiceSchema = z.object({
+export const PatchSpeakerSchema = z.object({
   "color": z.union([z.string(), z.null()]).optional(),
   "consent": z.union([z.boolean(), z.null()]).optional(),
   "draft": z.union([z.boolean(), z.null()]).optional(),
@@ -1047,7 +1083,7 @@ export const PatchVoiceSchema = z.object({
   "library": z.union([z.boolean(), z.null()]).optional(),
   "name": z.union([z.string(), z.null()]).optional(),
 });
-export type PatchVoice = z.infer<typeof PatchVoiceSchema>;
+export type PatchSpeaker = z.infer<typeof PatchSpeakerSchema>;
 
 export const PaymentSchema = z.object({
   "amount": z.number(),
@@ -1436,9 +1472,9 @@ export const ServerFrameSchema = z.discriminatedUnion('type', [z.object({
   "confidence": z.union([z.number(), z.null()]).optional(),
   "name": z.string(),
   "speaker": z.number().int(),
+  "speakerId": z.union([z.string(), z.null()]).optional(),
   "tone": z.boolean().optional(),
   "type": z.literal("transcript.speakerIdentified"),
-  "voiceId": z.union([z.string(), z.null()]).optional(),
 }), z.object({
   "speakers": z.array(SpeakerNumberSchema),
   "type": z.literal("transcript.speakerNumbers"),
@@ -1533,7 +1569,7 @@ export type ServerFrame = z.infer<typeof ServerFrameSchema>;
 export const SessionOptionsSchema = z.object({
   "audio": AudioFormatSchema.optional(),
   "events": EventOptionsSchema.optional(),
-  "identifyVoices": z.array(KnownVoiceSchema).optional(),
+  "identifySpeakers": z.array(KnownSpeakerSchema).optional(),
   "input": InputOptionsSchema.optional(),
   "latencyMode": LatencyModeSchema.optional(),
   "sentences": SentenceOptionsSchema.optional(),
@@ -1614,20 +1650,22 @@ export const SharedTranscriptSchema = z.object({
 });
 export type SharedTranscript = z.infer<typeof SharedTranscriptSchema>;
 
-export const SpeakerViewSchema = z.object({
+export const SpeakerSchema = z.object({
+  "archivedAt": z.union([z.string(), z.null()]).optional(),
+  "color": z.union([z.string(), z.null()]).optional(),
+  "consent": ConsentSchema,
+  "consentAt": z.union([z.string(), z.null()]).optional(),
+  "createdAt": z.string(),
+  "draft": z.boolean(),
   "gender": z.union([z.string(), z.null()]).optional(),
-  "genderConfidence": z.union([z.number(), z.null()]).optional(),
-  "identified": z.boolean().optional(),
-  "identifiedConfidence": z.union([z.number(), z.null()]).optional(),
+  "id": z.string(),
+  "library": z.boolean().optional(),
   "name": z.string(),
-  "number": z.union([z.number().int(), z.null()]).optional(),
-  "returning": z.boolean().optional(),
-  "speaker": z.number().int(),
-  "speechS": z.union([z.number(), z.null()]).optional(),
-  "voiceColor": z.union([z.string(), z.null()]).optional(),
-  "voiceId": z.union([z.string(), z.null()]).optional(),
+  "recordingId": z.union([z.string(), z.null()]).optional(),
+  "updatedAt": z.string(),
+  "voice": z.union([CloneSchema, z.null()]).optional(),
 });
-export type SpeakerView = z.infer<typeof SpeakerViewSchema>;
+export type Speaker = z.infer<typeof SpeakerSchema>;
 
 export const StartJobSchema = z.object({
   "endS": z.union([z.number(), z.null()]).optional(),
@@ -1706,8 +1744,8 @@ export const SubscriberFrameSchema = z.discriminatedUnion('type', [z.object({
   "confidence": z.union([z.number(), z.null()]).optional(),
   "name": z.string(),
   "speaker": z.number().int(),
+  "speakerId": z.union([z.string(), z.null()]).optional(),
   "type": z.literal("transcript.speakerIdentified"),
-  "voiceId": z.union([z.string(), z.null()]).optional(),
 }), z.object({
   "name": z.union([z.string(), z.null()]).optional(),
   "speaker": z.number().int(),
@@ -1802,7 +1840,7 @@ export const TranscriptSnapshotSchema = z.object({
   "sentences": z.array(SentenceViewSchema),
   "spans": z.array(CaptureSpanSchema),
   "speakerLabels": z.union([SpeakerLabelsSchema, z.null()]).optional(),
-  "speakers": z.array(SpeakerViewSchema),
+  "speakers": z.array(AppearanceViewSchema),
   "state": RecordingStateSchema,
   "translationPending": z.boolean().optional(),
 });
@@ -1966,33 +2004,6 @@ export const VectorResultsSchema = z.object({
   "state": z.string(),
 });
 export type VectorResults = z.infer<typeof VectorResultsSchema>;
-
-export const VoiceSchema = z.object({
-  "archivedAt": z.union([z.string(), z.null()]).optional(),
-  "auto": z.boolean().optional(),
-  "color": z.union([z.string(), z.null()]).optional(),
-  "consent": ConsentSchema,
-  "consentAt": z.union([z.string(), z.null()]).optional(),
-  "createdAt": z.string(),
-  "disabledAt": z.union([z.string(), z.null()]).optional(),
-  "draft": z.boolean(),
-  "enabled": z.boolean(),
-  "error": z.union([z.string(), z.null()]).optional(),
-  "gender": z.union([z.string(), z.null()]).optional(),
-  "id": z.string(),
-  "library": z.boolean().optional(),
-  "name": z.string(),
-  "previewUrl": z.union([z.string(), z.null()]).optional(),
-  "progress": z.number().int(),
-  "recordingId": z.union([z.string(), z.null()]).optional(),
-  "sampleS": z.number(),
-  "speaker": z.union([z.number().int(), z.null()]).optional(),
-  "speechS": z.number().optional(),
-  "state": z.string(),
-  "updatedAt": z.string(),
-  "uses": z.number().int(),
-});
-export type Voice = z.infer<typeof VoiceSchema>;
 
 export const VoiceOptionSchema = z.object({
   "accent": z.union([z.string(), z.null()]).optional(),

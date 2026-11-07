@@ -256,6 +256,94 @@
           ],
           "type": "object"
         },
+        "AppearanceView": {
+          "properties": {
+            "gender": {
+              "description": "`\"male\"` / `\"female\"` once the pitch band settles on this speaker,\nabsent while it has not or when it refused to judge (§casting).\nAbsent is \"not known\" and never \"neither\": nothing may infer a\ngender from its absence.",
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "genderConfidence": {
+              "format": "double",
+              "type": [
+                "number",
+                "null"
+              ]
+            },
+            "identified": {
+              "description": "This speaker is somebody the account saved as a speaker.\n\nSaid to EVERYONE, unlike `speakerId` below. The mark beside a\nspeaker's name is about the person — they are not a numbered\ncluster, they are somebody who can be read in their own voice —\nand a listener is entitled to know that much. Which voice, and\nhow sure, is the detail they are denied.\n\nWithout this the mark depended on `speakerId` or a colour, and a\nspeaker whose owner never chose a colour gave a listener neither:\nthe speaker was identified and looked exactly like one who was\nnot.",
+              "type": "boolean"
+            },
+            "identifiedConfidence": {
+              "description": "The match's cosine, when a model made it. Absent when a person\ndid: nobody guessed.",
+              "format": "double",
+              "type": [
+                "number",
+                "null"
+              ]
+            },
+            "name": {
+              "description": "A name a person gave or a saved voice matched; empty when the\nspeaker has none (generic \"Speaker <n>\" names are never sent).",
+              "type": "string"
+            },
+            "number": {
+              "description": "The speaker's display number: show \"Speaker <number>\" when `name`\nis empty. Absent for a speaker with no lines left. Kept current\nlive by `transcript.speakerNumbers`, which explains the rules.",
+              "format": "int32",
+              "type": [
+                "integer",
+                "null"
+              ]
+            },
+            "returning": {
+              "description": "Heard in an earlier recording of the same transcription: they keep\nthat number and name, and are not a new speaker.",
+              "type": "boolean"
+            },
+            "speaker": {
+              "format": "int32",
+              "type": "integer"
+            },
+            "speakerColor": {
+              "description": "That saved speaker's colour, so the person reads the same here as\neverywhere else.",
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "speakerId": {
+              "description": "The saved speaker this speaker turned out to be — matched by the\nengine, or asserted by a host who saved them mid-recording\n(design 34).\n\nHere as well as on the live frame because the live frame is heard\nonce: a reader who joins later, or reloads, or opens the\nrecording next week, learns it only from the snapshot. Without it\nthe mark beside a speaker's name survived exactly as long as the\nsocket did.",
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "speechS": {
+              "description": "Seconds this speaker was heard for, their diarized turns added up:\nwhat an automatic clone is cut from, and whether one is coming.",
+              "format": "double",
+              "type": [
+                "number",
+                "null"
+              ]
+            },
+            "voice": {
+              "anyOf": [
+                {
+                  "$ref": "#/components/schemas/CloneRef"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "The saved speaker's cloned voice, when they have one: `clone:<id>`\nnames it as a voice.  Only with `speakerId`."
+            }
+          },
+          "required": [
+            "speaker",
+            "name"
+          ],
+          "type": "object"
+        },
         "AudioCapabilities": {
           "properties": {
             "channels": {
@@ -1508,6 +1596,78 @@
           ],
           "type": "object"
         },
+        "Clone": {
+          "description": "A speaker's cloned voice: the sound, built from the speaker's sample.\nIts id is the speaker's, so `clone:<id>` names it as a voice.",
+          "properties": {
+            "disabledAt": {
+              "description": "When the voice was last switched off (`enabled` false); absent while it is on.",
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "enabled": {
+              "type": "boolean"
+            },
+            "error": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "id": {
+              "type": "string"
+            },
+            "previewUrl": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "progress": {
+              "format": "int16",
+              "maximum": 32767,
+              "minimum": -32768,
+              "type": "integer"
+            },
+            "sampleS": {
+              "format": "double",
+              "type": "number"
+            },
+            "speechS": {
+              "default": 0.0,
+              "format": "double",
+              "type": "number"
+            },
+            "state": {
+              "type": "string"
+            },
+            "uses": {
+              "format": "int64",
+              "type": "integer"
+            }
+          },
+          "required": [
+            "id",
+            "state",
+            "progress",
+            "sampleS",
+            "uses",
+            "enabled"
+          ],
+          "type": "object"
+        },
+        "CloneRef": {
+          "properties": {
+            "id": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "id"
+          ],
+          "type": "object"
+        },
         "CommittedSegment": {
           "properties": {
             "catchup": {
@@ -2071,6 +2231,101 @@
           ],
           "type": "object"
         },
+        "CreateSpeaker": {
+          "additionalProperties": false,
+          "properties": {
+            "color": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "consent": {
+              "default": false,
+              "description": "The speaker's permission to clone their voice.  false (the default):\nonly their fingerprint is saved, to recognise them; PATCH\n`consent: true` later clones them from the stored sample.",
+              "type": "boolean"
+            },
+            "draft": {
+              "default": false,
+              "type": "boolean"
+            },
+            "gender": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "name": {
+              "type": "string"
+            },
+            "sampleUrl": {
+              "type": [
+                "string",
+                "null"
+              ]
+            }
+          },
+          "required": [
+            "name"
+          ],
+          "type": "object"
+        },
+        "CreateSpeakerFromAppearance": {
+          "additionalProperties": false,
+          "properties": {
+            "appearance": {
+              "description": "The speaker in the transcript: the `speaker` index its lines carry.",
+              "format": "int32",
+              "type": "integer"
+            },
+            "color": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "consent": {
+              "default": false,
+              "description": "The speaker's permission to clone their voice.  false: only their\nfingerprint is saved, to recognise them.",
+              "type": "boolean"
+            },
+            "draft": {
+              "default": false,
+              "type": "boolean"
+            },
+            "library": {
+              "type": "boolean"
+            },
+            "name": {
+              "type": "string"
+            },
+            "recordingId": {
+              "description": "The recording of the transcription the speaker is taken from, and\nthat `spans` are in.  Default: the latest recording they speak in.",
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "spans": {
+              "items": {
+                "$ref": "#/components/schemas/SampleSpan"
+              },
+              "type": [
+                "array",
+                "null"
+              ]
+            },
+            "transcriptionId": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "transcriptionId",
+            "appearance",
+            "name"
+          ],
+          "type": "object"
+        },
         "CreateTag": {
           "additionalProperties": false,
           "properties": {
@@ -2169,91 +2424,6 @@
               ]
             }
           },
-          "type": "object"
-        },
-        "CreateVoice": {
-          "additionalProperties": false,
-          "properties": {
-            "color": {
-              "type": [
-                "string",
-                "null"
-              ]
-            },
-            "consent": {
-              "default": false,
-              "type": "boolean"
-            },
-            "draft": {
-              "default": false,
-              "type": "boolean"
-            },
-            "gender": {
-              "type": [
-                "string",
-                "null"
-              ]
-            },
-            "name": {
-              "type": "string"
-            },
-            "sampleUrl": {
-              "type": [
-                "string",
-                "null"
-              ]
-            }
-          },
-          "required": [
-            "name"
-          ],
-          "type": "object"
-        },
-        "CreateVoiceFromSpeaker": {
-          "additionalProperties": false,
-          "properties": {
-            "color": {
-              "type": [
-                "string",
-                "null"
-              ]
-            },
-            "consent": {
-              "default": false,
-              "type": "boolean"
-            },
-            "draft": {
-              "default": false,
-              "type": "boolean"
-            },
-            "library": {
-              "type": "boolean"
-            },
-            "name": {
-              "type": "string"
-            },
-            "recordingId": {
-              "type": "string"
-            },
-            "spans": {
-              "items": {
-                "$ref": "#/components/schemas/SampleSpan"
-              },
-              "type": [
-                "array",
-                "null"
-              ]
-            },
-            "speaker": {
-              "format": "int32",
-              "type": "integer"
-            }
-          },
-          "required": [
-            "recordingId",
-            "speaker",
-            "name"
-          ],
           "type": "object"
         },
         "CreatedAppStreamKey": {
@@ -2928,11 +3098,11 @@
             }
           ]
         },
-        "KnownVoice": {
-          "description": "One voice a realtime session may recognise a speaker as.\n\nThe `id` is a cloned voice's id; the engine loads its embedding from\nthe same place it loads the voice itself, so a caller names the voice\nand never carries a vector over the wire.  `name` is what to call the\nperson when they are recognised — the voice's own name, ordinarily,\nbut the caller's to choose, because a voice called \"Marcus —\nnarration\" belongs to a person called Marcus Reed.",
+        "KnownSpeaker": {
+          "description": "One saved speaker a realtime session may recognise a speaker as.\n\nThe `id` is a saved speaker's id (`GET /v1/speakers`); the server\nsupplies their fingerprint, so a caller names the speaker and never\ncarries a vector over the wire.  `name` is what to call the person\nwhen they are recognised — the speaker's own name, ordinarily, but the\ncaller's to choose.",
           "properties": {
             "color": {
-              "description": "What colour to say this person reads in, echoed back in the\n`transcript.speakerIdentified` frame when they are recognised.\n\nThe engine does not interpret it — exactly as it does not\ninterpret `name`. Both are presentation the caller supplies and\nthe engine carries, and it is carried rather than looked up so\nthat a listener who cannot see the caller's voices still gets the\nsame colour for the same person as everybody else. That is the\nwhole point of a colour belonging to a person.",
+              "description": "What colour to say this person reads in, echoed back in the\n`transcript.speakerIdentified` frame when they are recognised.\n\nThe engine does not interpret it — exactly as it does not\ninterpret `name`. Both are presentation the caller supplies and\nthe engine carries, and it is carried rather than looked up so\nthat a listener who cannot see the caller's speakers still gets the\nsame colour for the same person as everybody else. That is the\nwhole point of a colour belonging to a person.",
               "type": [
                 "string",
                 "null"
@@ -3351,6 +3521,14 @@
                 "null"
               ]
             },
+            "retentionSpeakersDays": {
+              "description": "Days a saved speaker, and the voice cloned from them, is kept.",
+              "format": "int32",
+              "type": [
+                "integer",
+                "null"
+              ]
+            },
             "retentionTranscriptionsDays": {
               "description": "Days a transcription stays in the library before it is archived.",
               "format": "int32",
@@ -3362,14 +3540,6 @@
             "retentionVideoDays": {
               "default": null,
               "description": "Days the video of an uploaded or linked video is kept beside its\naudio; 0: the video is not stored (only its audio is).",
-              "format": "int32",
-              "type": [
-                "integer",
-                "null"
-              ]
-            },
-            "retentionVoicesDays": {
-              "description": "Days a voice is kept.",
               "format": "int32",
               "type": [
                 "integer",
@@ -3852,7 +4022,7 @@
           ],
           "type": "object"
         },
-        "PatchVoice": {
+        "PatchSpeaker": {
           "additionalProperties": false,
           "properties": {
             "color": {
@@ -3862,6 +4032,7 @@
               ]
             },
             "consent": {
+              "description": "true: the speaker agreed to have their voice cloned.  On a speaker\nsaved with their fingerprint only, it starts their clone from the\nstored sample.",
               "type": [
                 "boolean",
                 "null"
@@ -3874,6 +4045,7 @@
               ]
             },
             "enabled": {
+              "description": "Switches the speaker's cloned voice on or off; ignored while they\nhave none.",
               "type": [
                 "boolean",
                 "null"
@@ -5815,10 +5987,10 @@
               "type": "object"
             },
             {
-              "description": "A diarized speaker turned out to be somebody the caller has a\nsaved voice for (`speaker_id`).  Sent the moment the match lands,\nwhich is a few seconds into that person talking — never with the\nfirst row, because a second of audio is not enough to put a name\nto and a wrong name is worse than none.\n\nSo a transcript reads \"Speaker 2\" for a line or two and then\nbecomes \"Marcus Reed\", retroactively, for every row already shown.\nClients are expected to re-label what they have rather than only\nwhat arrives next — that is the whole shape of this frame.\n\nAn empty `name` withdraws a claim: the end of a realtime session re-decides\nthe whole room at once with more of everybody, and it can take a\nname back as well as give one.  `voiceId` is the saved voice that\nrecognised them.  `confidence` is a cosine similarity, not a\nprobability — comparable between speakers, not a percentage.\n\n`tone` marks a name that came from a clone's tone colour instead\nof a verification embedding: weaker evidence, and worth showing\ndifferently if a client shows it at all.",
+              "description": "A diarized speaker turned out to be somebody the caller saved\nas a speaker (`speakerId`).  Sent the moment the match lands,\nwhich is a few seconds into that person talking — never with the\nfirst row, because a second of audio is not enough to put a name\nto and a wrong name is worse than none.\n\nSo a transcript reads \"Speaker 2\" for a line or two and then\nbecomes \"Marcus Reed\", retroactively, for every row already shown.\nClients are expected to re-label what they have rather than only\nwhat arrives next — that is the whole shape of this frame.\n\nAn empty `name` withdraws a claim: the end of a realtime session re-decides\nthe whole room at once with more of everybody, and it can take a\nname back as well as give one.  `speakerId` is the saved speaker who\nwas recognised.  `confidence` is a cosine similarity, not a\nprobability — comparable between speakers, not a percentage.\n\n`tone` marks a name that came from a clone's tone colour instead\nof a verification embedding: weaker evidence, and worth showing\ndifferently if a client shows it at all.",
               "properties": {
                 "color": {
-                  "description": "The colour this person reads in, as the caller stated it in\n`identifyVoices` — a palette slot `\"1\"`–`\"6\"` or `\"#rrggbb\"`.",
+                  "description": "The colour this person reads in, as the caller stated it in\n`identifySpeakers` — a palette slot `\"1\"`–`\"6\"` or `\"#rrggbb\"`.",
                   "type": [
                     "string",
                     "null"
@@ -5838,18 +6010,18 @@
                   "format": "int32",
                   "type": "integer"
                 },
+                "speakerId": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
                 "tone": {
                   "type": "boolean"
                 },
                 "type": {
                   "const": "transcript.speakerIdentified",
                   "type": "string"
-                },
-                "voiceId": {
-                  "type": [
-                    "string",
-                    "null"
-                  ]
                 }
               },
               "required": [
@@ -6414,10 +6586,10 @@
                 "words": true
               }
             },
-            "identifyVoices": {
-              "description": "Voices the realtime session may recognise its speakers as.\n\nDiarization says *that* two people are different, never who they\nare.  Give it the saved voices belonging to whoever is in the\nroom and it can say: each one carries a speaker embedding, the\nrealtime session takes the same embedding off every speaker it hears, and a\nmatch becomes a `transcript.speakerIdentified` frame.\n\nEmpty (the default) means nobody is recognised and no such frame\nis ever sent.  It is deliberately an explicit list and not \"all\nthe caller's voices\": one server holds many realtime sessions at once, and\nthe set of people who might be in THIS room is the caller's to\nstate.\n\nNeeds `speakerLabels` on — with one speaker there is nobody to tell\napart — and costs nothing on a realtime session that leaves it empty.",
+            "identifySpeakers": {
+              "description": "Saved speakers the realtime session may recognise its speakers as.\n\nDiarization says *that* two people are different, never who they\nare.  Give it the saved speakers who may be in the\nroom and it can say: each one carries a speaker embedding, the\nrealtime session takes the same embedding off every speaker it hears, and a\nmatch becomes a `transcript.speakerIdentified` frame.\n\nEmpty (the default) means nobody is recognised and no such frame\nis ever sent.  It is deliberately an explicit list and not \"all\nthe caller's speakers\": one server holds many realtime sessions at once, and\nthe set of people who might be in THIS room is the caller's to\nstate.\n\nNeeds `speakerLabels` on — with one speaker there is nobody to tell\napart — and costs nothing on a realtime session that leaves it empty.",
               "items": {
-                "$ref": "#/components/schemas/KnownVoice"
+                "$ref": "#/components/schemas/KnownSpeaker"
               },
               "type": "array"
             },
@@ -6511,14 +6683,14 @@
         },
         "SetConsent": {
           "additionalProperties": false,
-          "description": "`POST /v1/voices/:id/consent`: the owner records whether the speaker\nagreed to their clone.",
+          "description": "`POST /v1/speakers/{id}/consent`: the owner records whether the speaker\nagreed to have their voice cloned.",
           "properties": {
             "consent": {
               "$ref": "#/components/schemas/Consent",
-              "description": "`granted` or `refused`.  Refused deletes the clone's audio and\nvoice at once; it is not built again for that speaker."
+              "description": "`granted` or `refused`.  Granted on a speaker with no clone yet\nstarts their clone from the stored sample.  Refused deletes the\nclone's audio and voice at once; it is not built again for that\nspeaker."
             },
             "name": {
-              "description": "A name for the voice, and for the speaker in the recording it was\ncut from.  Only with `granted`.",
+              "description": "A name for the speaker, also given to them in the recording they\nwere saved from.  Only with `granted`.",
               "type": [
                 "string",
                 "null"
@@ -7120,6 +7292,86 @@
             }
           ]
         },
+        "Speaker": {
+          "properties": {
+            "archivedAt": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "color": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "consent": {
+              "$ref": "#/components/schemas/Consent",
+              "description": "Whether the speaker agreed to have their voice cloned: `pending`,\n`granted` or `refused`.  A saved speaker is recognised by their\nfingerprint either way; only a `granted` clone speaks, is offered as\na voice, or has a preview."
+            },
+            "consentAt": {
+              "description": "When `consent` was last decided.",
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "createdAt": {
+              "type": "string"
+            },
+            "draft": {
+              "type": "boolean"
+            },
+            "gender": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "id": {
+              "type": "string"
+            },
+            "library": {
+              "default": true,
+              "description": "Saved to the account and recognised in every transcription.  false:\nkept with the recording it was made from only, and deleted with it;\nPATCH `library: true` saves it.",
+              "type": "boolean"
+            },
+            "name": {
+              "type": "string"
+            },
+            "recordingId": {
+              "description": "The recording the speaker was saved from, when they were saved\nfrom a transcription rather than an uploaded sample.",
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "updatedAt": {
+              "type": "string"
+            },
+            "voice": {
+              "anyOf": [
+                {
+                  "$ref": "#/components/schemas/Clone"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "The speaker's cloned voice; null while only their fingerprint is\nsaved (no consent to clone them yet)."
+            }
+          },
+          "required": [
+            "id",
+            "name",
+            "draft",
+            "consent",
+            "createdAt",
+            "updatedAt"
+          ],
+          "type": "object"
+        },
         "SpeakerLabels": {
           "description": "The three positions of the speaker-labels switch (design 77), on a\nrealtime session's options and on a broadcast's, transcription's or\nrecording's settings alike.\n\n`auto` (\"When Needed\") diarizes like `on`, and its lines are labelled\nonly once a second speaker has been heard, so one person talking reads\nas plain text.  `on` labels every line; `off` neither separates nor\nlabels.  The API's default is `auto` (`domain::settings::\ndefault_speaker_labels`, 2026-10-30); this type's own `off` is a bare\nengine's, which the API never relies on.",
           "enum": [
@@ -7153,83 +7405,6 @@
           "required": [
             "speaker",
             "number"
-          ],
-          "type": "object"
-        },
-        "SpeakerView": {
-          "properties": {
-            "gender": {
-              "description": "`\"male\"` / `\"female\"` once the pitch band settles on this speaker,\nabsent while it has not or when it refused to judge (§casting).\nAbsent is \"not known\" and never \"neither\": nothing may infer a\ngender from its absence.",
-              "type": [
-                "string",
-                "null"
-              ]
-            },
-            "genderConfidence": {
-              "format": "double",
-              "type": [
-                "number",
-                "null"
-              ]
-            },
-            "identified": {
-              "description": "This speaker is somebody the account holds a voice for.\n\nSaid to EVERYONE, unlike `voiceId` below. The mark beside a\nspeaker's name is about the person — they are not a numbered\ncluster, they are somebody who can be read in their own voice —\nand a listener is entitled to know that much. Which voice, and\nhow sure, is the detail they are denied.\n\nWithout this the mark depended on `voiceId` or a colour, and a\nvoice whose owner never chose a colour gave a listener neither:\nthe speaker was identified and looked exactly like one who was\nnot.",
-              "type": "boolean"
-            },
-            "identifiedConfidence": {
-              "description": "The match's cosine, when a model made it. Absent when a person\ndid: nobody guessed.",
-              "format": "double",
-              "type": [
-                "number",
-                "null"
-              ]
-            },
-            "name": {
-              "description": "A name a person gave or a saved voice matched; empty when the\nspeaker has none (generic \"Speaker <n>\" names are never sent).",
-              "type": "string"
-            },
-            "number": {
-              "description": "The speaker's display number: show \"Speaker <number>\" when `name`\nis empty. Absent for a speaker with no lines left. Kept current\nlive by `transcript.speakerNumbers`, which explains the rules.",
-              "format": "int32",
-              "type": [
-                "integer",
-                "null"
-              ]
-            },
-            "returning": {
-              "description": "Heard in an earlier recording of the same transcription: they keep\nthat number and name, and are not a new speaker.",
-              "type": "boolean"
-            },
-            "speaker": {
-              "format": "int32",
-              "type": "integer"
-            },
-            "speechS": {
-              "description": "Seconds this speaker was heard for, their diarized turns added up:\nwhat an automatic clone is cut from, and whether one is coming.",
-              "format": "double",
-              "type": [
-                "number",
-                "null"
-              ]
-            },
-            "voiceColor": {
-              "description": "That voice's colour, so the person reads the same here as\neverywhere else.",
-              "type": [
-                "string",
-                "null"
-              ]
-            },
-            "voiceId": {
-              "description": "The saved voice this speaker turned out to be — matched by the\nengine, or asserted by a host who enrolled them mid-recording\n(design 34).\n\nHere as well as on the live frame because the live frame is heard\nonce: a reader who joins later, or reloads, or opens the\nrecording next week, learns it only from the snapshot. Without it\nthe mark beside a speaker's name survived exactly as long as the\nsocket did.",
-              "type": [
-                "string",
-                "null"
-              ]
-            }
-          },
-          "required": [
-            "speaker",
-            "name"
           ],
           "type": "object"
         },
@@ -7720,15 +7895,15 @@
                   "format": "int32",
                   "type": "integer"
                 },
-                "type": {
-                  "const": "transcript.speakerIdentified",
-                  "type": "string"
-                },
-                "voiceId": {
+                "speakerId": {
                   "type": [
                     "string",
                     "null"
                   ]
+                },
+                "type": {
+                  "const": "transcript.speakerIdentified",
+                  "type": "string"
                 }
               },
               "required": [
@@ -8316,7 +8491,7 @@
             },
             "speakers": {
               "items": {
-                "$ref": "#/components/schemas/SpeakerView"
+                "$ref": "#/components/schemas/AppearanceView"
               },
               "type": "array"
             },
@@ -9224,136 +9399,6 @@
           ],
           "type": "object"
         },
-        "Voice": {
-          "properties": {
-            "archivedAt": {
-              "type": [
-                "string",
-                "null"
-              ]
-            },
-            "auto": {
-              "default": false,
-              "description": "Made automatically from a recording's speaker, and deleted with it.",
-              "type": "boolean"
-            },
-            "color": {
-              "type": [
-                "string",
-                "null"
-              ]
-            },
-            "consent": {
-              "$ref": "#/components/schemas/Consent",
-              "description": "Whether the speaker agreed to this clone: `pending`, `granted` or\n`refused`.  Only a `granted` clone speaks, is offered as a voice,\nor has a preview.  An automatic clone starts `pending`."
-            },
-            "consentAt": {
-              "description": "When `consent` was last decided.",
-              "type": [
-                "string",
-                "null"
-              ]
-            },
-            "createdAt": {
-              "type": "string"
-            },
-            "disabledAt": {
-              "description": "When the voice was last switched off (`enabled` false); absent while it is on.",
-              "type": [
-                "string",
-                "null"
-              ]
-            },
-            "draft": {
-              "type": "boolean"
-            },
-            "enabled": {
-              "type": "boolean"
-            },
-            "error": {
-              "type": [
-                "string",
-                "null"
-              ]
-            },
-            "gender": {
-              "type": [
-                "string",
-                "null"
-              ]
-            },
-            "id": {
-              "type": "string"
-            },
-            "library": {
-              "default": true,
-              "description": "In the voice library, offered in every transcription.  false: kept\nwith its recording only and deleted with it (an automatic clone, or\none made with `library: false`); PATCH `library: true` adds it.",
-              "type": "boolean"
-            },
-            "name": {
-              "type": "string"
-            },
-            "previewUrl": {
-              "type": [
-                "string",
-                "null"
-              ]
-            },
-            "progress": {
-              "format": "int16",
-              "maximum": 32767,
-              "minimum": -32768,
-              "type": "integer"
-            },
-            "recordingId": {
-              "description": "The recording this clone was cut from, and the speaker in it.",
-              "type": [
-                "string",
-                "null"
-              ]
-            },
-            "sampleS": {
-              "format": "double",
-              "type": "number"
-            },
-            "speaker": {
-              "format": "int32",
-              "type": [
-                "integer",
-                "null"
-              ]
-            },
-            "speechS": {
-              "default": 0.0,
-              "format": "double",
-              "type": "number"
-            },
-            "state": {
-              "type": "string"
-            },
-            "updatedAt": {
-              "type": "string"
-            },
-            "uses": {
-              "format": "int64",
-              "type": "integer"
-            }
-          },
-          "required": [
-            "id",
-            "name",
-            "state",
-            "progress",
-            "sampleS",
-            "uses",
-            "enabled",
-            "draft",
-            "consent",
-            "createdAt",
-            "updatedAt"
-          ],
-          "type": "object"
-        },
         "VoiceCatalogue": {
           "properties": {
             "lang": {
@@ -9381,7 +9426,7 @@
               ]
             },
             "auto": {
-              "description": "An automatic clone of the recording asked about, not saved in\nVoices (it goes with the recording).  Cloned voices only.",
+              "description": "An automatic clone of the recording asked about, not saved in\nSpeakers (it goes with the recording).  Cloned voices only.",
               "type": [
                 "boolean",
                 "null"
@@ -9421,7 +9466,7 @@
               ]
             },
             "library": {
-              "description": "false: a clone kept with its recording only, not in the voice\nlibrary (`POST /v1/voices/from-speaker` with `library: false`).\nCloned voices only.",
+              "description": "false: a clone kept with its recording only, not in the voice\nlibrary (`POST /v1/speakers/from-appearance` with `library: false`).\nCloned voices only.",
               "type": [
                 "boolean",
                 "null"
@@ -9738,7 +9783,7 @@
     "info": {
       "description": "Speech to text, live translation and spoken translations, as one API.\n\n## What is what\n\n- **Realtime session**: a stateless token for one WebSocket. `POST /v1/realtime/sessions` returns a signed `streamUrl`; nothing is stored. Audio goes in as binary frames and transcript events come out (`x-websocket.realtimeSession`). The API uses the word for nothing else.\n- **Transcription**: a stored transcript of a file, a link, or something captured as it is spoken (a microphone, a stream, an RTMP encoder: `live: true`). `POST /v1/transcriptions` (a file or a link) and `POST /v1/transcriptions/live`.\n- **Broadcast**: the link listeners open (`code`). It is fed by the live transcriptions attached to it, or records one of its own audio sources. `POST /v1/broadcasts`.\n- **Recording**: one take, always inside a transcription (`transcriptionId`); a recording started on a broadcast is made in a live transcription attached to it. Its transcript, audio, translations, voice and summary hang off `/v1/recordings/{id}`.\n- **Job**: the server's work on a file or link recording: `GET /v1/recordings/{id}/job`.\n\nHosts authenticate with an API key (`vs_key_…`) or a signed-in person's access token: `Authorization: Bearer …`. Listeners authenticate with nothing (a public broadcast), a share link's code (`shareCode=`, from `transcriptions.createShareLink` or `broadcasts.createShareLink`), or the listener token VocalStack's own listener page holds for a private broadcast (`listenerToken=`). Each operation names its auth mode and key scopes in `x-vocalstack-auth` and `x-vocalstack-scopes`. Every operation is open to every plan: a transcription spends the account's credit per second of audio, and at least the plan's minimum once (`rates.minimumSeconds` on `GET /v1/billing`: a file shorter than the minimum is billed the minimum, a longer one its length; a live transcription stopped and started again is still one transcription; a realtime session is one of its own), and a creation without that much credit is refused `402 insufficient_credit`.\n\n## Streaming in 30 seconds\n\n1. `POST /v1/realtime/sessions` → `{ sessionId, streamUrl, expiresAt }`. `streamUrl` embeds a signed token; `expiresAt` is a connect-by deadline only.\n2. Open a WebSocket to `streamUrl`. You may receive `session.loading` heartbeats while a cold machine spins up; wait for `session.ready`.\n3. Send binary frames of raw PCM (`pcm_f32le`, 16 kHz, mono — exactly `capabilities.audio`). To transcribe a **file** instead, create the realtime session with `input: { kind: \"file\" }` and send the file's own bytes (mp3, wav, flac, ogg, m4a…) — the server decodes it and transcribes at full speed, reporting `transcript.progress` as it goes.\n4. Receive `transcript.committed` (immutable, gapless `seq`, always includes word timings), `transcript.draft` (**full replacement** of the live tail — never append drafts), and `transcript.words` frames.\n5. At any time, send `{\"type\":\"session.update\", ...}` to change the `latencyMode`, `spokenLanguage`, `speakerLabels` and/or `translate` languages mid-stream; omitted fields are unchanged and already-delivered transcript is not re-translated.\n6. Send `{\"type\":\"eof\"}` at end of source; the server flushes final commits, sends `session.done`, and closes.\n\nThere is no resume: a dropped connection ends the realtime session — reconnect = create a new one. A saturated fleet surfaces as a hanging connect or a bare 503, not an error envelope; clients synthesize `capacity_exceeded` from a connect/ready deadline (the SDKs default to 30 s).\n\n## Stored transcriptions and broadcasts\n\n**Publishing:** `POST /v1/transcriptions/{id}/recordings` (or `/v1/broadcasts/{id}/recordings`) → a `streamUrl`; connect and send PCM exactly as on a realtime session. Control (pause/resume/stop/settings) is HTTP, never in-band. A live transcription whose source is a stream URL has no microphone behind it: the server opens the URL when recording starts and publishes it itself; the grant then has no `streamUrl`, and `recording.ingest` and the `stream.ingest` frame report `connecting` → `streaming` → `reconnecting` → `stopped` | `failed`.\n\n**Listening:** `WS /v1/recordings/{id}/subscribe?lang=es[&voice=F3][&listenerToken=…]` → first frame `subscribe.ready {lastSeq}`; then `GET /v1/recordings/{id}/transcript?lang=es` and discard buffered frames with `seq <= lastSeq`. Every durable frame carries a gapless `seq`; on a jump, re-snapshot with `after=<cursor>` (`x-websocket.subscribe`). `WS /v1/broadcasts/{id}/events` tells a waiting listener when the broadcast goes live, and `WS /v1/events` tells an owner's dashboard when its lists changed.\n\n## Headers\n\nEvery response carries `X-Request-Id` (also `requestId` in an error body): what support asks for. Send your own and it is kept. Rate-limited operations answer with `RateLimit-Limit`, `RateLimit-Remaining` and `RateLimit-Reset`: slow down before the `429`. A `429 rate_limited` and a `503 unavailable` carry `Retry-After`, the seconds to wait before sending the request again. What to retry and how: [Errors, retries and limits](/docs/guides/errors-and-limits.md).",
       "title": "VocalStack API",
-      "version": "1.0.0-alpha.3"
+      "version": "1.0.0-alpha.4"
     },
     "jsonSchemaDialect": "https://json-schema.org/draft/2020-12/schema",
     "openapi": "3.1.0",
@@ -14937,78 +14982,6 @@
           ]
         }
       },
-      "/v1/recordings/{id}/speakers/{idx}": {
-        "put": {
-          "description": "Name a speaker of this recording.",
-          "operationId": "recordings.nameSpeaker",
-          "parameters": [
-            {
-              "in": "path",
-              "name": "id",
-              "required": true,
-              "schema": {
-                "type": "string"
-              }
-            },
-            {
-              "in": "path",
-              "name": "idx",
-              "required": true,
-              "schema": {
-                "type": "integer"
-              }
-            }
-          ],
-          "requestBody": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/NameSpeaker"
-                }
-              }
-            },
-            "required": true
-          },
-          "responses": {
-            "200": {
-              "description": "OK",
-              "headers": {
-                "RateLimit-Limit": {
-                  "$ref": "#/components/headers/RateLimit-Limit"
-                },
-                "RateLimit-Remaining": {
-                  "$ref": "#/components/headers/RateLimit-Remaining"
-                },
-                "RateLimit-Reset": {
-                  "$ref": "#/components/headers/RateLimit-Reset"
-                },
-                "X-Request-Id": {
-                  "$ref": "#/components/headers/X-Request-Id"
-                }
-              }
-            },
-            "429": {
-              "$ref": "#/components/responses/RateLimited"
-            },
-            "503": {
-              "$ref": "#/components/responses/Unavailable"
-            }
-          },
-          "security": [
-            {
-              "bearerAuth": []
-            }
-          ],
-          "summary": "Name a speaker",
-          "tags": [
-            "recordings"
-          ],
-          "x-vocalstack-auth": "userOrKey",
-          "x-vocalstack-scopes": [
-            "write"
-          ]
-        }
-      },
       "/v1/recordings/{id}/stop": {
         "post": {
           "description": "End capture; finalize runs asynchronously. A live recording stops only from paused. A file transcription's recording stops at any point before its job is done: the job fails with `errorCode` `stopped`, and what was transcribed before the stop is kept (and billed; nothing is billed when it had not started transcribing).",
@@ -16610,6 +16583,1041 @@
           "x-vocalstack-scopes": []
         }
       },
+      "/v1/speakers": {
+        "get": {
+          "description": "The people the account saved, newest first: what the dashboard's Speakers page lists. A saved speaker is recognised by their fingerprint in later transcriptions; `voice` is their cloned voice, or null while only the fingerprint is saved. `lifecycle=archived` lists the archived ones instead.",
+          "operationId": "speakers.list",
+          "parameters": [
+            {
+              "in": "query",
+              "name": "lifecycle",
+              "required": false,
+              "schema": {
+                "enum": [
+                  "active",
+                  "archived"
+                ],
+                "type": "string"
+              }
+            }
+          ],
+          "responses": {
+            "200": {
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "properties": {
+                      "speakers": {
+                        "items": {
+                          "$ref": "#/components/schemas/Speaker"
+                        },
+                        "type": "array"
+                      }
+                    },
+                    "type": "object"
+                  }
+                }
+              },
+              "description": "OK",
+              "headers": {
+                "RateLimit-Limit": {
+                  "$ref": "#/components/headers/RateLimit-Limit"
+                },
+                "RateLimit-Remaining": {
+                  "$ref": "#/components/headers/RateLimit-Remaining"
+                },
+                "RateLimit-Reset": {
+                  "$ref": "#/components/headers/RateLimit-Reset"
+                },
+                "X-Request-Id": {
+                  "$ref": "#/components/headers/X-Request-Id"
+                }
+              }
+            },
+            "429": {
+              "$ref": "#/components/responses/RateLimited"
+            },
+            "503": {
+              "$ref": "#/components/responses/Unavailable"
+            }
+          },
+          "security": [
+            {
+              "bearerAuth": []
+            }
+          ],
+          "summary": "List saved speakers",
+          "tags": [
+            "speakers"
+          ],
+          "x-errors": [
+            "invalid_options"
+          ],
+          "x-vocalstack-auth": "userOrKey",
+          "x-vocalstack-scopes": [
+            "read"
+          ]
+        },
+        "post": {
+          "description": "Save a speaker from a recorded sample: multipart/form-data with a `sample` audio part and a `meta` JSON part (or `sampleUrl` in `meta`). The sample needs at least 20 seconds of speech from one person: it is diarized, and the speaker with the most speech is the one saved; the silence around them does not matter. The sample is kept and the speaker's fingerprint is taken from it, so they are recognised by name in later transcriptions. `consent: true` (the speaker agreed to have their voice cloned) also clones their voice: `voice` comes back `training` with progress 0; poll GET /v1/speakers/{id}. Training reports a real state — it never fakes progress, and a voice that cannot be trained ends `failed` with the reason on `error`. Without consent `voice` is null; PATCH `consent: true` later clones them from the stored sample. `draft: true` makes a clone to try first (no name needed); it is kept with PATCH `{\"draft\": false, \"consent\": true, \"name\": …}`.",
+          "operationId": "speakers.create",
+          "parameters": [
+            {
+              "description": "Makes a retry safe: a request repeated with the same key and the same body within 24 hours returns the first response (with `Idempotent-Replayed: true`) instead of running again. The same key with a different request is 422 `idempotency_key_reused`; a retry while the first is still running is 409 `conflict`. Only a successful (2xx) response is remembered. Keys are per account.",
+              "in": "header",
+              "name": "Idempotency-Key",
+              "required": false,
+              "schema": {
+                "maxLength": 255,
+                "minLength": 1,
+                "type": "string"
+              }
+            }
+          ],
+          "requestBody": {
+            "content": {
+              "multipart/form-data": {
+                "schema": {
+                  "properties": {
+                    "meta": {
+                      "$ref": "#/components/schemas/CreateSpeaker"
+                    },
+                    "sample": {
+                      "format": "binary",
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "sample",
+                    "meta"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "required": true
+          },
+          "responses": {
+            "201": {
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "$ref": "#/components/schemas/Speaker"
+                  }
+                }
+              },
+              "description": "Created",
+              "headers": {
+                "RateLimit-Limit": {
+                  "$ref": "#/components/headers/RateLimit-Limit"
+                },
+                "RateLimit-Remaining": {
+                  "$ref": "#/components/headers/RateLimit-Remaining"
+                },
+                "RateLimit-Reset": {
+                  "$ref": "#/components/headers/RateLimit-Reset"
+                },
+                "X-Request-Id": {
+                  "$ref": "#/components/headers/X-Request-Id"
+                }
+              }
+            },
+            "429": {
+              "$ref": "#/components/responses/RateLimited"
+            },
+            "503": {
+              "$ref": "#/components/responses/Unavailable"
+            }
+          },
+          "security": [
+            {
+              "bearerAuth": []
+            }
+          ],
+          "summary": "Save a speaker",
+          "tags": [
+            "speakers"
+          ],
+          "x-errors": [
+            "invalid_options",
+            "not_found",
+            "idempotency_key_reused"
+          ],
+          "x-vocalstack-auth": "userOrKey",
+          "x-vocalstack-scopes": [
+            "write"
+          ]
+        }
+      },
+      "/v1/speakers/archive": {
+        "post": {
+          "description": "Archive several speakers in one call (up to 500 `ids`), each as the one-speaker call would. The answer lists the ids that were done and, for each one that was not, why (`failed[].code` and `message`); one failure does not stop the others.",
+          "operationId": "speakers.archiveMany",
+          "requestBody": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ManyIds"
+                }
+              }
+            },
+            "required": true
+          },
+          "responses": {
+            "200": {
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "$ref": "#/components/schemas/ManyResult"
+                  }
+                }
+              },
+              "description": "OK",
+              "headers": {
+                "RateLimit-Limit": {
+                  "$ref": "#/components/headers/RateLimit-Limit"
+                },
+                "RateLimit-Remaining": {
+                  "$ref": "#/components/headers/RateLimit-Remaining"
+                },
+                "RateLimit-Reset": {
+                  "$ref": "#/components/headers/RateLimit-Reset"
+                },
+                "X-Request-Id": {
+                  "$ref": "#/components/headers/X-Request-Id"
+                }
+              }
+            },
+            "429": {
+              "$ref": "#/components/responses/RateLimited"
+            },
+            "503": {
+              "$ref": "#/components/responses/Unavailable"
+            }
+          },
+          "security": [
+            {
+              "bearerAuth": []
+            }
+          ],
+          "summary": "Archive speakers",
+          "tags": [
+            "speakers"
+          ],
+          "x-errors": [
+            "invalid_options"
+          ],
+          "x-vocalstack-auth": "userOrKey",
+          "x-vocalstack-scopes": [
+            "write"
+          ]
+        }
+      },
+      "/v1/speakers/delete": {
+        "post": {
+          "description": "Delete several speakers in one call (up to 500 `ids`), each as the one-speaker call would. The answer lists the ids that were done and, for each one that was not, why (`failed[].code` and `message`); one failure does not stop the others.",
+          "operationId": "speakers.deleteMany",
+          "requestBody": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ManyIds"
+                }
+              }
+            },
+            "required": true
+          },
+          "responses": {
+            "200": {
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "$ref": "#/components/schemas/ManyResult"
+                  }
+                }
+              },
+              "description": "OK",
+              "headers": {
+                "RateLimit-Limit": {
+                  "$ref": "#/components/headers/RateLimit-Limit"
+                },
+                "RateLimit-Remaining": {
+                  "$ref": "#/components/headers/RateLimit-Remaining"
+                },
+                "RateLimit-Reset": {
+                  "$ref": "#/components/headers/RateLimit-Reset"
+                },
+                "X-Request-Id": {
+                  "$ref": "#/components/headers/X-Request-Id"
+                }
+              }
+            },
+            "429": {
+              "$ref": "#/components/responses/RateLimited"
+            },
+            "503": {
+              "$ref": "#/components/responses/Unavailable"
+            }
+          },
+          "security": [
+            {
+              "bearerAuth": []
+            }
+          ],
+          "summary": "Delete speakers",
+          "tags": [
+            "speakers"
+          ],
+          "x-errors": [
+            "invalid_options"
+          ],
+          "x-vocalstack-auth": "userOrKey",
+          "x-vocalstack-scopes": [
+            "write"
+          ]
+        }
+      },
+      "/v1/speakers/from-appearance": {
+        "post": {
+          "description": "Save one speaker of a transcription — no sample to upload, because the transcription's own audio is the sample. `appearance` is the `speaker` index their lines carry, in `recordingId` (default: the latest recording of the transcription they speak in). Works while the recording is still running: the server joins the stretches that speaker actually spoke for. Naming them here also labels them in the transcript and links them to the saved speaker. `consent: true` (they agreed to have their voice cloned) also clones their voice, and needs at least 20 seconds of their speech, their diarized turns added up; the refusal says how much there is. When the speaker was already cloned automatically (and not refused), that clone is the one granted, named and saved. Without consent only their fingerprint is saved (`voice` null), from at least 5 seconds of speech; PATCH `consent: true` clones them later. `spans` picks the stretches to take the sample from (media seconds, e.g. the transcript's sentences of that speaker): only that speaker's speech inside them is used, they must add up to 5–60 seconds (about 25 is plenty; under 20 makes a weaker voice), and a new clone is always made. `library: false` keeps the speaker with this recording only: they are not recognised in other transcriptions, and go when the recording does; PATCH `library: true` saves them later. `draft: true` makes a draft clone to try first (no `consent` or `name` needed; preview it in any language): it neither names nor stands for the speaker until it is kept with PATCH /v1/speakers/{id} `{\"draft\": false, \"consent\": true, \"name\": …}`; DELETE drops it.",
+          "operationId": "speakers.createFromAppearance",
+          "parameters": [
+            {
+              "description": "Makes a retry safe: a request repeated with the same key and the same body within 24 hours returns the first response (with `Idempotent-Replayed: true`) instead of running again. The same key with a different request is 422 `idempotency_key_reused`; a retry while the first is still running is 409 `conflict`. Only a successful (2xx) response is remembered. Keys are per account.",
+              "in": "header",
+              "name": "Idempotency-Key",
+              "required": false,
+              "schema": {
+                "maxLength": 255,
+                "minLength": 1,
+                "type": "string"
+              }
+            }
+          ],
+          "requestBody": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CreateSpeakerFromAppearance"
+                }
+              }
+            },
+            "required": true
+          },
+          "responses": {
+            "201": {
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "$ref": "#/components/schemas/Speaker"
+                  }
+                }
+              },
+              "description": "Created",
+              "headers": {
+                "RateLimit-Limit": {
+                  "$ref": "#/components/headers/RateLimit-Limit"
+                },
+                "RateLimit-Remaining": {
+                  "$ref": "#/components/headers/RateLimit-Remaining"
+                },
+                "RateLimit-Reset": {
+                  "$ref": "#/components/headers/RateLimit-Reset"
+                },
+                "X-Request-Id": {
+                  "$ref": "#/components/headers/X-Request-Id"
+                }
+              }
+            },
+            "429": {
+              "$ref": "#/components/responses/RateLimited"
+            },
+            "503": {
+              "$ref": "#/components/responses/Unavailable"
+            }
+          },
+          "security": [
+            {
+              "bearerAuth": []
+            }
+          ],
+          "summary": "Save a speaker from a transcription",
+          "tags": [
+            "speakers"
+          ],
+          "x-errors": [
+            "invalid_options",
+            "invalid_state",
+            "not_found",
+            "forbidden",
+            "idempotency_key_reused"
+          ],
+          "x-vocalstack-auth": "userOrKey",
+          "x-vocalstack-scopes": [
+            "write"
+          ]
+        }
+      },
+      "/v1/speakers/restore": {
+        "post": {
+          "description": "Restore several speakers in one call (up to 500 `ids`), each as the one-speaker call would. The answer lists the ids that were done and, for each one that was not, why (`failed[].code` and `message`); one failure does not stop the others.",
+          "operationId": "speakers.restoreMany",
+          "requestBody": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ManyIds"
+                }
+              }
+            },
+            "required": true
+          },
+          "responses": {
+            "200": {
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "$ref": "#/components/schemas/ManyResult"
+                  }
+                }
+              },
+              "description": "OK",
+              "headers": {
+                "RateLimit-Limit": {
+                  "$ref": "#/components/headers/RateLimit-Limit"
+                },
+                "RateLimit-Remaining": {
+                  "$ref": "#/components/headers/RateLimit-Remaining"
+                },
+                "RateLimit-Reset": {
+                  "$ref": "#/components/headers/RateLimit-Reset"
+                },
+                "X-Request-Id": {
+                  "$ref": "#/components/headers/X-Request-Id"
+                }
+              }
+            },
+            "429": {
+              "$ref": "#/components/responses/RateLimited"
+            },
+            "503": {
+              "$ref": "#/components/responses/Unavailable"
+            }
+          },
+          "security": [
+            {
+              "bearerAuth": []
+            }
+          ],
+          "summary": "Restore speakers",
+          "tags": [
+            "speakers"
+          ],
+          "x-errors": [
+            "invalid_options"
+          ],
+          "x-vocalstack-auth": "userOrKey",
+          "x-vocalstack-scopes": [
+            "write"
+          ]
+        }
+      },
+      "/v1/speakers/{id}": {
+        "delete": {
+          "description": "Delete the speaker, their fingerprint, their recorded sample and their cloned voice. Speakers in transcriptions they were linked to keep their own name and their own automatic clone.",
+          "operationId": "speakers.delete",
+          "parameters": [
+            {
+              "in": "path",
+              "name": "id",
+              "required": true,
+              "schema": {
+                "type": "string"
+              }
+            }
+          ],
+          "responses": {
+            "200": {
+              "description": "OK",
+              "headers": {
+                "RateLimit-Limit": {
+                  "$ref": "#/components/headers/RateLimit-Limit"
+                },
+                "RateLimit-Remaining": {
+                  "$ref": "#/components/headers/RateLimit-Remaining"
+                },
+                "RateLimit-Reset": {
+                  "$ref": "#/components/headers/RateLimit-Reset"
+                },
+                "X-Request-Id": {
+                  "$ref": "#/components/headers/X-Request-Id"
+                }
+              }
+            },
+            "429": {
+              "$ref": "#/components/responses/RateLimited"
+            },
+            "503": {
+              "$ref": "#/components/responses/Unavailable"
+            }
+          },
+          "security": [
+            {
+              "bearerAuth": []
+            }
+          ],
+          "summary": "Delete a saved speaker",
+          "tags": [
+            "speakers"
+          ],
+          "x-errors": [
+            "not_found",
+            "forbidden"
+          ],
+          "x-vocalstack-auth": "userOrKey",
+          "x-vocalstack-scopes": [
+            "write"
+          ]
+        },
+        "get": {
+          "description": "The speaker, and their cloned voice's training state on `voice`: `training` / `ready` / `failed`, with `progress` and, when it failed, `error`.",
+          "operationId": "speakers.get",
+          "parameters": [
+            {
+              "in": "path",
+              "name": "id",
+              "required": true,
+              "schema": {
+                "type": "string"
+              }
+            }
+          ],
+          "responses": {
+            "200": {
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "$ref": "#/components/schemas/Speaker"
+                  }
+                }
+              },
+              "description": "OK",
+              "headers": {
+                "RateLimit-Limit": {
+                  "$ref": "#/components/headers/RateLimit-Limit"
+                },
+                "RateLimit-Remaining": {
+                  "$ref": "#/components/headers/RateLimit-Remaining"
+                },
+                "RateLimit-Reset": {
+                  "$ref": "#/components/headers/RateLimit-Reset"
+                },
+                "X-Request-Id": {
+                  "$ref": "#/components/headers/X-Request-Id"
+                }
+              }
+            },
+            "429": {
+              "$ref": "#/components/responses/RateLimited"
+            },
+            "503": {
+              "$ref": "#/components/responses/Unavailable"
+            }
+          },
+          "security": [
+            {
+              "bearerAuth": []
+            }
+          ],
+          "summary": "Get a saved speaker",
+          "tags": [
+            "speakers"
+          ],
+          "x-errors": [
+            "not_found"
+          ],
+          "x-vocalstack-auth": "userOrKey",
+          "x-vocalstack-scopes": [
+            "read"
+          ]
+        },
+        "patch": {
+          "description": "Rename a speaker, recolour them, or switch their cloned voice off (`enabled`; ignored while they have none). Absent fields are left alone; `color: \"\"` clears a chosen colour. `consent: true` records that they agreed to have their voice cloned; on a speaker saved with their fingerprint only it starts their clone from the stored sample (409 when no sample is stored). `library: true` saves a speaker kept with its recording only (or an automatic clone, with `consent: true`), so they are recognised in every transcription from then on; `library: false` takes one made from a transcription back out (it stays with that recording and goes with it). Not the place to withdraw permission — POST /v1/speakers/{id}/consent with `refused` does that.",
+          "operationId": "speakers.update",
+          "parameters": [
+            {
+              "in": "path",
+              "name": "id",
+              "required": true,
+              "schema": {
+                "type": "string"
+              }
+            }
+          ],
+          "requestBody": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PatchSpeaker"
+                }
+              }
+            },
+            "required": true
+          },
+          "responses": {
+            "200": {
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "$ref": "#/components/schemas/Speaker"
+                  }
+                }
+              },
+              "description": "OK",
+              "headers": {
+                "RateLimit-Limit": {
+                  "$ref": "#/components/headers/RateLimit-Limit"
+                },
+                "RateLimit-Remaining": {
+                  "$ref": "#/components/headers/RateLimit-Remaining"
+                },
+                "RateLimit-Reset": {
+                  "$ref": "#/components/headers/RateLimit-Reset"
+                },
+                "X-Request-Id": {
+                  "$ref": "#/components/headers/X-Request-Id"
+                }
+              }
+            },
+            "429": {
+              "$ref": "#/components/responses/RateLimited"
+            },
+            "503": {
+              "$ref": "#/components/responses/Unavailable"
+            }
+          },
+          "security": [
+            {
+              "bearerAuth": []
+            }
+          ],
+          "summary": "Update a saved speaker",
+          "tags": [
+            "speakers"
+          ],
+          "x-errors": [
+            "invalid_options",
+            "invalid_state",
+            "not_found",
+            "forbidden"
+          ],
+          "x-vocalstack-auth": "userOrKey",
+          "x-vocalstack-scopes": [
+            "write"
+          ]
+        }
+      },
+      "/v1/speakers/{id}/archive": {
+        "post": {
+          "description": "Put a speaker away: they are no longer recognised, their voice no longer speaks and is not offered, and they no longer name or stand for any speaker in a transcription — those are unlinked, and the ones they had named are back to their plain labels. Their sample is kept; restore brings them back (transcriptions stay unlinked) and delete removes them for good. `archivedAt` says when.",
+          "operationId": "speakers.archive",
+          "parameters": [
+            {
+              "in": "path",
+              "name": "id",
+              "required": true,
+              "schema": {
+                "type": "string"
+              }
+            }
+          ],
+          "responses": {
+            "200": {
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "$ref": "#/components/schemas/Speaker"
+                  }
+                }
+              },
+              "description": "OK",
+              "headers": {
+                "RateLimit-Limit": {
+                  "$ref": "#/components/headers/RateLimit-Limit"
+                },
+                "RateLimit-Remaining": {
+                  "$ref": "#/components/headers/RateLimit-Remaining"
+                },
+                "RateLimit-Reset": {
+                  "$ref": "#/components/headers/RateLimit-Reset"
+                },
+                "X-Request-Id": {
+                  "$ref": "#/components/headers/X-Request-Id"
+                }
+              }
+            },
+            "429": {
+              "$ref": "#/components/responses/RateLimited"
+            },
+            "503": {
+              "$ref": "#/components/responses/Unavailable"
+            }
+          },
+          "security": [
+            {
+              "bearerAuth": []
+            }
+          ],
+          "summary": "Archive a saved speaker",
+          "tags": [
+            "speakers"
+          ],
+          "x-errors": [
+            "not_found",
+            "forbidden"
+          ],
+          "x-vocalstack-auth": "userOrKey",
+          "x-vocalstack-scopes": [
+            "write"
+          ]
+        }
+      },
+      "/v1/speakers/{id}/consent": {
+        "post": {
+          "description": "Record whether the speaker agreed to have their voice cloned. Every speaker with 20 seconds of speech in a recording is cloned automatically with `consent: \"pending\"`; a clone speaks, is offered in `GET /v1/voices/available` and has a preview only once its consent is `granted`. `granted` (optionally with a `name`, which also names the speaker in the recording they came from) makes it usable, and on a speaker saved with their fingerprint only starts their clone from the stored sample; `refused` deletes their audio and voice at once and they are not cloned again. Refusing later withdraws consent the same way. Each decision is recorded with who made it and when; `granted` on a speaker already granted is recorded again (the host re-confirming permission). With `settings.voiceCloning` on, a transcription's automatic clones are granted on the host's word as they are made.",
+          "operationId": "speakers.setConsent",
+          "parameters": [
+            {
+              "in": "path",
+              "name": "id",
+              "required": true,
+              "schema": {
+                "type": "string"
+              }
+            }
+          ],
+          "requestBody": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SetConsent"
+                }
+              }
+            },
+            "required": true
+          },
+          "responses": {
+            "200": {
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "$ref": "#/components/schemas/Speaker"
+                  }
+                }
+              },
+              "description": "OK",
+              "headers": {
+                "RateLimit-Limit": {
+                  "$ref": "#/components/headers/RateLimit-Limit"
+                },
+                "RateLimit-Remaining": {
+                  "$ref": "#/components/headers/RateLimit-Remaining"
+                },
+                "RateLimit-Reset": {
+                  "$ref": "#/components/headers/RateLimit-Reset"
+                },
+                "X-Request-Id": {
+                  "$ref": "#/components/headers/X-Request-Id"
+                }
+              }
+            },
+            "429": {
+              "$ref": "#/components/responses/RateLimited"
+            },
+            "503": {
+              "$ref": "#/components/responses/Unavailable"
+            }
+          },
+          "security": [
+            {
+              "bearerAuth": []
+            }
+          ],
+          "summary": "Grant or refuse consent to clone a speaker",
+          "tags": [
+            "speakers"
+          ],
+          "x-errors": [
+            "invalid_options",
+            "invalid_state",
+            "not_found",
+            "forbidden"
+          ],
+          "x-vocalstack-auth": "userOrKey",
+          "x-vocalstack-scopes": [
+            "write"
+          ]
+        }
+      },
+      "/v1/speakers/{id}/preview": {
+        "get": {
+          "description": "The speaker's cloned voice speaking, Ogg/Opus — `format=caf` for Apple's media stack, which will not play Ogg. 409 while it is not `ready` or the speaker has no clone. The owner's token may ride in `access_token`, because an `<audio>` element cannot carry a header.",
+          "operationId": "speakers.voicePreview",
+          "parameters": [
+            {
+              "in": "path",
+              "name": "id",
+              "required": true,
+              "schema": {
+                "type": "string"
+              }
+            },
+            {
+              "in": "query",
+              "name": "lang",
+              "schema": {
+                "type": "string"
+              }
+            },
+            {
+              "in": "query",
+              "name": "format",
+              "schema": {
+                "enum": [
+                  "ogg",
+                  "caf"
+                ],
+                "type": "string"
+              }
+            },
+            {
+              "description": "The bearer token, for a client that cannot set a header (an `<audio>` element).",
+              "in": "query",
+              "name": "access_token",
+              "schema": {
+                "type": "string"
+              }
+            },
+            {
+              "description": "The voice as it speaks in this recording, for whoever may read the recording (its owner, or a listener with `listenerToken` or `shareCode`) rather than for the speaker's owner alone. 404 when the voice reads nobody in it.",
+              "in": "query",
+              "name": "recording",
+              "schema": {
+                "format": "uuid",
+                "type": "string"
+              }
+            },
+            {
+              "description": "With `recording`: the listener token of a private broadcast.",
+              "in": "query",
+              "name": "listenerToken",
+              "schema": {
+                "type": "string"
+              }
+            },
+            {
+              "description": "With `recording`: a share link's code.",
+              "in": "query",
+              "name": "shareCode",
+              "schema": {
+                "type": "string"
+              }
+            }
+          ],
+          "responses": {
+            "200": {
+              "description": "audio/ogg or audio/x-caf",
+              "headers": {
+                "RateLimit-Limit": {
+                  "$ref": "#/components/headers/RateLimit-Limit"
+                },
+                "RateLimit-Remaining": {
+                  "$ref": "#/components/headers/RateLimit-Remaining"
+                },
+                "RateLimit-Reset": {
+                  "$ref": "#/components/headers/RateLimit-Reset"
+                },
+                "X-Request-Id": {
+                  "$ref": "#/components/headers/X-Request-Id"
+                }
+              }
+            },
+            "202": {
+              "description": "The render has been started by this very ask; it is not finished. Poll — the next ask is a cache hit. Body is an error-shaped `preview_pending`.",
+              "headers": {
+                "RateLimit-Limit": {
+                  "$ref": "#/components/headers/RateLimit-Limit"
+                },
+                "RateLimit-Remaining": {
+                  "$ref": "#/components/headers/RateLimit-Remaining"
+                },
+                "RateLimit-Reset": {
+                  "$ref": "#/components/headers/RateLimit-Reset"
+                },
+                "X-Request-Id": {
+                  "$ref": "#/components/headers/X-Request-Id"
+                }
+              }
+            },
+            "429": {
+              "$ref": "#/components/responses/RateLimited"
+            },
+            "503": {
+              "$ref": "#/components/responses/Unavailable"
+            }
+          },
+          "security": [
+            {
+              "bearerAuth": []
+            }
+          ],
+          "summary": "Preview a speaker's cloned voice",
+          "tags": [
+            "speakers"
+          ],
+          "x-errors": [
+            "invalid_state",
+            "not_found",
+            "preview_pending",
+            "language_unavailable"
+          ],
+          "x-vocalstack-auth": "listener",
+          "x-vocalstack-scopes": [
+            "read"
+          ]
+        }
+      },
+      "/v1/speakers/{id}/restore": {
+        "post": {
+          "description": "Bring an archived speaker back into use. Transcriptions they were unlinked from when they were archived stay unlinked.",
+          "operationId": "speakers.restore",
+          "parameters": [
+            {
+              "in": "path",
+              "name": "id",
+              "required": true,
+              "schema": {
+                "type": "string"
+              }
+            }
+          ],
+          "responses": {
+            "200": {
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "$ref": "#/components/schemas/Speaker"
+                  }
+                }
+              },
+              "description": "OK",
+              "headers": {
+                "RateLimit-Limit": {
+                  "$ref": "#/components/headers/RateLimit-Limit"
+                },
+                "RateLimit-Remaining": {
+                  "$ref": "#/components/headers/RateLimit-Remaining"
+                },
+                "RateLimit-Reset": {
+                  "$ref": "#/components/headers/RateLimit-Reset"
+                },
+                "X-Request-Id": {
+                  "$ref": "#/components/headers/X-Request-Id"
+                }
+              }
+            },
+            "429": {
+              "$ref": "#/components/responses/RateLimited"
+            },
+            "503": {
+              "$ref": "#/components/responses/Unavailable"
+            }
+          },
+          "security": [
+            {
+              "bearerAuth": []
+            }
+          ],
+          "summary": "Restore a saved speaker",
+          "tags": [
+            "speakers"
+          ],
+          "x-errors": [
+            "not_found",
+            "forbidden"
+          ],
+          "x-vocalstack-auth": "userOrKey",
+          "x-vocalstack-scopes": [
+            "write"
+          ]
+        }
+      },
+      "/v1/speakers/{id}/sample": {
+        "get": {
+          "description": "The audio this speaker was saved from (an upload, or the clip cut from a transcription), for their owner alone. Ranged. 404 when no sample is stored. It is what lets a draft picked up after a reload be the screen that was left — take, waveform and playback — rather than a preview of one.",
+          "operationId": "speakers.sample",
+          "parameters": [
+            {
+              "in": "path",
+              "name": "id",
+              "required": true,
+              "schema": {
+                "type": "string"
+              }
+            },
+            {
+              "description": "The bearer token, for a client that cannot set a header (an `<audio>` element).",
+              "in": "query",
+              "name": "access_token",
+              "schema": {
+                "type": "string"
+              }
+            }
+          ],
+          "responses": {
+            "200": {
+              "description": "the recorded sample, as it was uploaded",
+              "headers": {
+                "RateLimit-Limit": {
+                  "$ref": "#/components/headers/RateLimit-Limit"
+                },
+                "RateLimit-Remaining": {
+                  "$ref": "#/components/headers/RateLimit-Remaining"
+                },
+                "RateLimit-Reset": {
+                  "$ref": "#/components/headers/RateLimit-Reset"
+                },
+                "X-Request-Id": {
+                  "$ref": "#/components/headers/X-Request-Id"
+                }
+              }
+            },
+            "429": {
+              "$ref": "#/components/responses/RateLimited"
+            },
+            "503": {
+              "$ref": "#/components/responses/Unavailable"
+            }
+          },
+          "security": [
+            {
+              "bearerAuth": []
+            }
+          ],
+          "summary": "Get a speaker's sample",
+          "tags": [
+            "speakers"
+          ],
+          "x-errors": [
+            "not_found",
+            "forbidden"
+          ],
+          "x-vocalstack-auth": "userOrKey",
+          "x-vocalstack-scopes": [
+            "read"
+          ]
+        }
+      },
       "/v1/tags": {
         "get": {
           "description": "The account's tags, by name. Each transcription lists its own in `tags`.",
@@ -17753,6 +18761,83 @@
           ]
         }
       },
+      "/v1/transcriptions/{id}/appearances/{idx}": {
+        "put": {
+          "description": "Name a speaker of this transcription: `idx` is their display number, the `number` of \"Speaker <number>\" (`TranscriptSnapshot.speakers[].number`, `transcript.speakerNumbers`). A transcription has one set of speakers, so the name is given to that person in every recording of it they speak in. Empty or absent `name` clears it. Naming does not save them as a speaker: `speakers.createFromAppearance` does that.",
+          "operationId": "transcriptions.nameAppearance",
+          "parameters": [
+            {
+              "in": "path",
+              "name": "id",
+              "required": true,
+              "schema": {
+                "type": "string"
+              }
+            },
+            {
+              "in": "path",
+              "name": "idx",
+              "required": true,
+              "schema": {
+                "type": "integer"
+              }
+            }
+          ],
+          "requestBody": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NameSpeaker"
+                }
+              }
+            },
+            "required": true
+          },
+          "responses": {
+            "200": {
+              "description": "OK",
+              "headers": {
+                "RateLimit-Limit": {
+                  "$ref": "#/components/headers/RateLimit-Limit"
+                },
+                "RateLimit-Remaining": {
+                  "$ref": "#/components/headers/RateLimit-Remaining"
+                },
+                "RateLimit-Reset": {
+                  "$ref": "#/components/headers/RateLimit-Reset"
+                },
+                "X-Request-Id": {
+                  "$ref": "#/components/headers/X-Request-Id"
+                }
+              }
+            },
+            "429": {
+              "$ref": "#/components/responses/RateLimited"
+            },
+            "503": {
+              "$ref": "#/components/responses/Unavailable"
+            }
+          },
+          "security": [
+            {
+              "bearerAuth": []
+            }
+          ],
+          "summary": "Name a speaker",
+          "tags": [
+            "transcriptions"
+          ],
+          "x-errors": [
+            "invalid_options",
+            "not_found",
+            "forbidden"
+          ],
+          "x-vocalstack-auth": "userOrKey",
+          "x-vocalstack-scopes": [
+            "write"
+          ]
+        }
+      },
       "/v1/transcriptions/{id}/archive": {
         "post": {
           "description": "Archive the transcription: hidden, its links dead, its data kept until it is restored or purged.",
@@ -18480,236 +19565,6 @@
           ]
         }
       },
-      "/v1/voices": {
-        "get": {
-          "description": "The voices the account made and kept in its Voices, newest first: what the dashboard's Voices page lists. `lifecycle=archived` lists the archived ones instead.",
-          "operationId": "voices.list",
-          "parameters": [
-            {
-              "in": "query",
-              "name": "lifecycle",
-              "required": false,
-              "schema": {
-                "enum": [
-                  "active",
-                  "archived"
-                ],
-                "type": "string"
-              }
-            }
-          ],
-          "responses": {
-            "200": {
-              "content": {
-                "application/json": {
-                  "schema": {
-                    "properties": {
-                      "voices": {
-                        "items": {
-                          "$ref": "#/components/schemas/Voice"
-                        },
-                        "type": "array"
-                      }
-                    },
-                    "type": "object"
-                  }
-                }
-              },
-              "description": "OK",
-              "headers": {
-                "RateLimit-Limit": {
-                  "$ref": "#/components/headers/RateLimit-Limit"
-                },
-                "RateLimit-Remaining": {
-                  "$ref": "#/components/headers/RateLimit-Remaining"
-                },
-                "RateLimit-Reset": {
-                  "$ref": "#/components/headers/RateLimit-Reset"
-                },
-                "X-Request-Id": {
-                  "$ref": "#/components/headers/X-Request-Id"
-                }
-              }
-            },
-            "429": {
-              "$ref": "#/components/responses/RateLimited"
-            },
-            "503": {
-              "$ref": "#/components/responses/Unavailable"
-            }
-          },
-          "security": [
-            {
-              "bearerAuth": []
-            }
-          ],
-          "summary": "List voices",
-          "tags": [
-            "voices"
-          ],
-          "x-errors": [
-            "invalid_options"
-          ],
-          "x-vocalstack-auth": "userOrKey",
-          "x-vocalstack-scopes": [
-            "read"
-          ]
-        },
-        "post": {
-          "description": "Create a voice from a recorded sample and queue its training: multipart/form-data with a `sample` audio part and a `meta` JSON part. The sample needs at least 20 seconds of speech from one person: it is diarized, and the speaker with the most speech is cloned; the silence around them does not matter. The voice comes back `training` with progress 0; poll GET /v1/voices/{id}. Training reports a real state — it never fakes progress, and a voice that cannot be trained ends `failed` with the reason on `error`.",
-          "operationId": "voices.create",
-          "parameters": [
-            {
-              "description": "Makes a retry safe: a request repeated with the same key and the same body within 24 hours returns the first response (with `Idempotent-Replayed: true`) instead of running again. The same key with a different request is 422 `idempotency_key_reused`; a retry while the first is still running is 409 `conflict`. Only a successful (2xx) response is remembered. Keys are per account.",
-              "in": "header",
-              "name": "Idempotency-Key",
-              "required": false,
-              "schema": {
-                "maxLength": 255,
-                "minLength": 1,
-                "type": "string"
-              }
-            }
-          ],
-          "requestBody": {
-            "content": {
-              "multipart/form-data": {
-                "schema": {
-                  "properties": {
-                    "meta": {
-                      "$ref": "#/components/schemas/CreateVoice"
-                    },
-                    "sample": {
-                      "format": "binary",
-                      "type": "string"
-                    }
-                  },
-                  "required": [
-                    "sample",
-                    "meta"
-                  ],
-                  "type": "object"
-                }
-              }
-            },
-            "required": true
-          },
-          "responses": {
-            "201": {
-              "content": {
-                "application/json": {
-                  "schema": {
-                    "$ref": "#/components/schemas/Voice"
-                  }
-                }
-              },
-              "description": "Created",
-              "headers": {
-                "RateLimit-Limit": {
-                  "$ref": "#/components/headers/RateLimit-Limit"
-                },
-                "RateLimit-Remaining": {
-                  "$ref": "#/components/headers/RateLimit-Remaining"
-                },
-                "RateLimit-Reset": {
-                  "$ref": "#/components/headers/RateLimit-Reset"
-                },
-                "X-Request-Id": {
-                  "$ref": "#/components/headers/X-Request-Id"
-                }
-              }
-            },
-            "429": {
-              "$ref": "#/components/responses/RateLimited"
-            },
-            "503": {
-              "$ref": "#/components/responses/Unavailable"
-            }
-          },
-          "security": [
-            {
-              "bearerAuth": []
-            }
-          ],
-          "summary": "Create a voice",
-          "tags": [
-            "voices"
-          ],
-          "x-errors": [
-            "invalid_options",
-            "not_found",
-            "idempotency_key_reused"
-          ],
-          "x-vocalstack-auth": "userOrKey",
-          "x-vocalstack-scopes": [
-            "write"
-          ]
-        }
-      },
-      "/v1/voices/archive": {
-        "post": {
-          "description": "Archive several voices in one call (up to 500 `ids`), each as the one-voice call would. The answer lists the ids that were done and, for each one that was not, why (`failed[].code` and `message`); one failure does not stop the others.",
-          "operationId": "voices.archiveMany",
-          "requestBody": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ManyIds"
-                }
-              }
-            },
-            "required": true
-          },
-          "responses": {
-            "200": {
-              "content": {
-                "application/json": {
-                  "schema": {
-                    "$ref": "#/components/schemas/ManyResult"
-                  }
-                }
-              },
-              "description": "OK",
-              "headers": {
-                "RateLimit-Limit": {
-                  "$ref": "#/components/headers/RateLimit-Limit"
-                },
-                "RateLimit-Remaining": {
-                  "$ref": "#/components/headers/RateLimit-Remaining"
-                },
-                "RateLimit-Reset": {
-                  "$ref": "#/components/headers/RateLimit-Reset"
-                },
-                "X-Request-Id": {
-                  "$ref": "#/components/headers/X-Request-Id"
-                }
-              }
-            },
-            "429": {
-              "$ref": "#/components/responses/RateLimited"
-            },
-            "503": {
-              "$ref": "#/components/responses/Unavailable"
-            }
-          },
-          "security": [
-            {
-              "bearerAuth": []
-            }
-          ],
-          "summary": "Archive voices",
-          "tags": [
-            "voices"
-          ],
-          "x-errors": [
-            "invalid_options"
-          ],
-          "x-vocalstack-auth": "userOrKey",
-          "x-vocalstack-scopes": [
-            "write"
-          ]
-        }
-      },
       "/v1/voices/available": {
         "get": {
           "description": "The voices that can speak a language, best first (`default` marks the one a recording that pins none gets). Open to listeners; a bearer token also returns that account's saved cloned voices (not automatic clones). Cloned entries carry `consent`, `auto` and, with `recording`, `speaker`. A clip is synthesised once per language and fanned out, so this is the set a host may pin in `settings.voiceByLang` — and all a listener can ever be offered.",
@@ -18800,150 +19655,6 @@
           "x-vocalstack-scopes": []
         }
       },
-      "/v1/voices/delete": {
-        "post": {
-          "description": "Delete several voices in one call (up to 500 `ids`), each as the one-voice call would. The answer lists the ids that were done and, for each one that was not, why (`failed[].code` and `message`); one failure does not stop the others.",
-          "operationId": "voices.deleteMany",
-          "requestBody": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ManyIds"
-                }
-              }
-            },
-            "required": true
-          },
-          "responses": {
-            "200": {
-              "content": {
-                "application/json": {
-                  "schema": {
-                    "$ref": "#/components/schemas/ManyResult"
-                  }
-                }
-              },
-              "description": "OK",
-              "headers": {
-                "RateLimit-Limit": {
-                  "$ref": "#/components/headers/RateLimit-Limit"
-                },
-                "RateLimit-Remaining": {
-                  "$ref": "#/components/headers/RateLimit-Remaining"
-                },
-                "RateLimit-Reset": {
-                  "$ref": "#/components/headers/RateLimit-Reset"
-                },
-                "X-Request-Id": {
-                  "$ref": "#/components/headers/X-Request-Id"
-                }
-              }
-            },
-            "429": {
-              "$ref": "#/components/responses/RateLimited"
-            },
-            "503": {
-              "$ref": "#/components/responses/Unavailable"
-            }
-          },
-          "security": [
-            {
-              "bearerAuth": []
-            }
-          ],
-          "summary": "Delete voices",
-          "tags": [
-            "voices"
-          ],
-          "x-errors": [
-            "invalid_options"
-          ],
-          "x-vocalstack-auth": "userOrKey",
-          "x-vocalstack-scopes": [
-            "write"
-          ]
-        }
-      },
-      "/v1/voices/from-speaker": {
-        "post": {
-          "description": "Create a voice from one speaker of a recording — no sample to upload, because the recording's own audio is the sample. Works while the recording is still running: the server joins the stretches that speaker actually spoke for and clones from those. Naming them here also labels them in the transcript and associates them with the new voice. Needs at least 20 seconds of that speaker's speech, their diarized turns added up; the refusal says how much there is. `consent: true` grants consent; when the speaker was already cloned automatically (and not refused), that clone is the one granted, named and saved (`auto` becomes false: it is kept when the recording goes). `spans` picks the stretches to clone from (media seconds, e.g. the transcript's sentences of that speaker): only that speaker's speech inside them is used, they must add up to 5–60 seconds (about 25 is plenty; under 20 makes a weaker voice: the clearest complete sentence among them becomes the voice's reference), and a new voice is always made. `library: false` keeps the voice with this recording only: it speaks for that speaker here, is not offered in other transcriptions (`library` is false on the voice), and goes when the recording does; PATCH `library: true` adds it later. The default `true` saves it to the library. `draft: true` makes a draft to try first (no `consent` or `name` needed; preview it in any language): it neither names nor stands for the speaker until it is kept with PATCH /v1/voices/{id} `{\"draft\": false, \"consent\": true, \"name\": …}`, which links it to the speaker; DELETE drops it.",
-          "operationId": "voices.createFromSpeaker",
-          "parameters": [
-            {
-              "description": "Makes a retry safe: a request repeated with the same key and the same body within 24 hours returns the first response (with `Idempotent-Replayed: true`) instead of running again. The same key with a different request is 422 `idempotency_key_reused`; a retry while the first is still running is 409 `conflict`. Only a successful (2xx) response is remembered. Keys are per account.",
-              "in": "header",
-              "name": "Idempotency-Key",
-              "required": false,
-              "schema": {
-                "maxLength": 255,
-                "minLength": 1,
-                "type": "string"
-              }
-            }
-          ],
-          "requestBody": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/CreateVoiceFromSpeaker"
-                }
-              }
-            },
-            "required": true
-          },
-          "responses": {
-            "201": {
-              "content": {
-                "application/json": {
-                  "schema": {
-                    "$ref": "#/components/schemas/Voice"
-                  }
-                }
-              },
-              "description": "Created",
-              "headers": {
-                "RateLimit-Limit": {
-                  "$ref": "#/components/headers/RateLimit-Limit"
-                },
-                "RateLimit-Remaining": {
-                  "$ref": "#/components/headers/RateLimit-Remaining"
-                },
-                "RateLimit-Reset": {
-                  "$ref": "#/components/headers/RateLimit-Reset"
-                },
-                "X-Request-Id": {
-                  "$ref": "#/components/headers/X-Request-Id"
-                }
-              }
-            },
-            "429": {
-              "$ref": "#/components/responses/RateLimited"
-            },
-            "503": {
-              "$ref": "#/components/responses/Unavailable"
-            }
-          },
-          "security": [
-            {
-              "bearerAuth": []
-            }
-          ],
-          "summary": "Create a voice from a speaker",
-          "tags": [
-            "voices"
-          ],
-          "x-errors": [
-            "invalid_options",
-            "not_found",
-            "forbidden",
-            "idempotency_key_reused"
-          ],
-          "x-vocalstack-auth": "userOrKey",
-          "x-vocalstack-scopes": [
-            "write"
-          ]
-        }
-      },
       "/v1/voices/preview": {
         "get": {
           "description": "A few seconds of a voice speaking a language, Ogg/Opus (`format=caf` for Apple's media stack). Only voices the catalogue offers can be previewed.",
@@ -19032,662 +19743,6 @@
           "x-vocalstack-auth": "optional",
           "x-vocalstack-scopes": []
         }
-      },
-      "/v1/voices/restore": {
-        "post": {
-          "description": "Restore several voices in one call (up to 500 `ids`), each as the one-voice call would. The answer lists the ids that were done and, for each one that was not, why (`failed[].code` and `message`); one failure does not stop the others.",
-          "operationId": "voices.restoreMany",
-          "requestBody": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ManyIds"
-                }
-              }
-            },
-            "required": true
-          },
-          "responses": {
-            "200": {
-              "content": {
-                "application/json": {
-                  "schema": {
-                    "$ref": "#/components/schemas/ManyResult"
-                  }
-                }
-              },
-              "description": "OK",
-              "headers": {
-                "RateLimit-Limit": {
-                  "$ref": "#/components/headers/RateLimit-Limit"
-                },
-                "RateLimit-Remaining": {
-                  "$ref": "#/components/headers/RateLimit-Remaining"
-                },
-                "RateLimit-Reset": {
-                  "$ref": "#/components/headers/RateLimit-Reset"
-                },
-                "X-Request-Id": {
-                  "$ref": "#/components/headers/X-Request-Id"
-                }
-              }
-            },
-            "429": {
-              "$ref": "#/components/responses/RateLimited"
-            },
-            "503": {
-              "$ref": "#/components/responses/Unavailable"
-            }
-          },
-          "security": [
-            {
-              "bearerAuth": []
-            }
-          ],
-          "summary": "Restore voices",
-          "tags": [
-            "voices"
-          ],
-          "x-errors": [
-            "invalid_options"
-          ],
-          "x-vocalstack-auth": "userOrKey",
-          "x-vocalstack-scopes": [
-            "write"
-          ]
-        }
-      },
-      "/v1/voices/{id}": {
-        "delete": {
-          "description": "Delete the voice, its recorded sample and anything trained from it.",
-          "operationId": "voices.delete",
-          "parameters": [
-            {
-              "in": "path",
-              "name": "id",
-              "required": true,
-              "schema": {
-                "type": "string"
-              }
-            }
-          ],
-          "responses": {
-            "200": {
-              "description": "OK",
-              "headers": {
-                "RateLimit-Limit": {
-                  "$ref": "#/components/headers/RateLimit-Limit"
-                },
-                "RateLimit-Remaining": {
-                  "$ref": "#/components/headers/RateLimit-Remaining"
-                },
-                "RateLimit-Reset": {
-                  "$ref": "#/components/headers/RateLimit-Reset"
-                },
-                "X-Request-Id": {
-                  "$ref": "#/components/headers/X-Request-Id"
-                }
-              }
-            },
-            "429": {
-              "$ref": "#/components/responses/RateLimited"
-            },
-            "503": {
-              "$ref": "#/components/responses/Unavailable"
-            }
-          },
-          "security": [
-            {
-              "bearerAuth": []
-            }
-          ],
-          "summary": "Delete a voice",
-          "tags": [
-            "voices"
-          ],
-          "x-errors": [
-            "not_found",
-            "forbidden"
-          ],
-          "x-vocalstack-auth": "userOrKey",
-          "x-vocalstack-scopes": [
-            "write"
-          ]
-        },
-        "get": {
-          "description": "Training state: `training` / `ready` / `failed`, with `progress` and, when it failed, `error`.",
-          "operationId": "voices.get",
-          "parameters": [
-            {
-              "in": "path",
-              "name": "id",
-              "required": true,
-              "schema": {
-                "type": "string"
-              }
-            }
-          ],
-          "responses": {
-            "200": {
-              "content": {
-                "application/json": {
-                  "schema": {
-                    "$ref": "#/components/schemas/Voice"
-                  }
-                }
-              },
-              "description": "OK",
-              "headers": {
-                "RateLimit-Limit": {
-                  "$ref": "#/components/headers/RateLimit-Limit"
-                },
-                "RateLimit-Remaining": {
-                  "$ref": "#/components/headers/RateLimit-Remaining"
-                },
-                "RateLimit-Reset": {
-                  "$ref": "#/components/headers/RateLimit-Reset"
-                },
-                "X-Request-Id": {
-                  "$ref": "#/components/headers/X-Request-Id"
-                }
-              }
-            },
-            "429": {
-              "$ref": "#/components/responses/RateLimited"
-            },
-            "503": {
-              "$ref": "#/components/responses/Unavailable"
-            }
-          },
-          "security": [
-            {
-              "bearerAuth": []
-            }
-          ],
-          "summary": "Get a voice",
-          "tags": [
-            "voices"
-          ],
-          "x-vocalstack-auth": "userOrKey",
-          "x-vocalstack-scopes": [
-            "read"
-          ]
-        },
-        "patch": {
-          "description": "Rename a voice, recolour it, or switch it off. Absent fields are left alone; `color: \"\"` clears a chosen colour. `library: true` adds a voice kept with its recording only (or an automatic clone, with `consent: true`) to the voice library, so it is offered in every transcription from then on; `library: false` takes one made from a recording's speaker back out (it stays with that recording and goes with it). Not the place to withdraw permission — that deletes the voice.",
-          "operationId": "voices.update",
-          "parameters": [
-            {
-              "in": "path",
-              "name": "id",
-              "required": true,
-              "schema": {
-                "type": "string"
-              }
-            }
-          ],
-          "requestBody": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/PatchVoice"
-                }
-              }
-            },
-            "required": true
-          },
-          "responses": {
-            "200": {
-              "content": {
-                "application/json": {
-                  "schema": {
-                    "$ref": "#/components/schemas/Voice"
-                  }
-                }
-              },
-              "description": "OK",
-              "headers": {
-                "RateLimit-Limit": {
-                  "$ref": "#/components/headers/RateLimit-Limit"
-                },
-                "RateLimit-Remaining": {
-                  "$ref": "#/components/headers/RateLimit-Remaining"
-                },
-                "RateLimit-Reset": {
-                  "$ref": "#/components/headers/RateLimit-Reset"
-                },
-                "X-Request-Id": {
-                  "$ref": "#/components/headers/X-Request-Id"
-                }
-              }
-            },
-            "429": {
-              "$ref": "#/components/responses/RateLimited"
-            },
-            "503": {
-              "$ref": "#/components/responses/Unavailable"
-            }
-          },
-          "security": [
-            {
-              "bearerAuth": []
-            }
-          ],
-          "summary": "Update a voice",
-          "tags": [
-            "voices"
-          ],
-          "x-errors": [
-            "invalid_options",
-            "not_found",
-            "forbidden"
-          ],
-          "x-vocalstack-auth": "userOrKey",
-          "x-vocalstack-scopes": [
-            "write"
-          ]
-        }
-      },
-      "/v1/voices/{id}/archive": {
-        "post": {
-          "description": "Put a voice away: it no longer speaks, is not offered, and no longer names or stands for any speaker — speakers it was linked to are unlinked, and those it had named are back to their plain labels, so they can be cloned afresh. Its sample is kept; restore brings it back (speakers stay unlinked) and delete removes it for good. `archivedAt` says when.",
-          "operationId": "voices.archive",
-          "parameters": [
-            {
-              "in": "path",
-              "name": "id",
-              "required": true,
-              "schema": {
-                "type": "string"
-              }
-            }
-          ],
-          "responses": {
-            "200": {
-              "content": {
-                "application/json": {
-                  "schema": {
-                    "$ref": "#/components/schemas/Voice"
-                  }
-                }
-              },
-              "description": "OK",
-              "headers": {
-                "RateLimit-Limit": {
-                  "$ref": "#/components/headers/RateLimit-Limit"
-                },
-                "RateLimit-Remaining": {
-                  "$ref": "#/components/headers/RateLimit-Remaining"
-                },
-                "RateLimit-Reset": {
-                  "$ref": "#/components/headers/RateLimit-Reset"
-                },
-                "X-Request-Id": {
-                  "$ref": "#/components/headers/X-Request-Id"
-                }
-              }
-            },
-            "429": {
-              "$ref": "#/components/responses/RateLimited"
-            },
-            "503": {
-              "$ref": "#/components/responses/Unavailable"
-            }
-          },
-          "security": [
-            {
-              "bearerAuth": []
-            }
-          ],
-          "summary": "Archive a voice",
-          "tags": [
-            "voices"
-          ],
-          "x-errors": [
-            "not_found",
-            "forbidden"
-          ],
-          "x-vocalstack-auth": "userOrKey",
-          "x-vocalstack-scopes": [
-            "write"
-          ]
-        }
-      },
-      "/v1/voices/{id}/consent": {
-        "post": {
-          "description": "Record whether the speaker agreed to their cloned voice. Every speaker with 20 seconds of speech in a recording is cloned automatically with `consent: \"pending\"`; a clone speaks, is offered in `GET /v1/voices/available` and has a preview only once its consent is `granted`. `granted` (optionally with a `name`, which also names the speaker in the recording it came from) makes it usable; `refused` deletes its audio and voice at once and it is not cloned again. Refusing later withdraws consent the same way. Each decision is recorded with who made it and when; `granted` on a voice already granted is recorded again (the host re-confirming permission). With `settings.voiceCloning` on, a transcription's automatic clones are granted on the host's word as they are made.",
-          "operationId": "voices.setConsent",
-          "parameters": [
-            {
-              "in": "path",
-              "name": "id",
-              "required": true,
-              "schema": {
-                "type": "string"
-              }
-            }
-          ],
-          "requestBody": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/SetConsent"
-                }
-              }
-            },
-            "required": true
-          },
-          "responses": {
-            "200": {
-              "content": {
-                "application/json": {
-                  "schema": {
-                    "$ref": "#/components/schemas/Voice"
-                  }
-                }
-              },
-              "description": "OK",
-              "headers": {
-                "RateLimit-Limit": {
-                  "$ref": "#/components/headers/RateLimit-Limit"
-                },
-                "RateLimit-Remaining": {
-                  "$ref": "#/components/headers/RateLimit-Remaining"
-                },
-                "RateLimit-Reset": {
-                  "$ref": "#/components/headers/RateLimit-Reset"
-                },
-                "X-Request-Id": {
-                  "$ref": "#/components/headers/X-Request-Id"
-                }
-              }
-            },
-            "429": {
-              "$ref": "#/components/responses/RateLimited"
-            },
-            "503": {
-              "$ref": "#/components/responses/Unavailable"
-            }
-          },
-          "security": [
-            {
-              "bearerAuth": []
-            }
-          ],
-          "summary": "Grant or refuse consent for a voice",
-          "tags": [
-            "voices"
-          ],
-          "x-errors": [
-            "invalid_options",
-            "invalid_state",
-            "not_found",
-            "forbidden"
-          ],
-          "x-vocalstack-auth": "userOrKey",
-          "x-vocalstack-scopes": [
-            "write"
-          ]
-        }
-      },
-      "/v1/voices/{id}/preview": {
-        "get": {
-          "description": "The cloned voice speaking, Ogg/Opus — `format=caf` for Apple's media stack, which will not play Ogg. 409 while it is not `ready`. The owner's token may ride in `access_token`, because an `<audio>` element cannot carry a header.",
-          "operationId": "voices.clonePreview",
-          "parameters": [
-            {
-              "in": "path",
-              "name": "id",
-              "required": true,
-              "schema": {
-                "type": "string"
-              }
-            },
-            {
-              "in": "query",
-              "name": "lang",
-              "schema": {
-                "type": "string"
-              }
-            },
-            {
-              "in": "query",
-              "name": "format",
-              "schema": {
-                "enum": [
-                  "ogg",
-                  "caf"
-                ],
-                "type": "string"
-              }
-            },
-            {
-              "description": "The bearer token, for a client that cannot set a header (an `<audio>` element).",
-              "in": "query",
-              "name": "access_token",
-              "schema": {
-                "type": "string"
-              }
-            },
-            {
-              "description": "The voice as it speaks in this recording, for whoever may read the recording (its owner, or a listener with `listenerToken` or `shareCode`) rather than for the voice's owner alone. 404 when the voice reads nobody in it.",
-              "in": "query",
-              "name": "recording",
-              "schema": {
-                "format": "uuid",
-                "type": "string"
-              }
-            },
-            {
-              "description": "With `recording`: the listener token of a private broadcast.",
-              "in": "query",
-              "name": "listenerToken",
-              "schema": {
-                "type": "string"
-              }
-            },
-            {
-              "description": "With `recording`: a share link's code.",
-              "in": "query",
-              "name": "shareCode",
-              "schema": {
-                "type": "string"
-              }
-            }
-          ],
-          "responses": {
-            "200": {
-              "description": "audio/ogg or audio/x-caf",
-              "headers": {
-                "RateLimit-Limit": {
-                  "$ref": "#/components/headers/RateLimit-Limit"
-                },
-                "RateLimit-Remaining": {
-                  "$ref": "#/components/headers/RateLimit-Remaining"
-                },
-                "RateLimit-Reset": {
-                  "$ref": "#/components/headers/RateLimit-Reset"
-                },
-                "X-Request-Id": {
-                  "$ref": "#/components/headers/X-Request-Id"
-                }
-              }
-            },
-            "202": {
-              "description": "The render has been started by this very ask; it is not finished. Poll — the next ask is a cache hit. Body is an error-shaped `preview_pending`.",
-              "headers": {
-                "RateLimit-Limit": {
-                  "$ref": "#/components/headers/RateLimit-Limit"
-                },
-                "RateLimit-Remaining": {
-                  "$ref": "#/components/headers/RateLimit-Remaining"
-                },
-                "RateLimit-Reset": {
-                  "$ref": "#/components/headers/RateLimit-Reset"
-                },
-                "X-Request-Id": {
-                  "$ref": "#/components/headers/X-Request-Id"
-                }
-              }
-            },
-            "429": {
-              "$ref": "#/components/responses/RateLimited"
-            },
-            "503": {
-              "$ref": "#/components/responses/Unavailable"
-            }
-          },
-          "security": [
-            {
-              "bearerAuth": []
-            }
-          ],
-          "summary": "Preview a cloned voice",
-          "tags": [
-            "voices"
-          ],
-          "x-errors": [
-            "invalid_state",
-            "not_found",
-            "preview_pending",
-            "language_unavailable"
-          ],
-          "x-vocalstack-auth": "listener",
-          "x-vocalstack-scopes": [
-            "read"
-          ]
-        }
-      },
-      "/v1/voices/{id}/restore": {
-        "post": {
-          "description": "Bring an archived voice back into use. Speakers it was unlinked from when it was archived stay unlinked.",
-          "operationId": "voices.restore",
-          "parameters": [
-            {
-              "in": "path",
-              "name": "id",
-              "required": true,
-              "schema": {
-                "type": "string"
-              }
-            }
-          ],
-          "responses": {
-            "200": {
-              "content": {
-                "application/json": {
-                  "schema": {
-                    "$ref": "#/components/schemas/Voice"
-                  }
-                }
-              },
-              "description": "OK",
-              "headers": {
-                "RateLimit-Limit": {
-                  "$ref": "#/components/headers/RateLimit-Limit"
-                },
-                "RateLimit-Remaining": {
-                  "$ref": "#/components/headers/RateLimit-Remaining"
-                },
-                "RateLimit-Reset": {
-                  "$ref": "#/components/headers/RateLimit-Reset"
-                },
-                "X-Request-Id": {
-                  "$ref": "#/components/headers/X-Request-Id"
-                }
-              }
-            },
-            "429": {
-              "$ref": "#/components/responses/RateLimited"
-            },
-            "503": {
-              "$ref": "#/components/responses/Unavailable"
-            }
-          },
-          "security": [
-            {
-              "bearerAuth": []
-            }
-          ],
-          "summary": "Restore a voice",
-          "tags": [
-            "voices"
-          ],
-          "x-errors": [
-            "not_found",
-            "forbidden"
-          ],
-          "x-vocalstack-auth": "userOrKey",
-          "x-vocalstack-scopes": [
-            "write"
-          ]
-        }
-      },
-      "/v1/voices/{id}/sample": {
-        "get": {
-          "description": "The audio this voice was made from, for its owner alone. Ranged. It is what lets a draft picked up after a reload be the screen that was left — take, waveform and playback — rather than a preview of one.",
-          "operationId": "voices.sample",
-          "parameters": [
-            {
-              "in": "path",
-              "name": "id",
-              "required": true,
-              "schema": {
-                "type": "string"
-              }
-            },
-            {
-              "description": "The bearer token, for a client that cannot set a header (an `<audio>` element).",
-              "in": "query",
-              "name": "access_token",
-              "schema": {
-                "type": "string"
-              }
-            }
-          ],
-          "responses": {
-            "200": {
-              "description": "the recorded sample, as it was uploaded",
-              "headers": {
-                "RateLimit-Limit": {
-                  "$ref": "#/components/headers/RateLimit-Limit"
-                },
-                "RateLimit-Remaining": {
-                  "$ref": "#/components/headers/RateLimit-Remaining"
-                },
-                "RateLimit-Reset": {
-                  "$ref": "#/components/headers/RateLimit-Reset"
-                },
-                "X-Request-Id": {
-                  "$ref": "#/components/headers/X-Request-Id"
-                }
-              }
-            },
-            "429": {
-              "$ref": "#/components/responses/RateLimited"
-            },
-            "503": {
-              "$ref": "#/components/responses/Unavailable"
-            }
-          },
-          "security": [
-            {
-              "bearerAuth": []
-            }
-          ],
-          "summary": "Get a voice's sample",
-          "tags": [
-            "voices"
-          ],
-          "x-errors": [
-            "not_found",
-            "forbidden"
-          ],
-          "x-vocalstack-auth": "userOrKey",
-          "x-vocalstack-scopes": [
-            "read"
-          ]
-        }
       }
     },
     "tags": [
@@ -19735,6 +19790,11 @@
         "description": "The voices spoken translations are read in, stock and cloned.",
         "name": "voices",
         "x-displayName": "Voices"
+      },
+      {
+        "description": "The people the account saved: recognised in later transcriptions, and read in their own cloned voice once they consent.",
+        "name": "speakers",
+        "x-displayName": "Speakers"
       },
       {
         "description": "Find sentences across transcripts, in any language.",

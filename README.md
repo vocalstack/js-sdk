@@ -53,7 +53,7 @@ npm install @vocalstack/js-sdk
 | recording | one take inside a broadcast or a transcription | `vs.recordings` |
 | job | a file or link recording's transcription work | `vs.jobs` |
 
-The other groups: `vs.corrections`, `vs.shareLinks`, `vs.voices`,
+The other groups: `vs.corrections`, `vs.shareLinks`, `vs.speakers`, `vs.voices`,
 `vs.search`, `vs.me`, `vs.languages`, `vs.rtmp`, `vs.events`, `vs.meta`.
 Method names follow the document's `operationId`s (`broadcasts.startRecording`
 is `POST /v1/broadcasts/{id}/recordings`); lists return arrays.
@@ -127,7 +127,7 @@ Browser microphone capture ships as `@vocalstack/js-sdk/mic`
 ## Binary answers
 
 `recordings.export`, `recordings.clip`, `recordings.voiceClip`, `jobs.preview`,
-`voices.preview`, `voices.clonePreview` and `voices.sample` return the
+`voices.preview`, `speakers.voicePreview` and `speakers.sample` return the
 `Response` itself: `.text()`, `.arrayBuffer()` or stream it.
 `recordings.audioUrl` returns the signed media URL.
 
