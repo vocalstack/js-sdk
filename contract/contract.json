@@ -13625,6 +13625,7 @@
               }
             },
             {
+              "description": "kind=video: hls answers 200 with an HLS playlist (application/vnd.apple.mpegurl) of byte ranges in the stored video, signed for the same time, so a player starts after the first segments; 404 not_found when the video cannot be segmented (play it without format)",
               "in": "query",
               "name": "format",
               "schema": {
@@ -13632,7 +13633,8 @@
                 "enum": [
                   "ogg",
                   "caf",
-                  "mp3"
+                  "mp3",
+                  "hls"
                 ],
                 "type": "string"
               }
@@ -13691,6 +13693,30 @@
             }
           ],
           "responses": {
+            "200": {
+              "content": {
+                "application/vnd.apple.mpegurl": {
+                  "schema": {
+                    "type": "string"
+                  }
+                }
+              },
+              "description": "kind=video&format=hls: an HLS playlist",
+              "headers": {
+                "RateLimit-Limit": {
+                  "$ref": "#/components/headers/RateLimit-Limit"
+                },
+                "RateLimit-Remaining": {
+                  "$ref": "#/components/headers/RateLimit-Remaining"
+                },
+                "RateLimit-Reset": {
+                  "$ref": "#/components/headers/RateLimit-Reset"
+                },
+                "X-Request-Id": {
+                  "$ref": "#/components/headers/X-Request-Id"
+                }
+              }
+            },
             "302": {
               "description": "Redirect",
               "headers": {

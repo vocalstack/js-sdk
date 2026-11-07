@@ -20,6 +20,10 @@ One line per change, naming the operation (`METHOD /path`, its
 
 ## [Unreleased]
 
+### Streamed source video (2026-11-07)
+
+- **Added**: `format=hls` on `GET /v1/recordings/{id}/audio?kind=video` (`recordings.audio`) answers 200 with an HLS playlist (`application/vnd.apple.mpegurl`) of byte ranges in the stored video, so a player starts after the first segments instead of reading the whole file; 404 `not_found` when the video cannot be segmented.
+
 ### Opaque machine references (2026-11-07)
 
 - **Changed**: `subscribe.ready` `instance` and `PublisherInfo.machineId` (`Recording.publisher`) are opaque ids (16 hex characters, stable per machine), no longer the name of the machine.
