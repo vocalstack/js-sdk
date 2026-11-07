@@ -13625,7 +13625,7 @@
               }
             },
             {
-              "description": "kind=video: hls answers 200 with an HLS playlist (application/vnd.apple.mpegurl) of byte ranges in the stored video, signed for the same time, so a player starts after the first segments; 404 not_found when the video cannot be segmented (play it without format)",
+              "description": "kind=video: hls answers 200 with an HLS playlist (application/vnd.apple.mpegurl), signed for the same time, so a player starts after the first segments. A video sent over RTMP is kept as segments and plays while the recording is still live: the playlist is EVENT (no ENDLIST) until the recording ends, and 503 engine_unavailable with retryAfterS until its first segment is stored; such a video answers the playlist with or without format=hls. An uploaded video is served as byte ranges of the stored file; 404 not_found when it cannot be segmented (play it without format)",
               "in": "query",
               "name": "format",
               "schema": {

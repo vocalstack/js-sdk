@@ -22,6 +22,7 @@ One line per change, naming the operation (`METHOD /path`, its
 
 ### Streamed source video (2026-11-07)
 
+- **Added**: a video sent over RTMP plays while its recording is live: `GET /v1/recordings/{id}/audio?kind=video` (`recordings.audio`) answers an EVENT HLS playlist of the segments stored so far, with `#EXT-X-ENDLIST` once the recording ends, and 503 `engine_unavailable` with `retryAfterS` until the first segment is stored. The recording's `media` lists the `video` as `uploading` while it is live.
 - **Added**: `format=hls` on `GET /v1/recordings/{id}/audio?kind=video` (`recordings.audio`) answers 200 with an HLS playlist (`application/vnd.apple.mpegurl`) of byte ranges in the stored video, so a player starts after the first segments instead of reading the whole file; 404 `not_found` when the video cannot be segmented.
 
 ### Opaque machine references (2026-11-07)
