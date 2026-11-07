@@ -1,7 +1,7 @@
 # Changelog: @vocalstack/contract
 
 Every change to `contract.json` (the one public document, `/v1`) gets an
-entry here, in the same change. The rules are in `docs/api-lifecycle.md`;
+entry here, in the same change. The rules are below;
 `make contract-check` refuses a contract change with no entry.
 
 Entries go under **Unreleased**, by kind:
@@ -22,8 +22,12 @@ One line per change, naming the operation (`METHOD /path`, its
 
 ### Batches removed (2026-11-07, `1.0.0-alpha.3`)
 
+This removal is an exception to the rules above, approved by the owner: it is breaking, inside `/v1`, with no deprecation and no sunset period. The operations stopped working on the day they were removed.
+
 - **Breaking**: batch file transcription is gone from `/v1` (Alex's decision, an exception to the additive rule: files now run in parallel across GPU machines, so a batch buys nothing). Removed operations: `GET /v1/batches` (`batches.list`), `POST /v1/batches` (`batches.create`), `GET /v1/batches/{id}` (`batches.get`), `DELETE /v1/batches/{id}` (`batches.delete`), `POST /v1/batches/{id}/files` (`batches.addFile`), `POST /v1/batches/{id}/start` (`batches.start`), `POST /v1/batches/{id}/stop` (`batches.stop`), `GET /v1/batches/{id}/export` (`batches.export`), and the `batches` tag. Send each file as its own transcription (`POST /v1/transcriptions`).
 - **Breaking**: removed schemas `Batch`, `BatchCounts`, `BatchPage`, `BatchSettings`, `CreateBatch` and the other batch-only schemas; removed fields `Transcription.batchId`, `Limits.filesPerBatch` and `Rates.batchFileMinimumSeconds`; removed the `batch_api` value of `Transcription.origin`. Every transcription is billed at least `rates.minimumSeconds`, one by one. A transcription no longer caps the files uploaded into it by plan.
+- **Changed**: `POST /v1/transcriptions/{id}/recordings/upload` (`transcriptions.uploadRecording`) refuses a transcription that already holds 1000 files with `invalid_state` (`data.details.metric` `files_per_transcription`, `limit` 1000), the same on every plan.
+- **Changed**: `info.version` is `1.0.0-alpha.3`, the package's version (it had stayed at `1.0.0-alpha.0`).
 - **Removed**: the `batches` group in every SDK (TypeScript `vs.batches`, Python `vs.batches`, PHP `$vs->batches`) and the transcribe-a-batch guide.
 
 ### Live sessions wait in line instead of being turned away (2026-11-06, still `1.0.0-alpha.0`)
