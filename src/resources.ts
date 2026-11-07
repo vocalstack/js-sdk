@@ -1,8 +1,6 @@
 import type {
   AppStreamKey,
   AudioSourceCheck,
-  Batch,
-  BatchPage,
   AutoTopUpSettings,
   AutoTopUpView,
   BillingDetails,
@@ -28,7 +26,6 @@ import type {
   CorrectionPage,
   CreateAppStreamKey,
   CreateAudioSource,
-  CreateBatch,
   CreateLiveTranscription,
   CreateBroadcast,
   CreateShareLink,
@@ -271,77 +268,6 @@ export class Transcriptions extends ParentResource<Transcription, UpdateTranscri
   }
   detachBroadcast(id: string, broadcastId: string): Promise<Transcription> {
     return this.t.json('DELETE', this.p(id, `/broadcasts/${seg(broadcastId)}`));
-  }
-}
-
-export type AddBatchFileInput = Pick<CreateTranscription, 'url' | 'name' | 'startS' | 'endS' | 'durationS'> & {
-  file?: Upload;
-  fileName?: string;
-};
-
-export class Batches {
-  readonly #t: Transport;
-  constructor(t: Transport) {
-    this.#t = t;
-  }
-  #p(id: string, rest = '') {
-    return `/v1/batches/${seg(id)}${rest}`;
-  }
-
-  create(req: CreateBatch = {}, call: CallOptions = {}): Promise<Batch> {
-    return this.#t.json('POST', '/v1/batches', { body: req, ...call });
-  }
-  list(): Promise<Batch[]> {
-    return allPages(async (cursor) => {
-      const r = await this.listPage({ cursor });
-      return { items: r.batches, nextCursor: r.nextCursor };
-    });
-  }
-  listPage(opts: PageOptions = {}): Promise<BatchPage> {
-    return this.#t.json('GET', '/v1/batches', { query: { cursor: opts.cursor, limit: opts.limit } });
-  }
-  get(id: string): Promise<Batch> {
-    return this.#t.json('GET', this.#p(id));
-  }
-  async delete(id: string): Promise<void> {
-    await this.#t.json('DELETE', this.#p(id));
-  }
-  async addFile(id: string, req: AddBatchFileInput, call: CallOptions = {}): Promise<Transcription> {
-    const { file, fileName, ...options } = req;
-    if (file === undefined) return this.#t.json('POST', this.#p(id, '/files'), { body: options, ...call });
-    const { blob, name } = await toBlob(file);
-    const fd = new FormData();
-    fd.append('options', JSON.stringify(options));
-    fd.append('file', blob, fileName ?? name ?? 'upload');
-    return this.#t.json('POST', this.#p(id, '/files'), { body: fd, ...call });
-  }
-  addUrl(id: string, url: string, opts: Omit<AddBatchFileInput, 'url' | 'file' | 'fileName'> = {}, call: CallOptions = {}): Promise<Transcription> {
-    return this.addFile(id, { ...opts, url }, call);
-  }
-  start(id: string, call: CallOptions = {}): Promise<Batch> {
-    return this.#t.json('POST', this.#p(id, '/start'), call);
-  }
-  export(id: string, format: ExportFormat): Promise<Response> {
-    return this.#t.raw('GET', this.#p(id, '/export'), { headers: { accept: '*/*' }, query: { format } });
-  }
-  stop(id: string): Promise<Batch> {
-    return this.#t.json('POST', this.#p(id, '/stop'));
-  }
-  async wait(
-    id: string,
-    opts: { intervalMs?: number; timeoutMs?: number; signal?: AbortSignal; onProgress?(batch: Batch): void } = {},
-  ): Promise<Batch> {
-    const interval = opts.intervalMs ?? 5000;
-    const deadline = opts.timeoutMs ? Date.now() + opts.timeoutMs : Infinity;
-    for (;;) {
-      const batch = await this.get(id);
-      opts.onProgress?.(batch);
-      if ((batch.state === 'done' || batch.state === 'stopped') && batch.finishedAt) return batch;
-      if (batch.state === 'open') throw new VocalStackError('invalid_state', 'the batch is open: start it before waiting for it');
-      if (Date.now() + interval > deadline) throw new VocalStackError('timeout', `batch still ${batch.state} after ${opts.timeoutMs} ms`, { retryable: true });
-      if (opts.signal?.aborted) throw opts.signal.reason ?? new Error('aborted');
-      await new Promise((r) => setTimeout(r, interval));
-    }
   }
 }
 

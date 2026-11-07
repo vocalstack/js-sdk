@@ -19,9 +19,6 @@ one group per resource: `vs.transcriptions`, `vs.jobs`, `vs.recordings`,
 - A **job** is a file or link recording's transcription work:
   `vs.jobs.wait(recordingId)` polls it until it is `done` or `failed`
   (`{ onProgress: (job) => … }` sees each read: `job.state`, `job.progress.pct`).
-- A **batch** is many files transcribed together for less than one
-  transcription each: `vs.batches.create()`, `addFile`/`addUrl` per file,
-  `start`, then `wait` (section 6).
 - A **broadcast** is a link listeners open to follow a live recording.
 - A **realtime session** (`vs.realtime`) is a socket you stream audio into and
   read the transcript from. Nothing is stored. "Session" means only this.
@@ -189,28 +186,6 @@ const { hits: found } = await vs.search.vector('how much does housing cost');
 for (const h of found) console.log(h.similarity.toFixed(2), h.passage.mediaStart, h.passage.text);
 ```
 
-## 6. A batch of files
-
-Many files at once cost less as a batch: one create, one minimum charge for
-the whole batch. Its files get transcripts, exports and speaker labels (when
-`settings.speakerLabels` asks), never a summary, title, share link or voices.
-
-```js
-import { VocalStack } from '@vocalstack/js-sdk';
-const vs = new VocalStack({ baseUrl: process.env.VOCALSTACK_BASE_URL, apiKey: process.env.VOCALSTACK_API_KEY });
-
-const batch = await vs.batches.create({ name: 'Interviews', settings: { spokenLanguage: 'en' } });
-for (const path of process.argv.slice(2)) await vs.batches.addFile(batch.id, { file: path }); // or addUrl(batch.id, url)
-await vs.batches.start(batch.id);
-const done = await vs.batches.wait(batch.id); // done (or stopped); check done.counts.failed
-for (const tx of done.files ?? []) {
-  if (tx.job?.state !== 'done') continue;
-  const { sentences } = await vs.recordings.transcript(tx.job.recordingId);
-  console.log(tx.name, sentences.map((s) => s.text).join(' '));
-}
-// vs.batches.export(batch.id, 'srt') is every finished transcript in one zip.
-```
-
 ## Errors
 
 A failed call throws `VocalStackError` with `code`, `message`, `status`,
@@ -248,8 +223,7 @@ try {
 - The other groups: `vs.transcriptions` (`list`, `get`, `update`, `archive`,
   `restore`, `purge`, `listShareLinks`, `createShareLink`), `vs.recordings`
   (`get`, `summarize`, `summary`, `translation`, `audioUrl`, `subscribe` for a
-  live transcript feed), `vs.batches` (`create`, `addFile`, `addUrl`, `start`,
-  `wait`, `get`, `list`, `export`, `stop`, `delete`), `vs.corrections`, `vs.shareLinks`, `vs.voices`,
+  live transcript feed), `vs.corrections`, `vs.shareLinks`, `vs.voices`,
   `vs.broadcasts`, `vs.me` (`get`, `usage`), `vs.languages`,
   `vs.rtmp`, `vs.events`, `vs.meta`. Each method is named after its operation
   in the OpenAPI document (`transcriptions.create` is `POST /v1/transcriptions`).

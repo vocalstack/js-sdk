@@ -20,6 +20,12 @@ One line per change, naming the operation (`METHOD /path`, its
 
 ## [Unreleased]
 
+### Batches removed (2026-11-07, `1.0.0-alpha.3`)
+
+- **Breaking**: batch file transcription is gone from `/v1` (Alex's decision, an exception to the additive rule: files now run in parallel across GPU machines, so a batch buys nothing). Removed operations: `GET /v1/batches` (`batches.list`), `POST /v1/batches` (`batches.create`), `GET /v1/batches/{id}` (`batches.get`), `DELETE /v1/batches/{id}` (`batches.delete`), `POST /v1/batches/{id}/files` (`batches.addFile`), `POST /v1/batches/{id}/start` (`batches.start`), `POST /v1/batches/{id}/stop` (`batches.stop`), `GET /v1/batches/{id}/export` (`batches.export`), and the `batches` tag. Send each file as its own transcription (`POST /v1/transcriptions`).
+- **Breaking**: removed schemas `Batch`, `BatchCounts`, `BatchPage`, `BatchSettings`, `CreateBatch` and the other batch-only schemas; removed fields `Transcription.batchId`, `Limits.filesPerBatch` and `Rates.batchFileMinimumSeconds`; removed the `batch_api` value of `Transcription.origin`. Every transcription is billed at least `rates.minimumSeconds`, one by one. A transcription no longer caps the files uploaded into it by plan.
+- **Removed**: the `batches` group in every SDK (TypeScript `vs.batches`, Python `vs.batches`, PHP `$vs->batches`) and the transcribe-a-batch guide.
+
 ### Live sessions wait in line instead of being turned away (2026-11-06, still `1.0.0-alpha.0`)
 
 - **Added**: server frame `session.queued` (`ServerFrame`, realtime socket and recording publisher socket): every transcription machine is taken, so the realtime session waits in line and starts by itself once one frees up (`session.loading`, then `session.ready`). Not an error. Sent at once and about every 10 s, so it re-arms the ready deadline. `position` (place in line, when known), `waitedS`, `bufferedS` (audio kept so far), `droppedS` (oldest audio let go past the newest 120 s kept). After about 15 min an `error` frame (`engine_unavailable`, retryable) ends the wait.
