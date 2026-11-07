@@ -7141,6 +7141,10 @@
               "format": "int32",
               "type": "integer"
             },
+            "returning": {
+              "description": "This speaker was heard in an earlier recording of the same\ntranscription and keeps the number and name they had there: they\nare not a new speaker.",
+              "type": "boolean"
+            },
             "speaker": {
               "format": "int32",
               "type": "integer"
@@ -7191,6 +7195,10 @@
                 "integer",
                 "null"
               ]
+            },
+            "returning": {
+              "description": "Heard in an earlier recording of the same transcription: they keep\nthat number and name, and are not a new speaker.",
+              "type": "boolean"
             },
             "speaker": {
               "format": "int32",

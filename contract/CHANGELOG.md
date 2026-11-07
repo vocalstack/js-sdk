@@ -20,6 +20,11 @@ One line per change, naming the operation (`METHOD /path`, its
 
 ## [Unreleased]
 
+### Speakers keep their number across a transcription's recordings (2026-11-07)
+
+- **Added**: `SpeakerNumber.returning` (in `transcript.speakerNumbers`) and `SpeakerView.returning` (in `TranscriptSnapshot.speakers`): true when the speaker was heard in an earlier recording of the same transcription. Such a speaker keeps the number and name they had there, so a client shows no "new speaker" mark for them. Absent means false.
+- **Changed**: a transcription has one set of speakers. When a recording starts after an earlier one of the same transcription stopped, a person heard before is recognised by voice once they have spoken for a few seconds, and from then on keeps their earlier number and name; a new person gets a number nobody in the earlier recordings had. Naming a speaker (`PUT /v1/recordings/{id}/speakers/{idx}`, `recordings.nameSpeaker`) names them in every recording of the transcription they were recognised in. Recordings made before speakers were fingerprinted keep their own numbering.
+
 ### Batches removed (2026-11-07, `1.0.0-alpha.3`)
 
 This removal is an exception to the rules above, approved by the owner: it is breaking, inside `/v1`, with no deprecation and no sunset period. The operations stopped working on the day they were removed.

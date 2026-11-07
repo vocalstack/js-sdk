@@ -1371,6 +1371,7 @@ export type SentenceView = z.infer<typeof SentenceViewSchema>;
 export const SpeakerNumberSchema = z.object({
   "name": z.union([z.string(), z.null()]).optional(),
   "number": z.number().int(),
+  "returning": z.boolean().optional(),
   "speaker": z.number().int(),
 });
 export type SpeakerNumber = z.infer<typeof SpeakerNumberSchema>;
@@ -1620,6 +1621,7 @@ export const SpeakerViewSchema = z.object({
   "identifiedConfidence": z.union([z.number(), z.null()]).optional(),
   "name": z.string(),
   "number": z.union([z.number().int(), z.null()]).optional(),
+  "returning": z.boolean().optional(),
   "speaker": z.number().int(),
   "speechS": z.union([z.number(), z.null()]).optional(),
   "voiceColor": z.union([z.string(), z.null()]).optional(),
