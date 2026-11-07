@@ -40,8 +40,11 @@ export interface ConnectParams {
   options?: SessionOptions;
   readyDeadlineMs?: number;
   onLoading?(stage: 'download' | 'model'): void;
+  onQueued?(queued: QueuedInfo): void;
   onFrame?(frame: ServerFrame): void;
 }
+
+export type QueuedInfo = Omit<Extract<ServerFrame, { type: 'session.queued' }>, 'type'>;
 
 const DEFAULT_READY_DEADLINE_MS = 30_000;
 
@@ -79,6 +82,7 @@ async function openReady(
   url: string,
   deadlineMs: number,
   onLoading: ((stage: 'download' | 'model') => void) | undefined,
+  onQueued: ((queued: QueuedInfo) => void) | undefined,
   onFrame: (frame: ServerFrame) => void,
   attach: (ws: WsLike) => void,
 ): Promise<void> {
@@ -132,6 +136,9 @@ async function openReady(
       onFrame(frame);
       if (frame.type === 'session.loading') {
         onLoading?.(frame.stage);
+      } else if (frame.type === 'session.queued') {
+        const { type: _type, ...queued } = frame;
+        onQueued?.(queued);
       } else if (frame.type === 'session.ready') {
         if (!settled) {
           settled = true;
@@ -202,7 +209,7 @@ export class RealtimeSession implements AsyncIterable<SessionEvent> {
     const deadlineMs = params.readyDeadlineMs ?? DEFAULT_READY_DEADLINE_MS;
     const early: ServerFrame[] = [];
     let session: RealtimeSession | undefined;
-    await openReady(params.streamUrl, deadlineMs, params.onLoading, (f) => early.push(f), (ws) => {
+    await openReady(params.streamUrl, deadlineMs, params.onLoading, params.onQueued, (f) => early.push(f), (ws) => {
       const s = new RealtimeSession(params.sessionId, ws, params);
       for (const f of early) s.#frame(f);
       s.#listen();
@@ -219,7 +226,7 @@ export class RealtimeSession implements AsyncIterable<SessionEvent> {
       this.#reconnects++;
       if (this.#closedByUs) break;
       try {
-        await openReady(this.#params.streamUrl, deadlineMs, this.#params.onLoading, (f) => this.#frame(f), (ws) => {
+        await openReady(this.#params.streamUrl, deadlineMs, this.#params.onLoading, this.#params.onQueued, (f) => this.#frame(f), (ws) => {
           this.#ws = ws;
           this.#reconnecting = false;
           this.#listen();
@@ -449,6 +456,7 @@ async function* readableToAsyncIterable(
 
 export interface ConnectOptions {
   onLoading?(stage: 'download' | 'model'): void;
+  onQueued?(queued: QueuedInfo): void;
   onFrame?(frame: ServerFrame): void;
   readyDeadlineMs?: number;
 }
@@ -491,6 +499,7 @@ export class Realtime {
       options,
       readyDeadlineMs: connect.readyDeadlineMs ?? this.#t.opts.readyDeadlineMs,
       onLoading: connect.onLoading,
+      onQueued: connect.onQueued,
       onFrame: connect.onFrame,
     });
   }

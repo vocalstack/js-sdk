@@ -379,6 +379,7 @@ export class Recordings {
       streamUrl: grant.streamUrl,
       readyDeadlineMs: opts.readyDeadlineMs ?? this.#t.opts.readyDeadlineMs,
       onLoading: opts.onLoading,
+      onQueued: opts.onQueued,
       onFrame: opts.onFrame,
     });
   }

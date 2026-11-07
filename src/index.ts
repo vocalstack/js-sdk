@@ -25,7 +25,7 @@ export { DEFAULT_BASE_URL } from './http.js';
 export { VocalStackError } from './errors.js';
 export type { ConnectTokenErrorCode, VocalStackErrorOptions } from './errors.js';
 export { RealtimeSession } from './realtime.js';
-export type { ConnectParams, SessionEvent } from './realtime.js';
+export type { ConnectParams, QueuedInfo, SessionEvent } from './realtime.js';
 export type { FileInput } from './file.js';
 export { Realtime, applySentence } from './realtime.js';
 export type { ConnectOptions, TranscribeOptions, RealtimeTranscript } from './realtime.js';

@@ -49,6 +49,38 @@ test('a realtime session hands every frame to onFrame, lifecycle frames included
   }
 });
 
+test('a realtime session waiting in line hears session.queued, keeps waiting past the deadline, and starts', async () => {
+  const wss = new WebSocketServer({ host: '127.0.0.1', port: 0 });
+  await new Promise((r) => wss.once('listening', r));
+  wss.on('connection', async (ws) => {
+    for (const position of [2, 1, 1]) {
+      ws.send(JSON.stringify({ type: 'session.queued', position, waitedS: 0, bufferedS: 0, droppedS: 0 }));
+      await new Promise((r) => setTimeout(r, 200));
+    }
+    ws.send(JSON.stringify({ type: 'session.loading', stage: 'model' }));
+    ws.send(JSON.stringify({ type: 'session.ready' }));
+    ws.on('message', (m, binary) => {
+      if (binary || JSON.parse(String(m)).type !== 'eof') return;
+      ws.send(JSON.stringify({ type: 'session.done', reason: 'eof', stats: { audioS: 1, processingS: 0.5, realtimeFactor: 2 } }));
+      ws.close();
+    });
+  });
+  try {
+    const queued = [];
+    const frames = [];
+    const url = `ws://127.0.0.1:${wss.address().port}/v1/realtime/sessions/t/socket`;
+    const session = await RealtimeSession.connect({ sessionId: 's1', streamUrl: url, readyDeadlineMs: 350, onQueued: (q) => queued.push(q.position), onFrame: (f) => frames.push(f.type) });
+    assert.deepEqual(queued, [2, 1, 1]);
+    assert.deepEqual(frames, ['session.queued', 'session.queued', 'session.queued', 'session.loading', 'session.ready']);
+    session.eof();
+    for await (const _ of session) {
+    }
+    assert.equal(session.doneReason, 'eof');
+  } finally {
+    wss.close();
+  }
+});
+
 test('a realtime socket that closes with no session.done is an engine_lost error, not a quiet end', async () => {
   const wss = new WebSocketServer({ host: '127.0.0.1', port: 0 });
   await new Promise((r) => wss.once('listening', r));

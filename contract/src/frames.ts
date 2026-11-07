@@ -5,6 +5,7 @@ import type { ServerFrame } from './schemas.js';
 /** Known server frame `type` values (unknown types MUST be ignored). */
 export const SERVER_FRAME_TYPES = [
   "session.loading",
+  "session.queued",
   "session.ready",
   "transcript.committed",
   "transcript.draft",

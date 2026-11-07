@@ -20,6 +20,12 @@ One line per change, naming the operation (`METHOD /path`, its
 
 ## [Unreleased]
 
+### Live sessions wait in line instead of being turned away (2026-11-06, still `1.0.0-alpha.0`)
+
+- **Added**: server frame `session.queued` (`ServerFrame`, realtime socket and recording publisher socket): every transcription machine is taken, so the realtime session waits in line and starts by itself once one frees up (`session.loading`, then `session.ready`). Not an error. Sent at once and about every 10 s, so it re-arms the ready deadline. `position` (place in line, when known), `waitedS`, `bufferedS` (audio kept so far), `droppedS` (oldest audio let go past the newest 120 s kept). After about 15 min an `error` frame (`engine_unavailable`, retryable) ends the wait.
+- **Changed**: a live socket with no free machine is no longer answered `503` after a short wait: the upgrade is accepted and the socket gets `session.queued`. Audio sent while waiting is kept and transcribed first.
+- **Added**: TypeScript `onQueued` (`RealtimeSession.connect`, `realtime.connect`, `recordings.publish`) and the exported `QueuedInfo` type; Python and PHP pass `session.queued` to `on_frame` / `onFrame`.
+
 ### Vector search and assistant limits (2026-11-06, still `1.0.0-alpha.0`)
 
 - **Added**: `GET /v1/search/vector` (`search.vector`): vector search over the caller's own transcriptions, by meaning and across languages. Up to 10 `VectorHit`s, each a `SearchHit` with `vector: true`, `similarity` (0 to 1) and `passage` (`text`, `mediaStart`, `mediaEnd`: the whole paragraph, as context for your own model). `VectorResults.state` (`ready`, `off`, `unavailable`) and `allowance` (`limit`, `remaining`, `resetsAt`; `null` with no limit). On a plan with `Limits.vectorSearchesPerHour`, `X-Vector-Search-Limit`, `X-Vector-Search-Remaining` and `X-Vector-Search-Reset`, and past it `rate_limited` with `data.details.metric` `vector_search`. In every SDK as `search.vector`, and as the MCP tool `search_by_meaning`.

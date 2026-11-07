@@ -1496,6 +1496,12 @@ export const ServerFrameSchema = z.discriminatedUnion('type', [z.object({
   "stage": LoadingStageSchema,
   "type": z.literal("session.loading"),
 }), z.object({
+  "bufferedS": z.number().optional(),
+  "droppedS": z.number().optional(),
+  "position": z.union([z.number().int(), z.null()]).optional(),
+  "type": z.literal("session.queued"),
+  "waitedS": z.number(),
+}), z.object({
   "type": z.literal("session.ready"),
 }), z.object({
   "segment": CommittedSegmentSchema,

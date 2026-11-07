@@ -5755,6 +5755,42 @@
               "type": "object"
             },
             {
+              "description": "Every transcription machine is taken: the realtime session waits in\nline and starts by itself the moment one frees up (`session.loading`,\nthen `session.ready`).  Not an error.  Sent at once, then about every\n10 s; each one re-arms the client's ready deadline.  `position` is the\nplace in line when known (1 = next).  Audio sent from now on is kept\nand transcribed first once a machine is ready: the newest 120 s of it;\n`droppedS` says how much of the oldest was let go, so the transcript\nstarts that far into what was sent.  After about 15 min of waiting an\n`error` frame ends it.",
+              "properties": {
+                "bufferedS": {
+                  "default": 0.0,
+                  "format": "double",
+                  "type": "number"
+                },
+                "droppedS": {
+                  "default": 0.0,
+                  "format": "double",
+                  "type": "number"
+                },
+                "position": {
+                  "format": "uint32",
+                  "minimum": 0,
+                  "type": [
+                    "integer",
+                    "null"
+                  ]
+                },
+                "type": {
+                  "const": "session.queued",
+                  "type": "string"
+                },
+                "waitedS": {
+                  "format": "double",
+                  "type": "number"
+                }
+              },
+              "required": [
+                "type",
+                "waitedS"
+              ],
+              "type": "object"
+            },
+            {
               "description": "The realtime session is ready: send audio from now on.",
               "properties": {
                 "type": {
