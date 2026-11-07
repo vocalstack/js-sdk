@@ -20,6 +20,11 @@ One line per change, naming the operation (`METHOD /path`, its
 
 ## [Unreleased]
 
+### Opaque machine references (2026-11-07)
+
+- **Changed**: `subscribe.ready` `instance` and `PublisherInfo.machineId` (`Recording.publisher`) are opaque ids (16 hex characters, stable per machine), no longer the name of the machine.
+- **Changed**: documentation only: `SessionOptions.language`, `TranscriptionSettings.language`, the segment's `language` and `transcript.amended` `language` are described as a language code from `GET /v1/languages`.
+
 ### Voices become Speakers (2026-11-07, `1.0.0-alpha.4`)
 
 This rename is an exception to the rules above, approved by the owner (Alex, 2026-11-07): it is breaking, inside `/v1`, with no aliases, no deprecation and no sunset period. A saved person is a **speaker**; a **voice** is only the sound (a stock voice, or a speaker's own clone). The old operations stop working on the day they are removed.
@@ -45,7 +50,7 @@ This rename is an exception to the rules above, approved by the owner (Alex, 202
 
 This removal is an exception to the rules above, approved by the owner: it is breaking, inside `/v1`, with no deprecation and no sunset period. The operations stopped working on the day they were removed.
 
-- **Breaking**: batch file transcription is gone from `/v1` (Alex's decision, an exception to the additive rule: files now run in parallel across GPU machines, so a batch buys nothing). Removed operations: `GET /v1/batches` (`batches.list`), `POST /v1/batches` (`batches.create`), `GET /v1/batches/{id}` (`batches.get`), `DELETE /v1/batches/{id}` (`batches.delete`), `POST /v1/batches/{id}/files` (`batches.addFile`), `POST /v1/batches/{id}/start` (`batches.start`), `POST /v1/batches/{id}/stop` (`batches.stop`), `GET /v1/batches/{id}/export` (`batches.export`), and the `batches` tag. Send each file as its own transcription (`POST /v1/transcriptions`).
+- **Breaking**: batch file transcription is gone from `/v1` (an exception to the additive rule: files now run in parallel, so a batch buys nothing). Removed operations: `GET /v1/batches` (`batches.list`), `POST /v1/batches` (`batches.create`), `GET /v1/batches/{id}` (`batches.get`), `DELETE /v1/batches/{id}` (`batches.delete`), `POST /v1/batches/{id}/files` (`batches.addFile`), `POST /v1/batches/{id}/start` (`batches.start`), `POST /v1/batches/{id}/stop` (`batches.stop`), `GET /v1/batches/{id}/export` (`batches.export`), and the `batches` tag. Send each file as its own transcription (`POST /v1/transcriptions`).
 - **Breaking**: removed schemas `Batch`, `BatchCounts`, `BatchPage`, `BatchSettings`, `CreateBatch` and the other batch-only schemas; removed fields `Transcription.batchId`, `Limits.filesPerBatch` and `Rates.batchFileMinimumSeconds`; removed the `batch_api` value of `Transcription.origin`. Every transcription is billed at least `rates.minimumSeconds`, one by one. A transcription no longer caps the files uploaded into it by plan.
 - **Changed**: `POST /v1/transcriptions/{id}/recordings/upload` (`transcriptions.uploadRecording`) refuses a transcription that already holds 1000 files with `invalid_state` (`data.details.metric` `files_per_transcription`, `limit` 1000), the same on every plan.
 - **Changed**: `info.version` is `1.0.0-alpha.3`, the package's version (it had stayed at `1.0.0-alpha.0`).
@@ -285,7 +290,7 @@ This removal is an exception to the rules above, approved by the owner: it is br
 
 ### Amended language (2026-10-25, still `1.0.0-alpha.0`)
 
-- **Added**: the `transcript.amended` frame carries `language` when the amend read the segment again in another language (a hand-back from the English model to Whisper rewriting what it wrote); the stored segment's `language` follows. Absent when unchanged.
+- **Added**: the `transcript.amended` frame carries `language` when the amend read the segment again in another language (it was heard again in that language and rewritten); the stored segment's `language` follows. Absent when unchanged.
 
 ### Staff flag on me (2026-10-24, still `1.0.0-alpha.0`)
 

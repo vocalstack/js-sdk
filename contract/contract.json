@@ -1709,7 +1709,7 @@
               ]
             },
             "language": {
-              "description": "Language this segment was transcribed in (detected or forced),\nas a whisper language code, when known.",
+              "description": "Language this segment was transcribed in (detected or forced),\nas a language code (see /v1/languages), when known.",
               "type": [
                 "string",
                 "null"
@@ -5839,7 +5839,7 @@
                   "type": "array"
                 },
                 "language": {
-                  "description": "The segment's language from now on, when the amend read it again\nin another one (a hand-back to Whisper rewriting what the English\nmodel wrote for it); absent when unchanged.",
+                  "description": "The segment's language from now on, when the amend read it again\nin another language (it was heard again in that language and\nrewritten); absent when unchanged.",
                   "type": [
                     "string",
                     "null"
@@ -6619,7 +6619,7 @@
               "description": "Speaker labels: `auto` (diarized like `on`; a client that shows\nlabels waits for a second speaker), `on`, or `off`.  Absent: `auto`\nwhen created with an account's API key (the API's default since\n2026-10-30); `off` without one (the engine's own default)."
             },
             "spokenLanguage": {
-              "description": "Whisper language code of the speech; absent = auto-detect.",
+              "description": "Language code of the speech (see /v1/languages); absent = auto-detect.",
               "type": [
                 "string",
                 "null"
@@ -6817,7 +6817,7 @@
               "description": "Separate the transcript by who is talking: `auto` (\"When Needed\",\nthe default since 2026-10-30, as the dashboard has it) and `on`\ndiarize, `auto` labels lines once a second speaker has been heard;\n`off` neither separates nor labels."
             },
             "spokenLanguage": {
-              "description": "Whisper language code; absent = auto-detect.",
+              "description": "Language code (see /v1/languages); absent = auto-detect.",
               "type": [
                 "string",
                 "null"
