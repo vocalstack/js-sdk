@@ -54,6 +54,7 @@ import type {
   SearchResults,
   VectorResults,
   SettingsPatch,
+  Script,
   ShareLink,
   SharedTranscript,
   StartRecording,
@@ -191,6 +192,10 @@ abstract class ParentResource<T, U> {
   async listShareLinks(id: string): Promise<ShareLink[]> {
     const r = await this.t.json<{ links?: ShareLink[] }>('GET', this.p(id, '/share-links'));
     return r.links ?? [];
+  }
+  async listScripts(id: string): Promise<Script[]> {
+    const r = await this.t.json<{ scripts?: Script[] }>('GET', this.p(id, '/scripts'));
+    return r.scripts ?? [];
   }
   createShareLink(id: string, req: CreateShareLink): Promise<ShareLink> {
     return this.t.json('POST', this.p(id, '/share-links'), { body: req });

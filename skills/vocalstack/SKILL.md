@@ -221,7 +221,7 @@ try {
 ## More
 
 - The other groups: `vs.transcriptions` (`list`, `get`, `update`, `archive`,
-  `restore`, `purge`, `listShareLinks`, `createShareLink`), `vs.recordings`
+  `restore`, `purge`, `listShareLinks`, `createShareLink`, `listScripts`), `vs.recordings`
   (`get`, `summarize`, `summary`, `translation`, `audioUrl`, `subscribe` for a
   live transcript feed), `vs.corrections`, `vs.shareLinks`, `vs.speakers`, `vs.voices`,
   `vs.broadcasts`, `vs.me` (`get`, `usage`), `vs.languages`,
