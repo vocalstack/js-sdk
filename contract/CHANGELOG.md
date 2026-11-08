@@ -20,6 +20,11 @@ One line per change, naming the operation (`METHOD /path`, its
 
 ## [Unreleased]
 
+### Scripts over the API (2026-11-08, `1.0.0-alpha.5`)
+
+- **Added**: `GET /v1/broadcasts/{id}/scripts` (`broadcasts.listScripts`) and `GET /v1/transcriptions/{id}/scripts` (`transcriptions.listScripts`) list the parent's scripts with an API key (scope `read`), soonest first, as `{scripts: [Script]}`; new schema `Script` {`id`, `broadcastId` | `transcriptionId`, `scheduledAt`, `text`, `wordCount`, `recordingId`, `locked`, `createdAt`, `updatedAt`}.
+- **Changed**: `POST /v1/transcriptions/{id}/recordings` (`transcriptions.startRecording`) accepts as `scriptId` a script of a broadcast the live transcription is attached to (it answered 404 `not_found`); `StartRecording.scriptId` says so.
+
 ### Streamed source video (2026-11-07)
 
 - **Added**: a video sent over RTMP plays while its recording is live: `GET /v1/recordings/{id}/audio?kind=video` (`recordings.audio`) answers an EVENT HLS playlist of the segments stored so far, with `#EXT-X-ENDLIST` once the recording ends, and 503 `engine_unavailable` with `retryAfterS` until the first segment is stored. The recording's `media` lists the `video` as `uploading` while it is live.

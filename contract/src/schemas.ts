@@ -1307,6 +1307,20 @@ export const RtmpStatusSchema = z.object({
 });
 export type RtmpStatus = z.infer<typeof RtmpStatusSchema>;
 
+export const ScriptSchema = z.object({
+  "broadcastId": z.union([z.string(), z.null()]).optional(),
+  "createdAt": z.string(),
+  "id": z.string(),
+  "locked": z.boolean(),
+  "recordingId": z.union([z.string(), z.null()]).optional(),
+  "scheduledAt": z.union([z.string(), z.null()]).optional(),
+  "text": z.string(),
+  "transcriptionId": z.union([z.string(), z.null()]).optional(),
+  "updatedAt": z.string(),
+  "wordCount": z.number().int(),
+});
+export type Script = z.infer<typeof ScriptSchema>;
+
 export const SearchHitSchema = z.object({
   "linkCode": z.string(),
   "linkName": z.string(),
