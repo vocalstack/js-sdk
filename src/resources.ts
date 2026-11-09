@@ -1,4 +1,5 @@
 import type {
+  AppearanceSamples,
   AppStreamKey,
   AudioSourceCheck,
   AutoTopUpSettings,
@@ -31,6 +32,9 @@ import type {
   CreateShareLink,
   CreateTag,
   CreateTranscription,
+  CompleteFileUpload,
+  CreateFileUpload,
+  FileUpload,
   CreateSpeaker,
   CreateSpeakerFromAppearance,
   CreatedAppStreamKey,
@@ -277,6 +281,62 @@ export class Transcriptions extends ParentResource<Transcription, UpdateTranscri
   }
   async nameAppearance(id: string, appearance: number, name: string | null): Promise<void> {
     await this.t.json('PUT', this.p(id, `/appearances/${seg(appearance)}`), { body: { name } });
+  }
+}
+
+export interface SendUploadOptions {
+  name?: string;
+  mime?: string;
+  concurrency?: number;
+  onProgress?: (sent: number, total: number) => void;
+  signal?: AbortSignal;
+}
+
+export class Uploads {
+  readonly #t: Transport;
+  constructor(t: Transport) {
+    this.#t = t;
+  }
+
+  create(req: CreateFileUpload): Promise<FileUpload> {
+    return this.#t.json('POST', '/v1/uploads', { body: req });
+  }
+  complete(id: string, req: CompleteFileUpload): Promise<FileUpload> {
+    return this.#t.json('POST', `/v1/uploads/${seg(id)}/complete`, { body: req });
+  }
+
+  async send(file: Upload, opts: SendUploadOptions = {}): Promise<FileUpload> {
+    const { blob, name } = await toBlob(file);
+    const mime = opts.mime ?? (blob.type || undefined);
+    const up = await this.create({ name: opts.name ?? name ?? 'upload', bytes: blob.size, ...(mime ? { mime } : {}) });
+    const parts = up.parts ?? [];
+    const etags: { number: number; etag: string }[] = [];
+    const sent = new Map<number, number>();
+    const report = () => opts.onProgress?.([...sent.values()].reduce((a, b) => a + b, 0), blob.size);
+    let next = 0;
+    const one = async (): Promise<void> => {
+      for (;;) {
+        const p = parts[next++];
+        if (!p) return;
+        const from = (p.number - 1) * up.partBytes;
+        let etag: string | null = null;
+        for (let attempt = 0; attempt < 3 && etag === null; attempt++) {
+          try {
+            const res = await this.#t.external(p.url, { method: 'PUT', body: blob.slice(from, from + p.bytes), signal: opts.signal });
+            if (res.ok) etag = res.headers.get('etag');
+            else if (res.status < 500) throw new VocalStackError('invalid_state', `storage refused part ${p.number} (${res.status})`);
+          } catch (e) {
+            if ((e as { name?: string } | null)?.name === 'AbortError' || e instanceof VocalStackError || attempt === 2) throw e;
+          }
+        }
+        if (!etag) throw new VocalStackError('unavailable', `part ${p.number} was sent but storage gave no ETag (the bucket must expose it)`, { retryable: true });
+        etags.push({ number: p.number, etag });
+        sent.set(p.number, p.bytes);
+        report();
+      }
+    };
+    await Promise.all(Array.from({ length: Math.max(1, Math.min(opts.concurrency ?? 4, parts.length)) }, one));
+    return this.complete(up.id, { parts: etags.sort((a, b) => a.number - b.number) });
   }
 }
 
@@ -609,6 +669,10 @@ export class Speakers {
   }
   createFromAppearance(req: CreateSpeakerFromAppearance, call: CallOptions = {}): Promise<Speaker> {
     return this.#t.json('POST', '/v1/speakers/from-appearance', { body: req, ...call });
+  }
+  appearanceSamples(req: { transcriptionId: string; appearance: number; recordingId?: string | null; spans?: { start: number; end: number }[] }): Promise<AppearanceSamples> {
+    const spans = req.spans?.length ? req.spans.map((s) => `${s.start}-${s.end}`).join(',') : undefined;
+    return this.#t.json('GET', '/v1/speakers/from-appearance/samples', { query: { transcriptionId: req.transcriptionId, recordingId: req.recordingId ?? undefined, appearance: req.appearance, spans } });
   }
   setConsent(id: string, consent: 'granted' | 'refused', opts: { name?: string } = {}): Promise<Speaker> {
     return this.#t.json('POST', `/v1/speakers/${seg(id)}/consent`, { body: { consent, ...opts } });

@@ -1,6 +1,6 @@
 {
   "name": "@vocalstack/contract",
-  "version": "1.0.0-alpha.5",
+  "version": "1.0.0-alpha.9",
   "description": "Generated contract for the VocalStack API (/v1): zod schemas and WebSocket frame types. Source of truth is contract.json, generated from the Rust server.",
   "license": "MIT",
   "type": "module",

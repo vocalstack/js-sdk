@@ -246,10 +246,16 @@ export async function captureMicrophone(
       muted = !!on;
     },
     async stop() {
+      if (stopped) return;
       stopped = true;
       if (clockTimer) clearInterval(clockTimer);
       if (recoverTimer) clearTimeout(recoverTimer);
       node.port.onmessage = null;
+      if (pending && pending.length) {
+        const tail = pending;
+        pending = null;
+        onChunk(muted ? new Float32Array(tail.length) : tail);
+      }
       source.disconnect();
       node.disconnect();
       for (const t of media.getTracks()) t.stop();

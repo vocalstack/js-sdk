@@ -101,7 +101,7 @@ const tx = await vs.transcriptions.create({
   file: process.argv[2], // a path (mp3, wav, flac, ogg, m4a, mp4 ...), a Blob or bytes
   settings: { spokenLanguage: 'en', speakerLabels: 'on' }, // both optional; speakerLabels: 'auto' (default) | 'on' | 'off'
   // Off unless asked for: settings.summary, settings.title, settings.summaryTranslations,
-  // settings.voice (spoken translations), and shareLink: true (a public share link).
+  // settings.translationTts (text-to-speech of translations), and shareLink: true (a public share link).
 });
 const job = await vs.jobs.wait(tx.job.recordingId);
 if (job.state !== 'done') throw new Error(`transcription ${job.state}: ${job.error}`);

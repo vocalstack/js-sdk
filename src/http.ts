@@ -88,6 +88,10 @@ export class Transport {
     return `${this.baseUrl.replace(/^http/, 'ws')}${path}${qs(query)}`;
   }
 
+  external(url: string, init: RequestInit): Promise<Response> {
+    return this.#fetch(url, init);
+  }
+
   async raw(method: string, path: string, init: RequestInit2 = {}): Promise<Response> {
     const headers: Record<string, string> = { accept: 'application/json', ...init.headers };
     const form = typeof FormData !== 'undefined' && init.body instanceof FormData;

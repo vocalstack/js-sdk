@@ -76,6 +76,39 @@ export const AppStreamKeySchema = z.object({
 });
 export type AppStreamKey = z.infer<typeof AppStreamKeySchema>;
 
+export const PickedSamplesSchema = z.object({
+  "enough": z.boolean(),
+  "neededS": z.number(),
+  "pitchedS": z.number(),
+  "seconds": z.number(),
+});
+export type PickedSamples = z.infer<typeof PickedSamplesSchema>;
+
+export const SampleWarningSchema = z.union([z.literal("overlaps"), z.literal("noisy"), z.literal("weak_voice"), z.literal("unclear"), z.literal("cut_off")]);
+export type SampleWarning = z.infer<typeof SampleWarningSchema>;
+
+export const SampleCandidateSchema = z.object({
+  "chosen": z.boolean(),
+  "end": z.number(),
+  "snrDb": z.union([z.number(), z.null()]).optional(),
+  "speechS": z.union([z.number(), z.null()]).optional(),
+  "start": z.number(),
+  "text": z.string(),
+  "voiced": z.union([z.number(), z.null()]).optional(),
+  "warning": z.union([SampleWarningSchema, z.null()]).optional(),
+});
+export type SampleCandidate = z.infer<typeof SampleCandidateSchema>;
+
+export const AppearanceSamplesSchema = z.object({
+  "appearance": z.number().int(),
+  "chosenS": z.number(),
+  "chosenSpeechS": z.number(),
+  "picked": z.union([PickedSamplesSchema, z.null()]).optional(),
+  "recordingId": z.string(),
+  "samples": z.array(SampleCandidateSchema),
+});
+export type AppearanceSamples = z.infer<typeof AppearanceSamplesSchema>;
+
 export const CloneRefSchema = z.object({
   "id": z.string(),
 });
@@ -229,7 +262,7 @@ export const Limits2Schema = z.object({
   "createsPerHour": z.union([z.number().int(), z.null()]).optional(),
   "createsPerHourUnpaid": z.union([z.number().int(), z.null()]).optional(),
   "maxFileBytes": z.union([z.number().int(), z.null()]).optional(),
-  "maxLiveSeconds": z.union([z.number().int(), z.null()]).optional(),
+  "maxTranscriptionSeconds": z.union([z.number().int(), z.null()]).optional(),
   "questionsPerDay": z.union([z.number().int(), z.null()]).optional(),
   "requestsPerMin": z.union([z.number().int(), z.null()]).optional(),
   "retentionAudioDays": z.union([z.number().int(), z.null()]).optional(),
@@ -444,7 +477,7 @@ export const SettingsSchema = z.object({
   "summary": z.boolean().optional(),
   "summaryTranslations": z.boolean().optional(),
   "title": z.boolean().optional(),
-  "voice": z.boolean().optional(),
+  "translationTts": z.boolean().optional(),
   "voiceByLang": z.record(z.string(), z.string()).optional(),
   "voiceCloning": z.boolean().optional(),
   "voiceCloningConsent": z.boolean().optional(),
@@ -663,6 +696,17 @@ export const CommittedSegmentSchema = z.object({
 });
 export type CommittedSegment = z.infer<typeof CommittedSegmentSchema>;
 
+export const FileUploadedPartSchema = z.object({
+  "etag": z.string(),
+  "number": z.number().int(),
+});
+export type FileUploadedPart = z.infer<typeof FileUploadedPartSchema>;
+
+export const CompleteFileUploadSchema = z.object({
+  "parts": z.array(FileUploadedPartSchema),
+});
+export type CompleteFileUpload = z.infer<typeof CompleteFileUploadSchema>;
+
 export const ConsentSchema = z.enum(['pending', 'granted', 'refused']);
 export type Consent = z.infer<typeof ConsentSchema>;
 
@@ -744,6 +788,13 @@ export const CreateCheckoutSchema = z.object({
 });
 export type CreateCheckout = z.infer<typeof CreateCheckoutSchema>;
 
+export const CreateFileUploadSchema = z.object({
+  "bytes": z.number().int(),
+  "mime": z.union([z.string(), z.null()]).optional(),
+  "name": z.string(),
+});
+export type CreateFileUpload = z.infer<typeof CreateFileUploadSchema>;
+
 export const CreateLiveTranscriptionSchema = z.object({
   "broadcasts": z.array(z.string()).optional(),
   "name": z.string(),
@@ -813,7 +864,7 @@ export const SettingsPatchSchema = z.object({
   "summary": z.union([z.boolean(), z.null()]).optional(),
   "summaryTranslations": z.union([z.boolean(), z.null()]).optional(),
   "title": z.union([z.boolean(), z.null()]).optional(),
-  "voice": z.union([z.boolean(), z.null()]).optional(),
+  "translationTts": z.union([z.boolean(), z.null()]).optional(),
   "voiceByLang": z.union([z.record(z.string(), z.string()), z.null()]).optional(),
   "voiceCloning": z.union([z.boolean(), z.null()]).optional(),
   "voiceCloningConsent": z.union([z.boolean(), z.null()]).optional(),
@@ -828,6 +879,7 @@ export const CreateTranscriptionSchema = z.object({
   "settings": z.union([SettingsPatchSchema, z.null()]).optional(),
   "shareLink": z.union([z.boolean(), z.null()]).optional(),
   "startS": z.union([z.number(), z.null()]).optional(),
+  "uploadId": z.union([z.string(), z.null()]).optional(),
   "url": z.union([z.string(), z.null()]).optional(),
 });
 export type CreateTranscription = z.infer<typeof CreateTranscriptionSchema>;
@@ -874,6 +926,28 @@ export type EventOptions = z.infer<typeof EventOptionsSchema>;
 
 export const ExportFormatSchema = z.enum(['json', 'srt', 'xlsx', 'pdf']);
 export type ExportFormat = z.infer<typeof ExportFormatSchema>;
+
+export const FileUploadPartSchema = z.object({
+  "bytes": z.number().int(),
+  "number": z.number().int(),
+  "url": z.string(),
+});
+export type FileUploadPart = z.infer<typeof FileUploadPartSchema>;
+
+export const FileUploadStateSchema = z.enum(['uploading', 'complete']);
+export type FileUploadState = z.infer<typeof FileUploadStateSchema>;
+
+export const FileUploadSchema = z.object({
+  "bytes": z.number().int(),
+  "expiresAt": z.string(),
+  "id": z.string(),
+  "mime": z.union([z.string(), z.null()]).optional(),
+  "name": z.string(),
+  "partBytes": z.number().int(),
+  "parts": z.array(FileUploadPartSchema).optional(),
+  "state": FileUploadStateSchema,
+});
+export type FileUpload = z.infer<typeof FileUploadSchema>;
 
 export const FixSchema = z.object({
   "kind": z.string(),
@@ -1502,12 +1576,14 @@ export const ServerFrameSchema = z.discriminatedUnion('type', [z.object({
   "type": z.literal("transcript.translated"),
 }), z.object({
   "audio": z.union([z.string(), z.null()]).optional(),
+  "cafUrl": z.union([z.string(), z.null()]).optional(),
   "cloned": z.boolean().optional(),
   "durationS": z.number(),
   "format": z.string(),
   "generation": z.number().int(),
   "lang": z.string(),
   "latencyS": z.union([z.number(), z.null()]).optional(),
+  "oggUrl": z.union([z.string(), z.null()]).optional(),
   "part": z.number().int().optional(),
   "parts": z.number().int().optional(),
   "queueWaitS": z.number().optional(),
@@ -1788,6 +1864,14 @@ export const SubscriberFrameSchema = z.discriminatedUnion('type', [z.object({
   "transcriptionId": z.string(),
   "type": z.literal("job.progress"),
 }), z.object({
+  "error": z.union([z.string(), z.null()]).optional(),
+  "progress": z.number().int(),
+  "recordingId": z.string(),
+  "speaker": z.number().int(),
+  "speakerId": z.union([z.string(), z.null()]).optional(),
+  "state": z.string(),
+  "type": z.literal("speaker.voice"),
+}), z.object({
   "detected": z.union([z.string(), z.null()]).optional(),
   "error": z.union([z.string(), z.null()]).optional(),
   "failures": z.number().int().optional(),
@@ -2058,6 +2142,7 @@ export const VoiceTrackSchema = z.object({
   "durationS": z.union([z.number(), z.null()]).optional(),
   "error": z.union([z.string(), z.null()]).optional(),
   "lang": z.string(),
+  "original": z.array(z.number().int()).optional(),
   "state": z.string(),
   "voice": z.union([z.string(), z.null()]).optional(),
   "voiceKey": z.string(),
