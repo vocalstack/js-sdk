@@ -20,6 +20,28 @@ One line per change, naming the operation (`METHOD /path`, its
 
 ## [Unreleased]
 
+### One maximum length per transcription (2026-11-09, `1.0.0-alpha.8`)
+
+- **Added**: `Limits.maxTranscriptionSeconds` (`GET /v1/billing`, `GET /v1/billing/plans`; `billing.get`, `billing.plans`): the longest a transcription of the plan may be, in seconds, whether it is a file, a link or a live transcription; null is the server's bound. A live transcription counts all its recordings together: stopped and started again, it is still one transcription.
+- **Deprecated**: `Limits.maxLiveSeconds` carries the same value as `maxTranscriptionSeconds`; read the new field.
+- **Changed**: a file or link longer than the plan's `maxTranscriptionSeconds` is refused (`POST /v1/transcriptions`, `transcriptions.create`: 400 `invalid_options`; `GET /v1/transcriptions/probe`, `transcriptions.probe`: `ok: false`, `reason: "too_long"`); the ceiling was 8 hours on every plan.
+- **Changed**: `POST /v1/transcriptions/{id}/recordings` (`transcriptions.startRecording`) gives a recording the time the transcription has left: `Recording.maxDurationS` is the smaller of the setting and what earlier recordings of the transcription left of the plan's `maxTranscriptionSeconds`, and with under a minute left the start answers 409 `invalid_state` with `details.metric: "max_transcription_seconds"` and `limit`. A `maxDurationS` over the plan's limit is still 400 `invalid_options`, its `details.metric` now `max_transcription_seconds` (was `max_live_seconds`).
+- **Changed**: `limits.recordingMaxDurationS` (`GET /v1/realtime/capabilities`, `realtime.capabilities`) is the plan's `maxTranscriptionSeconds`.
+
+### The `voice` setting becomes `translationTts` (2026-11-09, `1.0.0-alpha.7`)
+
+This rename is an exception to the rules above, approved by the owner (Alex, 2026-11-09), like Voices become Speakers: it is breaking, inside `/v1`, with no alias, no deprecation and no sunset period. A request that still sends `settings.voice` is refused (422 `invalid_body`, unknown field `voice`), and no response carries it.
+
+- **Breaking**: `Settings.voice` becomes `Settings.translationTts`, and `SettingsPatch.voice` becomes `SettingsPatch.translationTts` (the `settings` of `POST /v1/broadcasts`, `PATCH /v1/broadcasts/{id}`, `POST /v1/transcriptions`, `POST /v1/transcriptions/live`, `PATCH /v1/transcriptions/{id}`, `PATCH /v1/recordings/{id}/settings` (`recordings.settings`) and every `Broadcast`, `Transcription` and `Recording` returned). It is text-to-speech of translations only: on, every translation language a listener reads (up to the 10 translation languages a transcription may have, the same limit as translations) is spoken, live as each sentence lands and as a reading of the whole transcription. A line already in the language picked plays its original audio. Off, the default, nothing is spoken. Settings stored with `voice` are read as `translationTts`.
+- **Changed**: with `translationTts` on, reading a recording in a translation language starts its text-to-speech at once, in the background, for the whole transcription, whether or not anyone plays the voice: a listener on `WS /v1/recordings/{id}/subscribe?lang=` (`subscribe`), `GET /v1/recordings/{id}/transcript?lang=` (`recordings.transcript`) and `GET /v1/recordings/{id}/translation` (`recordings.translation`). A live recording speaks each new sentence in that language; an ended one has its reading queued (`GET /v1/recordings/{id}/voice`, `recordings.voice`).
+- **Unchanged**: everything else named voice: `VoiceTrack`, the `/voice` operations, `voiceCloning`, `voiceByLang`, voice ids and stock voices, `SessionOptions.voice` and the `voice=` listener parameter.
+
+### A recording's own language plays its original audio (2026-11-09)
+
+- **Added**: `VoiceTrack.original` (`GET`/`POST /v1/recordings/{id}/voice`, `recordings.voice` / `recordings.requestVoice`): the sentence ids spoken in the track's own language. They are never read by a voice; play the recording's original audio for them. `clips` no longer lists them.
+- **Changed**: a reading in the language every sentence was spoken in makes no voice clips: its `VoiceTrack` is `sealed` with every sentence in `original`, and `GET /v1/recordings/{id}/audio?kind=voice&lang=<that language>` (`recordings.audio`) serves the recording's original audio (as `kind=delivery`). `GET /v1/recordings/{id}/voice/{sentence}` (`recordings.voiceClip`) answers 400 `invalid_options` with `details.original: true` for a sentence spoken in the asked language. Live, a sentence is never voiced in the language it was spoken in.
+- **Changed**: the spoken track (`GET /v1/recordings/{id}/audio?kind=voice`, `recordings.audio`) is what the player plays, on the recording's own timeline and length: the original audio for the sentences spoken in the track's language, each other sentence's voice at its time (up to the next sentence), and the recording's background sound under the voices once it has been made (silence before). A track made before this, or before the background sound was made, is made again when it is next asked for: it answers 503 `engine_unavailable` with `retryAfterS` meanwhile, and its `VoiceTrack` is not `sealed` until then.
+
 ### Scripts over the API (2026-11-08, `1.0.0-alpha.5`)
 
 - **Added**: `GET /v1/broadcasts/{id}/scripts` (`broadcasts.listScripts`) and `GET /v1/transcriptions/{id}/scripts` (`transcriptions.listScripts`) list the parent's scripts with an API key (scope `read`), soonest first, as `{scripts: [Script]}`; new schema `Script` {`id`, `broadcastId` | `transcriptionId`, `scheduledAt`, `text`, `wordCount`, `recordingId`, `locked`, `createdAt`, `updatedAt`}.
