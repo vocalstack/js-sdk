@@ -67,23 +67,15 @@ export async function captureMicrophone(
 
   let muted = false;
   let media = await navigator.mediaDevices.getUserMedia({ audio: constraints });
-  let ctx: AudioContext;
+  let graph: AudioGraph;
   try {
-    ctx = new AudioContext({ sampleRate: targetRate });
-  } catch {
-    ctx = new AudioContext();
+    graph = await audioGraph(media, targetRate);
+  } catch (e) {
+    for (const t of media.getTracks()) t.stop();
+    throw e;
   }
-  const workletUrl = URL.createObjectURL(
-    new Blob([WORKLET_SOURCE], { type: 'application/javascript' }),
-  );
-  try {
-    await ctx.audioWorklet.addModule(workletUrl);
-  } finally {
-    URL.revokeObjectURL(workletUrl);
-  }
-  const node = new AudioWorkletNode(ctx, 'pcm-processor');
-  let source = ctx.createMediaStreamSource(media);
-  source.connect(node);
+  const { ctx, node } = graph;
+  let source = graph.source;
 
   const inputRate = ctx.sampleRate;
   const passThrough = inputRate === targetRate;
@@ -198,10 +190,17 @@ export async function captureMicrophone(
           for (const t of next.getTracks()) t.stop();
           return;
         }
+        let nextSource: MediaStreamAudioSourceNode;
+        try {
+          nextSource = ctx.createMediaStreamSource(next);
+        } catch (e) {
+          for (const t of next.getTracks()) t.stop();
+          throw e;
+        }
         source.disconnect();
         for (const t of media.getTracks()) t.stop();
         media = next;
-        source = ctx.createMediaStreamSource(media);
+        source = nextSource;
         source.connect(node);
         watchTracks(media);
       })
@@ -272,6 +271,50 @@ export async function streamMicrophone(
     onClock: (pcm, wall) => session.sendClock(pcm, wall),
     ...opts,
   });
+}
+
+interface AudioGraph {
+  ctx: AudioContext;
+  node: AudioWorkletNode;
+  source: MediaStreamAudioSourceNode;
+}
+
+async function audioGraph(media: MediaStream, sampleRate: number): Promise<AudioGraph> {
+  let ctx: AudioContext | null = null;
+  let node: AudioWorkletNode | null = null;
+  let source: MediaStreamAudioSourceNode | null = null;
+  try {
+    try {
+      ctx = new AudioContext({ sampleRate });
+    } catch {
+      ctx = new AudioContext();
+    }
+    const workletUrl = URL.createObjectURL(
+      new Blob([WORKLET_SOURCE], { type: 'application/javascript' }),
+    );
+    try {
+      await ctx.audioWorklet.addModule(workletUrl);
+    } finally {
+      URL.revokeObjectURL(workletUrl);
+    }
+    node = new AudioWorkletNode(ctx, 'pcm-processor');
+    source = ctx.createMediaStreamSource(media);
+    source.connect(node);
+    return { ctx, node, source };
+  } catch (e) {
+    try {
+      source?.disconnect();
+    } catch {}
+    try {
+      node?.disconnect();
+    } catch {}
+    if (ctx) {
+      try {
+        await ctx.close();
+      } catch {}
+    }
+    throw e;
+  }
 }
 
 function concat(a: Float32Array, b: ArrayLike<number>): Float32Array {

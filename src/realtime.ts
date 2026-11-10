@@ -75,6 +75,9 @@ export function upgradeRefused(status: number | undefined, body: string): VocalS
 }
 
 export const RESTART_CLOSE = 1012;
+export const LOST_CLOSE = 1006;
+export const LOST_WAITS_MS = [1000, 2000, 4000, 8000, 15_000, 15_000, 15_000, 15_000];
+const ANSWERED = new WeakSet<VocalStackError>();
 const RESTART_TRIES = 3;
 const STEADY_MS = 30_000;
 const MAX_PENDING_BYTES = 4 * 1024 * 1024;
@@ -161,11 +164,16 @@ async function openReady(
       rejecting = true;
       const status: number | undefined = res?.statusCode;
       let body = '';
+      const answered = () => {
+        const err = upgradeRefused(status, body);
+        ANSWERED.add(err);
+        fail(err);
+      };
       if (res && typeof res.on === 'function') {
         res.on('data', (c: Uint8Array) => (body += c.toString()));
-        res.on('end', () => fail(upgradeRefused(status, body)));
+        res.on('end', answered);
       } else {
-        fail(upgradeRefused(status, ''));
+        answered();
       }
     });
     ws.addEventListener('close', () => {
@@ -220,25 +228,45 @@ export class RealtimeSession implements AsyncIterable<SessionEvent> {
     return session!;
   }
 
+  #reopen(): Promise<void> {
+    const deadlineMs = this.#params.readyDeadlineMs ?? DEFAULT_READY_DEADLINE_MS;
+    return openReady(this.#params.streamUrl, deadlineMs, this.#params.onLoading, this.#params.onQueued, (f) => this.#frame(f), (ws) => {
+      this.#ws = ws;
+      this.#openedAt = Date.now();
+      this.#reconnecting = false;
+      this.#listen();
+      const waiting = this.#pending;
+      this.#pending = [];
+      this.#pendingBytes = 0;
+      for (const d of waiting) this.#send(d);
+    });
+  }
+
+  async #recover(code: number): Promise<void> {
+    this.#reconnecting = true;
+    for (const wait of LOST_WAITS_MS) {
+      await new Promise((r) => setTimeout(r, wait));
+      if (this.#closedByUs) break;
+      try {
+        await this.#reopen();
+        if (this.#closedByUs) this.close();
+        return;
+      } catch (e) {
+        if (!(e instanceof VocalStackError && e.retryable && ANSWERED.has(e))) break;
+      }
+    }
+    this.#fail(engineLost(code));
+  }
+
   async #reconnect(code: number): Promise<void> {
     this.#reconnecting = true;
     if (Date.now() - this.#openedAt >= STEADY_MS) this.#reconnects = 0;
-    const deadlineMs = this.#params.readyDeadlineMs ?? DEFAULT_READY_DEADLINE_MS;
     while (this.#reconnects < RESTART_TRIES && !this.#closedByUs) {
       await new Promise((r) => setTimeout(r, 1000 * 2 ** this.#reconnects));
       this.#reconnects++;
       if (this.#closedByUs) break;
       try {
-        await openReady(this.#params.streamUrl, deadlineMs, this.#params.onLoading, this.#params.onQueued, (f) => this.#frame(f), (ws) => {
-          this.#ws = ws;
-          this.#openedAt = Date.now();
-          this.#reconnecting = false;
-          this.#listen();
-          const waiting = this.#pending;
-          this.#pending = [];
-          this.#pendingBytes = 0;
-          for (const d of waiting) this.#send(d);
-        });
+        await this.#reopen();
         if (this.#closedByUs) this.close();
         return;
       } catch (e) {
@@ -323,8 +351,14 @@ export class RealtimeSession implements AsyncIterable<SessionEvent> {
     ws.addEventListener('close', (ev: any) => {
       if (ws !== this.#ws) return;
       const code = typeof ev?.code === 'number' ? ev.code : undefined;
-      if (code === RESTART_CLOSE && !this.#endReason && !this.#error && !this.#closedByUs) {
-        void this.#reconnect(code);
+      if ((code === RESTART_CLOSE || code === LOST_CLOSE) && !this.#endReason && !this.#error && !this.#closedByUs) {
+        if (code === LOST_CLOSE && Date.now() - this.#openedAt < STEADY_MS) {
+          this.#closed = true;
+          this.#error = engineLost(code);
+          this.#wake?.();
+          return;
+        }
+        void (code === LOST_CLOSE ? this.#recover(code) : this.#reconnect(code));
         return;
       }
       this.#closed = true;

@@ -200,3 +200,45 @@ test('a gap found while the held lines are replayed is caught up too', async () 
     await s.close();
   }
 });
+
+test('a subscription opened from a cursor reads only what came after it, and each later line once (later item 20)', async () => {
+  const s = await server();
+  try {
+    const asked = [];
+    let top = 9;
+    const snap = (after) => {
+      asked.push(after);
+      return Promise.resolve(after === undefined ? snapshot(top) : snapshot(top, after + 1));
+    };
+    const sub = await Subscription.open('r', s.url, undefined, { since: 6 }, snap, { waitsMs: [20], giveUpAfterMs: 5_000 });
+    top = 11;
+    assert.deepEqual(asked, [6], 'no whole transcript is read');
+    assert.deepEqual(sub.snapshot.segments.map((x) => x.seq), [7, 8, 9]);
+    assert.equal(sub.cursor, 9);
+    s.say(9);
+    s.say(10);
+    s.say(12);
+    const got = await collect(sub, (_ev, all) => lines(all).includes(12));
+    sub.close();
+    assert.equal(got[0].type, 'snapshot');
+    assert.equal(got[0].reason, 'gap', 'the first snapshot is merged, not a fresh start');
+    assert.deepEqual(lines(got), [7, 8, 9, 10, 11, 12], 'each line once, in order; the gap after 10 is caught up as before');
+    assert.deepEqual(asked, [6, 10]);
+  } finally {
+    await s.close();
+  }
+});
+
+test('without a cursor the first snapshot is the whole transcript, as before', async () => {
+  const s = await server();
+  try {
+    const asked = [];
+    const sub = await Subscription.open('r', s.url, undefined, {}, (after) => { asked.push(after); return Promise.resolve(snapshot(3)); });
+    assert.deepEqual(asked, [undefined]);
+    const got = await collect(sub, (ev) => ev.type === 'snapshot');
+    sub.close();
+    assert.equal(got[0].reason, 'initial');
+  } finally {
+    await s.close();
+  }
+});

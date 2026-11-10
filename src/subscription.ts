@@ -10,6 +10,7 @@ export interface SubscribeOptions {
   shareCode?: string;
   asOwner?: boolean;
   audio?: boolean;
+  since?: number;
 }
 
 export type SubscriptionEvent =
@@ -67,7 +68,13 @@ export class Subscription implements AsyncIterable<SubscriptionEvent> {
     try {
       await sub.#ready(ws);
       if (opts.audio) sub.setAudio(true);
-      await sub.#resnapshot('initial');
+      if (opts.since !== undefined && opts.since >= 0) {
+        sub.cursor = opts.since;
+        await sub.#resnapshot('gap');
+        if (!sub.snapshot) throw new VocalStackError('engine_unavailable', 'socket closed before the catch-up', { retryable: true });
+      } else {
+        await sub.#resnapshot('initial');
+      }
     } catch (e) {
       sub.close();
       throw e;

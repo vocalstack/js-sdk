@@ -3,7 +3,7 @@ import { createServer } from 'node:http';
 import { test } from 'node:test';
 import { WebSocketServer } from 'ws';
 
-import { RealtimeSession, RESTART_CLOSE } from '../dist/realtime.js';
+import { LOST_WAITS_MS, RealtimeSession, RESTART_CLOSE } from '../dist/realtime.js';
 
 async function server(script) {
   const wss = new WebSocketServer({ host: '127.0.0.1', port: 0 });
@@ -138,6 +138,109 @@ test('a reconnect the server refuses for good ends the session with that error, 
   } finally {
     for (const c of wss.clients) c.terminate();
     await new Promise((r) => http.close(r));
+  }
+});
+
+async function lostServer(answers) {
+  const http = createServer();
+  const wss = new WebSocketServer({ noServer: true });
+  const seen = { upgrades: 0, bytes: [] };
+  http.on('upgrade', (req, socket, head) => {
+    const n = seen.upgrades++;
+    const answer = n === 0 ? 'drop' : (answers[n - 1] ?? 'serve');
+    if (answer === 'again' || answer === 'gone') {
+      const again = answer === 'again';
+      const body = JSON.stringify(
+        again
+          ? { code: 'engine_unavailable', message: 'The connection to this session was lost and is being restored. Try again in a moment.', data: { retryable: true } }
+          : { code: 'session_expired', message: 'session token connect-by deadline has passed', data: { retryable: false } },
+      );
+      const head = again ? 'HTTP/1.1 503 Service Unavailable\r\nRetry-After: 5' : 'HTTP/1.1 410 Gone';
+      socket.end(`${head}\r\nContent-Type: application/json\r\nContent-Length: ${Buffer.byteLength(body)}\r\nConnection: close\r\n\r\n${body}`);
+      return;
+    }
+    if (answer === 'silent') {
+      socket.destroy();
+      return;
+    }
+    wss.handleUpgrade(req, socket, head, (ws) => {
+      seen.bytes[n] = 0;
+      ws.send(JSON.stringify({ type: 'session.ready', sessionId: 's' }));
+      ws.on('message', (data, isBinary) => {
+        if (isBinary) {
+          seen.bytes[n] += data.length;
+          if (answer === 'drop') ws.terminate();
+          return;
+        }
+        if (JSON.parse(data.toString()).type === 'eof') ws.send(JSON.stringify({ type: 'session.done', reason: 'eof', stats: { audioS: 1, processingS: 0.5, realtimeFactor: 2 } }));
+      });
+    });
+  });
+  await new Promise((r) => http.listen(0, '127.0.0.1', r));
+  const waits = LOST_WAITS_MS.splice(0, LOST_WAITS_MS.length, 20, 20, 20, 20);
+  const close = async () => {
+    LOST_WAITS_MS.splice(0, LOST_WAITS_MS.length, ...waits);
+    for (const c of wss.clients) c.terminate();
+    await new Promise((r) => http.close(r));
+  };
+  return { url: `ws://127.0.0.1:${http.address().port}/v1/realtime/sessions/tok/socket`, seen, close };
+}
+
+test('a socket lost with no close frame is opened again while the server says try again, and the session goes on', async (t) => {
+  const s = await lostServer(['again', 'again']);
+  t.mock.timers.enable({ apis: ['Date'] });
+  try {
+    const session = await RealtimeSession.connect({ sessionId: 's', streamUrl: s.url });
+    t.mock.timers.tick(31_000);
+    const done = drain(session);
+    session.sendAudio(new Uint8Array(3200));
+    await new Promise((r) => setTimeout(r, 30));
+    session.sendAudio(new Uint8Array(1600));
+    session.eof();
+    const { err } = await done;
+    assert.equal(err, null, `the server its socket was on died; the session went on: ${err?.message}`);
+    assert.equal(s.seen.upgrades, 4, 'two tries told to come back, then let in');
+    assert.equal(s.seen.bytes[3], 1600, 'the audio sent meanwhile reached the next socket');
+    assert.equal(session.doneReason, 'eof');
+  } finally {
+    await s.close();
+  }
+});
+
+for (const [answers, upgrades, why] of [
+  [['gone'], 2, 'refused for good: the session ended on the server'],
+  [['silent'], 2, 'no answer from the server: nothing says it will come back'],
+  [['again', 'again', 'again', 'again'], 5, 'told to come back past the last try'],
+]) {
+  test(`a socket lost with no close frame ends as engine_lost when it cannot go on (${why})`, async (t) => {
+    const s = await lostServer(answers);
+    t.mock.timers.enable({ apis: ['Date'] });
+    try {
+      const session = await RealtimeSession.connect({ sessionId: 's', streamUrl: s.url });
+      t.mock.timers.tick(31_000);
+      const done = drain(session);
+      session.sendAudio(new Uint8Array(64));
+      const { err } = await done;
+      assert.equal(err?.code, 'engine_lost', why);
+      assert.match(err.message, /1006/);
+      assert.equal(s.seen.upgrades, upgrades, why);
+    } finally {
+      await s.close();
+    }
+  });
+}
+
+test('a socket lost with no close frame soon after it opened is engine_lost at once, with no try', async () => {
+  const s = await lostServer(['serve']);
+  try {
+    const session = await RealtimeSession.connect({ sessionId: 's', streamUrl: s.url });
+    const done = drain(session);
+    session.sendAudio(new Uint8Array(64));
+    const { err } = await done;
+    assert.equal(err?.code, 'engine_lost');
+    assert.equal(s.seen.upgrades, 1, 'no reconnect for a socket that never stayed up');
+  } finally {
+    await s.close();
   }
 });
 
