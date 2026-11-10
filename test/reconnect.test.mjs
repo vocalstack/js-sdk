@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { createServer } from 'node:http';
 import { test } from 'node:test';
 import { WebSocketServer } from 'ws';
 
@@ -79,6 +80,64 @@ test('restart closes past the tries end the session as engine_lost', async () =>
     assert.equal(s.conns.length, 4, 'the first socket and three reconnects');
   } finally {
     await s.close();
+  }
+});
+
+test('sockets that stayed up start the tries anew: a long session goes through any number of restarts', async (t) => {
+  const again = { afterBytes: 1, close: RESTART_CLOSE };
+  const s = await server([again, again, again, again, again]);
+  t.mock.timers.enable({ apis: ['Date'] });
+  const attached = async (n) => {
+    while (s.conns.length < n) await new Promise((r) => setTimeout(r, 20));
+    await new Promise((r) => setTimeout(r, 150));
+  };
+  try {
+    const session = await RealtimeSession.connect({ sessionId: 's', streamUrl: s.url, readyDeadlineMs: 2000 });
+    const done = drain(session);
+    for (let i = 1; i <= 5; i++) {
+      await attached(i);
+      t.mock.timers.tick(31_000);
+      session.sendAudio(new Uint8Array(64));
+    }
+    await attached(6);
+    session.eof();
+    const { err } = await done;
+    assert.equal(err, null, `five restart closes, each after a steady socket, and no error: ${err?.message}`);
+    assert.equal(s.conns.length, 6);
+    assert.equal(session.doneReason, 'eof');
+  } finally {
+    await s.close();
+  }
+});
+
+test('a reconnect the server refuses for good ends the session with that error, with no further tries', async () => {
+  const http = createServer();
+  const wss = new WebSocketServer({ noServer: true });
+  let upgrades = 0;
+  http.on('upgrade', (req, socket, head) => {
+    upgrades++;
+    if (upgrades > 1) {
+      const body = JSON.stringify({ code: 'session_expired', message: 'session token connect-by deadline has passed', data: { retryable: false } });
+      socket.end(`HTTP/1.1 410 Gone\r\nContent-Type: application/json\r\nContent-Length: ${Buffer.byteLength(body)}\r\nConnection: close\r\n\r\n${body}`);
+      return;
+    }
+    wss.handleUpgrade(req, socket, head, (ws) => {
+      ws.send(JSON.stringify({ type: 'session.ready', sessionId: 's' }));
+      ws.on('message', () => ws.close(RESTART_CLOSE, 'the relay is restarting; reconnect'));
+    });
+  });
+  await new Promise((r) => http.listen(0, '127.0.0.1', r));
+  try {
+    const session = await RealtimeSession.connect({ sessionId: 's', streamUrl: `ws://127.0.0.1:${http.address().port}/v1/realtime/sessions/tok/socket` });
+    const done = drain(session);
+    session.sendAudio(new Uint8Array(64));
+    const { err } = await done;
+    assert.equal(err?.code, 'session_expired');
+    assert.equal(err.retryable, false);
+    assert.equal(upgrades, 2, 'one reconnect, refused, and no more');
+  } finally {
+    for (const c of wss.clients) c.terminate();
+    await new Promise((r) => http.close(r));
   }
 });
 

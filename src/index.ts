@@ -17,6 +17,7 @@ import {
   Speakers,
   Tags,
   Transcriptions,
+  Uploads,
   Voices,
 } from './resources.js';
 
@@ -48,11 +49,12 @@ export {
   Speakers,
   Tags,
   Transcriptions,
+  Uploads,
   Voices,
   playableFormat,
 } from './resources.js';
 export type { AudioKind, MediaAuth, MediaFormat, RenderVoice, VoicesChoice } from './resources.js';
-export type { ConnectToken, ConnectTokenInput, CreateTranscriptionInput, LifecycleFilter, Me, PageOptions, RecordingPageOptions, SearchOptions, TranscriptionFilters, Upload, UsageChargesOptions, UsageOptions } from './resources.js';
+export type { ConnectToken, ConnectTokenInput, CreateTranscriptionInput, LifecycleFilter, Me, PageOptions, RecordingPageOptions, SearchOptions, SendUploadOptions, TranscriptionFilters, Upload, UsageChargesOptions, UsageOptions } from './resources.js';
 export type * from '@vocalstack/contract';
 
 export type VocalStackOptions = ClientOptions;
@@ -62,6 +64,7 @@ export class VocalStack {
   readonly realtime: Realtime;
   readonly broadcasts: Broadcasts;
   readonly transcriptions: Transcriptions;
+  readonly uploads: Uploads;
   readonly recordings: Recordings;
   readonly jobs: Jobs;
   readonly corrections: Corrections;
@@ -84,6 +87,7 @@ export class VocalStack {
     this.realtime = new Realtime(t);
     this.broadcasts = new Broadcasts(t);
     this.transcriptions = new Transcriptions(t);
+    this.uploads = new Uploads(t);
     this.recordings = new Recordings(t);
     this.jobs = new Jobs(t);
     this.corrections = new Corrections(t);

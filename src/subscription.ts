@@ -20,6 +20,18 @@ export type SubscriptionEvent =
 
 type Snapshotter = (after: number | undefined) => Promise<TranscriptSnapshot>;
 
+export interface CatchUpLimits {
+  waitsMs?: number[];
+  giveUpAfterMs?: number;
+  mostHeld?: number;
+}
+
+const CATCH_UP_WAITS_MS = [1_000, 2_000, 4_000, 8_000, 16_000, 30_000];
+const CATCH_UP_GIVE_UP_MS = 60_000;
+const MOST_HELD = 5_000;
+
+export const CATCH_UP_FAILED = 'catch-up failed';
+
 export class Subscription implements AsyncIterable<SubscriptionEvent> {
   readonly recordingId: string;
   cursor = -1;
@@ -31,25 +43,44 @@ export class Subscription implements AsyncIterable<SubscriptionEvent> {
   #queue: SubscriptionEvent[] = [];
   #wake: (() => void) | null = null;
   #closed = false;
-  #healing = false;
+  #saidClosed = false;
   #buffering: Array<{ seq?: number; frame: any }> | null = [];
+  #limits: Required<CatchUpLimits>;
+  #stopWaiting: (() => void) | null = null;
 
-  private constructor(recordingId: string, ws: WsLike, opts: SubscribeOptions, snap: Snapshotter) {
+  private constructor(recordingId: string, ws: WsLike, opts: SubscribeOptions, snap: Snapshotter, limits: CatchUpLimits) {
     this.recordingId = recordingId;
     this.#ws = ws;
     this.#opts = opts;
     this.#snap = snap;
+    this.#limits = {
+      waitsMs: limits.waitsMs?.length ? limits.waitsMs : CATCH_UP_WAITS_MS,
+      giveUpAfterMs: limits.giveUpAfterMs ?? CATCH_UP_GIVE_UP_MS,
+      mostHeld: limits.mostHeld ?? MOST_HELD,
+    };
   }
 
-  static async open(recordingId: string, url: string, bearer: string | undefined, opts: SubscribeOptions, snap: Snapshotter): Promise<Subscription> {
+  static async open(recordingId: string, url: string, bearer: string | undefined, opts: SubscribeOptions, snap: Snapshotter, limits: CatchUpLimits = {}): Promise<Subscription> {
     const ws = await openWebSocket(url, bearer);
     ws.binaryType = 'arraybuffer';
-    const sub = new Subscription(recordingId, ws, opts, snap);
-    await new Promise<void>((resolve, reject) => {
+    const sub = new Subscription(recordingId, ws, opts, snap, limits);
+    try {
+      await sub.#ready(ws);
+      if (opts.audio) sub.setAudio(true);
+      await sub.#resnapshot('initial');
+    } catch (e) {
+      sub.close();
+      throw e;
+    }
+    return sub;
+  }
+
+  #ready(ws: WsLike): Promise<void> {
+    return new Promise<void>((resolve, reject) => {
       const timer = setTimeout(() => reject(new VocalStackError('engine_unavailable', 'no subscribe.ready', { retryable: true })), 15_000);
       ws.addEventListener('message', (ev: any) => {
         if (typeof ev.data !== 'string') {
-          sub.#push({ type: 'audio', bytes: ev.data });
+          this.#push({ type: 'audio', bytes: ev.data });
           return;
         }
         let frame: any;
@@ -63,13 +94,14 @@ export class Subscription implements AsyncIterable<SubscriptionEvent> {
           resolve();
           return;
         }
-        sub.#onFrame(frame);
+        this.#onFrame(frame);
       });
       ws.addEventListener('close', (ev: any) => {
         clearTimeout(timer);
-        sub.#push({ type: 'closed', reason: ev?.reason });
-        sub.#closed = true;
-        sub.#wake?.();
+        this.#sayClosed(ev?.reason);
+        this.#closed = true;
+        this.#stopWaiting?.();
+        this.#wake?.();
         reject(new VocalStackError('engine_unavailable', 'socket closed before subscribe.ready', { retryable: true }));
       });
       ws.addEventListener('error', () => {
@@ -77,13 +109,59 @@ export class Subscription implements AsyncIterable<SubscriptionEvent> {
         reject(new VocalStackError('engine_unavailable', 'subscriber socket error', { retryable: true }));
       });
     });
-    if (opts.audio) sub.setAudio(true);
-    await sub.#resnapshot('initial');
-    return sub;
+  }
+
+  #sayClosed(reason?: string) {
+    if (this.#saidClosed) return;
+    this.#saidClosed = true;
+    this.#push({ type: 'closed', reason });
+  }
+
+  #giveUp() {
+    if (this.#closed) return;
+    this.#buffering = null;
+    this.#sayClosed(CATCH_UP_FAILED);
+    this.close();
+  }
+
+  #hold(seq: number | undefined, frame: any) {
+    const held = this.#buffering!;
+    if (held.length >= this.#limits.mostHeld) {
+      this.#giveUp();
+      return;
+    }
+    held.push({ seq, frame });
+  }
+
+  async #catchUp() {
+    const until = Date.now() + this.#limits.giveUpAfterMs;
+    const waits = this.#limits.waitsMs;
+    for (let n = 0; !this.#closed; n++) {
+      try {
+        await this.#resnapshot('gap');
+        return;
+      } catch (e) {
+        if (this.#closed) return;
+        if (refusedForGood(e)) break;
+        const asked = e instanceof VocalStackError ? e.retryAfter : undefined;
+        const wait = Math.max(waits[Math.min(n, waits.length - 1)], asked !== undefined ? asked * 1000 : 0);
+        if (Date.now() + wait > until) break;
+        await new Promise<void>((r) => {
+          const t = setTimeout(r, wait);
+          this.#stopWaiting = () => {
+            clearTimeout(t);
+            r();
+          };
+        });
+        this.#stopWaiting = null;
+      }
+    }
+    this.#giveUp();
   }
 
   async #resnapshot(reason: 'initial' | 'gap') {
     const snap = await this.#snap(reason === 'gap' ? this.cursor : undefined);
+    if (this.#closed && reason === 'gap') return;
     this.snapshot = reason === 'initial' || !this.snapshot ? snap : mergeSnapshot(this.snapshot, snap);
     this.cursor = Math.max(this.cursor, snap.lastSeq);
     this.#push({ type: 'snapshot', snapshot: snap, reason });
@@ -93,21 +171,17 @@ export class Subscription implements AsyncIterable<SubscriptionEvent> {
   }
 
   #onFrame(frame: any) {
+    if (this.#closed) return;
     const seq: number | undefined = typeof frame.cursor === 'number' ? frame.cursor : typeof frame.seq === 'number' ? frame.seq : undefined;
     if (this.#buffering) {
-      this.#buffering.push({ seq, frame });
+      this.#hold(seq, frame);
       return;
     }
     if (seq !== undefined) {
       if (seq <= this.cursor) return;
-      if (seq > this.cursor + 1 && !this.#healing) {
-        this.#healing = true;
+      if (seq > this.cursor + 1) {
         this.#buffering = [{ seq, frame }];
-        this.#resnapshot('gap')
-          .catch(() => {})
-          .finally(() => {
-            this.#healing = false;
-          });
+        void this.#catchUp();
         return;
       }
       this.cursor = seq;
@@ -137,6 +211,7 @@ export class Subscription implements AsyncIterable<SubscriptionEvent> {
   close() {
     if (this.#closed) return;
     this.#closed = true;
+    this.#stopWaiting?.();
     try {
       this.#ws.close();
     } catch {
@@ -157,6 +232,11 @@ export class Subscription implements AsyncIterable<SubscriptionEvent> {
       this.#wake = null;
     }
   }
+}
+
+function refusedForGood(e: unknown): boolean {
+  if (!(e instanceof VocalStackError) || e.retryable || e.status === undefined) return false;
+  return e.status >= 400 && e.status < 500 && e.status !== 408 && e.status !== 429;
 }
 
 function mergeSnapshot(base: TranscriptSnapshot, delta: TranscriptSnapshot): TranscriptSnapshot {

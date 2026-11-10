@@ -76,6 +76,7 @@ export function upgradeRefused(status: number | undefined, body: string): VocalS
 
 export const RESTART_CLOSE = 1012;
 const RESTART_TRIES = 3;
+const STEADY_MS = 30_000;
 const MAX_PENDING_BYTES = 4 * 1024 * 1024;
 
 async function openReady(
@@ -197,6 +198,7 @@ export class RealtimeSession implements AsyncIterable<SessionEvent> {
   #pending: (string | Uint8Array | ArrayBuffer)[] = [];
   #pendingBytes = 0;
   #reconnects = 0;
+  #openedAt = Date.now();
 
   private constructor(sessionId: string, ws: WsLike, params: ConnectParams) {
     this.sessionId = sessionId;
@@ -220,6 +222,7 @@ export class RealtimeSession implements AsyncIterable<SessionEvent> {
 
   async #reconnect(code: number): Promise<void> {
     this.#reconnecting = true;
+    if (Date.now() - this.#openedAt >= STEADY_MS) this.#reconnects = 0;
     const deadlineMs = this.#params.readyDeadlineMs ?? DEFAULT_READY_DEADLINE_MS;
     while (this.#reconnects < RESTART_TRIES && !this.#closedByUs) {
       await new Promise((r) => setTimeout(r, 1000 * 2 ** this.#reconnects));
@@ -228,6 +231,7 @@ export class RealtimeSession implements AsyncIterable<SessionEvent> {
       try {
         await openReady(this.#params.streamUrl, deadlineMs, this.#params.onLoading, this.#params.onQueued, (f) => this.#frame(f), (ws) => {
           this.#ws = ws;
+          this.#openedAt = Date.now();
           this.#reconnecting = false;
           this.#listen();
           const waiting = this.#pending;
