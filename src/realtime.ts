@@ -80,6 +80,7 @@ export const LOST_WAITS_MS = [1000, 2000, 4000, 8000, 15_000, 15_000, 15_000, 15
 const ANSWERED = new WeakSet<VocalStackError>();
 const RESTART_TRIES = 3;
 const STEADY_MS = 30_000;
+const EARLY_RECOVERIES = 1;
 const MAX_PENDING_BYTES = 4 * 1024 * 1024;
 
 async function openReady(
@@ -207,6 +208,7 @@ export class RealtimeSession implements AsyncIterable<SessionEvent> {
   #pendingBytes = 0;
   #reconnects = 0;
   #openedAt = Date.now();
+  #earlyRecoveries = 0;
 
   private constructor(sessionId: string, ws: WsLike, params: ConnectParams) {
     this.sessionId = sessionId;
@@ -352,12 +354,14 @@ export class RealtimeSession implements AsyncIterable<SessionEvent> {
       if (ws !== this.#ws) return;
       const code = typeof ev?.code === 'number' ? ev.code : undefined;
       if ((code === RESTART_CLOSE || code === LOST_CLOSE) && !this.#endReason && !this.#error && !this.#closedByUs) {
-        if (code === LOST_CLOSE && Date.now() - this.#openedAt < STEADY_MS) {
+        const young = code === LOST_CLOSE && Date.now() - this.#openedAt < STEADY_MS;
+        if (young && this.#earlyRecoveries >= EARLY_RECOVERIES) {
           this.#closed = true;
           this.#error = engineLost(code);
           this.#wake?.();
           return;
         }
+        if (young) this.#earlyRecoveries += 1;
         void (code === LOST_CLOSE ? this.#recover(code) : this.#reconnect(code));
         return;
       }

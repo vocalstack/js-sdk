@@ -84,7 +84,12 @@ test('a realtime session waiting in line hears session.queued, keeps waiting pas
 test('a realtime socket that closes with no session.done is an engine_lost error, not a quiet end', async () => {
   const wss = new WebSocketServer({ host: '127.0.0.1', port: 0 });
   await new Promise((r) => wss.once('listening', r));
+  let opened = 0;
   wss.on('connection', (ws) => {
+    if (opened++ > 0) {
+      ws.terminate();
+      return;
+    }
     ws.send(JSON.stringify({ type: 'session.ready', sessionId: 's1' }));
     ws.send(JSON.stringify({ type: 'transcript.committed', segment: { seq: 0, start: 0, end: 1, text: 'before the loss', speaker: 0, words: [] } }));
     setTimeout(() => ws.terminate(), 20);
