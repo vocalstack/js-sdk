@@ -34,7 +34,7 @@ With `sentences: { enabled: true }`, the server also assembles commits into sent
 
 ## 4. Speak them
 
-`voice: ["es"]` (it needs `sentences`) speaks each closed sentence's Spanish translation. VocalStack picks the voice: each speaker is read in a distinct stock voice of their gender or, with `voiceCloning` on, in their own consented cloned voice. That is the only choice: cloned or not. `"es:<voice id>"`, `voiceByLang` and `voiceCast` are accepted for compatibility and change nothing; each clip's `voice` says what read it. Each clip arrives as a `transcript.voice` frame: `sentenceId`, `lang`, `durationS`, and `audio`, the clip itself (base64 Ogg/Opus, 24 kHz mono). A long sentence comes in pieces (`part` of `parts`) so the first can play while the rest are made: play them back to back, in order.
+`voice: ["es"]` (it needs `sentences`) speaks each closed sentence's Spanish translation. VocalStack picks the voice: each speaker is read in a distinct stock voice of their gender or, with `voiceCloning` on, in their own consented cloned voice. That is the only choice: cloned or not. `"es:<voice id>"` and `voiceByLang` are accepted for compatibility and change nothing; each clip's `voice` says what read it. Each clip arrives as a `transcript.voice` frame: `sentenceId`, `lang`, `durationS`, and `audio`, the clip itself (base64 Ogg/Opus, 24 kHz mono). A long sentence comes in pieces (`part` of `parts`) so the first can play while the rest are made: play them back to back, in order.
 
 ```text
 +0.0s {"type":"session.ready"}

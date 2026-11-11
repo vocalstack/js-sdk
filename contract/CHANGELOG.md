@@ -20,6 +20,11 @@ One line per change, naming the operation (`METHOD /path`, its
 
 ## [Unreleased]
 
+### `voiceCast` removed (2026-11-11, `1.0.0-alpha.11`)
+
+- **Removed**: `SessionOptions.voiceCast` (`POST /v1/realtime/sessions`, `realtime.createSession`). It has been ignored since `1.0.0-alpha.10` (each speaker is always read in a voice VocalStack picks). A request that still sends it is accepted and the field is ignored, so no caller breaks.
+- **Changed**: `info.version` in `contract.json` (and `GET /v1/openapi.json`) reads `1.0.0-alpha.11`.
+
 ### VocalStack picks the voice (2026-11-10, `1.0.0-alpha.10`)
 
 Owner's rule (Alex, 2026-11-10): callers do not pick which voice reads a speaker; the only choice is whether cloned voices are used. Nothing is removed and nothing that worked is refused: a voice named is accepted and only says cloned or synthetic.

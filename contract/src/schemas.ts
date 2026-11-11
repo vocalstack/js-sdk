@@ -1668,7 +1668,6 @@ export const SessionOptionsSchema = z.object({
   "translate": z.array(z.string()).optional(),
   "voice": z.array(z.string()).optional(),
   "voiceByLang": z.record(z.string(), z.string()).optional(),
-  "voiceCast": z.boolean().optional(),
   "voiceCloning": z.boolean().optional(),
 });
 export type SessionOptions = z.infer<typeof SessionOptionsSchema>;
