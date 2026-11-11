@@ -18,7 +18,7 @@ Subscribing takes a recording id. The owner has it already: the publish grant's 
 
 ## 2. Subscribe
 
-Open `WS /v1/recordings/{id}/subscribe`. The owner sends the API key as `Authorization: Bearer …` (never in the URL); a share link's reader adds `shareCode=`; a public broadcast's listener sends nothing. `lang=es` reads it translated (through a share link, the link must allow translation), and `voice=` picks who speaks it ([Live translation and spoken translations](translation-and-voices.md)). The first frame is `subscribe.ready`: the recording's `state` and `lastSeq`, the cursor the live sequence is at.
+Open `WS /v1/recordings/{id}/subscribe`. The owner sends the API key as `Authorization: Bearer …` (never in the URL); a share link's reader adds `shareCode=`; a public broadcast's listener sends nothing. `lang=es` reads it translated (through a share link, the link must allow translation), and VocalStack picks the voice that speaks it ([Live translation and spoken translations](translation-and-voices.md)). The first frame is `subscribe.ready`: the recording's `state` and `lastSeq`, the cursor the live sequence is at.
 
 ## 3. Catch up
 

@@ -22,7 +22,7 @@ A realtime session (and every recording, for its listeners) can translate what i
 
 ## 1. Pick the languages
 
-`GET /v1/languages` lists what can be transcribed (`transcription`), translated into (`translation`) and spoken (`voice`), with names. `GET /v1/voices/available?lang=es` lists the voices that speak a language, best first; `default` marks the one used when none is named, and with a key the cloned voices of your saved speakers are there too.
+`GET /v1/languages` lists what can be transcribed (`transcription`), translated into (`translation`) and spoken (`voice`), with names. `GET /v1/voices/available?lang=es` lists the voices that speak a language, for information: you never pick one. VocalStack picks the voice that reads each speaker, and the only choice is whether cloned voices are used.
 
 ## 2. Ask for translations
 
@@ -34,7 +34,7 @@ With `sentences: { enabled: true }`, the server also assembles commits into sent
 
 ## 4. Speak them
 
-`voice: ["es"]` (it needs `sentences`) speaks each closed sentence's Spanish translation in the language's default voice; `"es:<voice id>"` names a voice from the catalogue, and `voiceByLang: { "es": "<voice id>" }` sets one per language. With `voiceCast` on (the default), each speaker gets a distinct voice of matching gender. Each clip arrives as a `transcript.voice` frame: `sentenceId`, `lang`, `durationS`, and `audio`, the clip itself (base64 Ogg/Opus, 24 kHz mono). A long sentence comes in pieces (`part` of `parts`) so the first can play while the rest are made: play them back to back, in order.
+`voice: ["es"]` (it needs `sentences`) speaks each closed sentence's Spanish translation. VocalStack picks the voice: each speaker is read in a distinct stock voice of their gender or, with `voiceCloning` on, in their own consented cloned voice. That is the only choice: cloned or not. `"es:<voice id>"`, `voiceByLang` and `voiceCast` are accepted for compatibility and change nothing; each clip's `voice` says what read it. Each clip arrives as a `transcript.voice` frame: `sentenceId`, `lang`, `durationS`, and `audio`, the clip itself (base64 Ogg/Opus, 24 kHz mono). A long sentence comes in pieces (`part` of `parts`) so the first can play while the rest are made: play them back to back, in order.
 
 ```text
 +0.0s {"type":"session.ready"}
@@ -46,7 +46,7 @@ With `sentences: { enabled: true }`, the server also assembles commits into sent
 
 ## 5. For a recording's listeners
 
-A listener on the subscribe socket asks with `lang=es` (translations filtered to Spanish) and `voice=<voice id>` ([Listen](listen.md)); a clip reaches every listener on that language and voice, synthesised once. A recording speaks only when its settings ask for it: `settings: { translationTts: true }` on the broadcast or transcription it is made in. `translationTts` is text-to-speech of translations only, off unless asked for: when on, every translation language a listener reads (up to the transcription's 10 translation languages, the same limit as translations) is spoken, live as each sentence lands and as a reading of the whole transcription once it has ended. A line already in the language picked plays its original audio; off, nothing is spoken. On a recording, `transcript.voice` carries a `url` instead of `audio`: fetch it with `GET /v1/recordings/{id}/voice/{sentence}?lang=es` (Ogg/Opus; `format=caf` for Apple). `transcript.voiceStatus` says when a voice is still `preparing` (its clips are held and will come) or `unavailable`. After the recording, `GET /v1/recordings/{id}/voice` lists every clip left behind, language by language.
+A listener on the subscribe socket asks with `lang=es` (translations filtered to Spanish, [Listen](listen.md)); a clip reaches every listener on that language, synthesised once. VocalStack picks the voice, and the host's `settings.voiceCloning` says whether cloned voices are used; a `voice=` on the socket is ignored. A recording speaks only when its settings ask for it: `settings: { translationTts: true }` on the broadcast or transcription it is made in. `translationTts` is text-to-speech of translations only, off unless asked for: when on, every translation language a listener reads (up to the transcription's 10 translation languages, the same limit as translations) is spoken, live as each sentence lands and as a reading of the whole transcription once it has ended. A line already in the language picked plays its original audio; off, nothing is spoken. On a recording, `transcript.voice` carries a `url` instead of `audio`: fetch it with `GET /v1/recordings/{id}/voice/{sentence}?lang=es` (Ogg/Opus; `format=caf` for Apple). `transcript.voiceStatus` says when a voice is still `preparing` (its clips are held and will come) or `unavailable`. After the recording, `GET /v1/recordings/{id}/voice` lists every clip left behind, language by language, and `POST /v1/recordings/{id}/voice` reads the rest with `voices: "cloned"` (and `consent: true`) or `voices: "synthetic"`: the row whose `chosenFor` names that kind is the reading to play, its clips fetched with `voice=<voiceKey>`.
 
 ## Complete code
 
@@ -61,8 +61,9 @@ import { VocalStack, applySentence, type SentenceSegment } from '@vocalstack/js-
 
 const vs = new VocalStack({ baseUrl: 'https://api.vocalstack.com', apiKey: process.env.VOCALSTACK_API_KEY });
 
+// For information: VocalStack picks the voice that reads each speaker.
 const { voices } = await vs.voices.available('es');
-const voice = voices.find((v) => v.default) ?? voices[0];
+if (voices.length === 0) throw new Error('no voice speaks Spanish');
 
 // A file at full speed here; a microphone works the same (Stream a microphone).
 const session = await vs.realtime.connect(
@@ -71,7 +72,7 @@ const session = await vs.realtime.connect(
     spokenLanguage: 'en',
     translate: ['es'],
     sentences: { enabled: true },
-    voice: [`es:${voice.id}`],
+    voice: ['es'],
   },
   {
     // The clips arrive as transcript.voice frames: onFrame sees every frame.

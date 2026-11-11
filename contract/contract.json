@@ -1484,7 +1484,7 @@
                   "type": "string"
                 },
                 "voice": {
-                  "description": "Replace the spoken list — languages or `lang:voice` pairs\n(see `SessionOptions::voice`).",
+                  "description": "Replace the list of languages spoken (see\n`SessionOptions::voice`).  VocalStack picks the voice; a\n`lang:voice` entry is read as its language.",
                   "items": {
                     "type": "string"
                   },
@@ -1497,7 +1497,7 @@
                   "additionalProperties": {
                     "type": "string"
                   },
-                  "description": "Replace the whole per-language voice map (see\n`SessionOptions::voiceByLang`); `{}` clears every pin.",
+                  "description": "Accepted for compatibility and ignored: VocalStack picks the\nvoice.",
                   "type": [
                     "object",
                     "null"
@@ -6343,7 +6343,7 @@
               "type": "object"
             },
             {
-              "description": "A speaker's gender, as the pitch band heard it, once it settles\n(`casting::roster`).  Sent once per speaker per realtime session (or recording) — twice\nonly if a verdict changes as more of their audio arrives.\n\n`gender` is `\"male\"` or `\"female\"`; a speaker the band refuses to\njudge is never the subject of this frame at all, because \"not\nknown\" is not a verdict to publish.  `confidence` is the share of\ntheir pitch that backs it.\n\nWhat it is FOR: the voice sheet marks a speaker's chip with it and\nopens the group of voices that suits them.  It is deliberately not\nused to pick a voice — that is `voice_cast`'s job, on the engine,\nwhere the verdict comes from.",
+              "description": "A speaker's gender, as the pitch band heard it, once it settles\n(`casting::roster`).  Sent once per speaker per realtime session (or recording) — twice\nonly if a verdict changes as more of their audio arrives.\n\n`gender` is `\"male\"` or `\"female\"`; a speaker the band refuses to\njudge is never the subject of this frame at all, because \"not\nknown\" is not a verdict to publish.  `confidence` is the share of\ntheir pitch that backs it.\n\nWhat it is FOR: a client may mark a speaker's chip with it.  The\nvoice that reads the speaker is picked by VocalStack's own casting,\non the engine, where the verdict comes from.",
               "properties": {
                 "confidence": {
                   "format": "double",
@@ -6593,14 +6593,14 @@
                   ]
                 },
                 "voice": {
-                  "description": "The voice that spoke it, by its catalogue id (`GET\n/v1/voices/available`) — or `clone:<id>` for a cloned voice.\nAbsent only on frames from before the engine reported it.",
+                  "description": "The voice that spoke it, picked by VocalStack: a catalogue id\n(`GET /v1/voices/available`) or `clone:<id>` for the speaker's\nown cloned voice.  Absent only on frames from before the engine\nreported it.",
                   "type": [
                     "string",
                     "null"
                   ]
                 },
                 "voiceKey": {
-                  "description": "Which audience choice this clip was made for: the voice half\nof the `SessionOptions::voice` entry behind it, empty (and\nabsent on the wire) for \"the engine's default\".  `voice` says\nwhat spoke; this says what was *asked for*, and it is what a\nsubscriber's `?voice=` is matched against — the two differ\nwhenever the asker named no voice.",
+                  "description": "Which reading this clip belongs to: VocalStack's own cast for\nthe language (`cast:<speaker>=<voice>;…`), empty (and absent on\nthe wire) for the language's default.  `voice` says what spoke\nthis line.  Clips stay listed under it in\n`GET /v1/recordings/{id}/voice` (`voiceKey`).",
                   "type": "string"
                 }
               },
@@ -6616,7 +6616,7 @@
               "type": "object"
             },
             {
-              "description": "Why a listener who picked a voice is not hearing it yet — or will\nnot hear it at all.  Sent once per (language, voice) and state,\nand filtered to the listeners on that pair exactly as\n`transcript.voice` is.\n\nBefore this a listener who picked a voice whose assets were not on\nthe machine got silence and a server log line: the sentences went\nby unspoken and nothing said why.  `preparing` means the assets\nare being fetched and the clips will follow (the engine holds each\nsentence for them rather than dropping it); `unavailable` means\nthis voice cannot be had here, and `detail` says why in the\nengine's own words.",
+              "description": "Why a language's voice is not heard yet — or will not be heard at\nall.  Sent once per (language, `voiceKey`) and state, and filtered\nto the listeners of that language exactly as `transcript.voice` is.\n\n`preparing` means the voice's assets are being fetched and the\nclips will follow (the engine holds each sentence for them rather\nthan dropping it); `unavailable` means this voice cannot be had\nhere, and `detail` says why in the engine's own words.",
               "properties": {
                 "detail": {
                   "description": "What is being fetched, or why it cannot be had.",
@@ -6633,7 +6633,7 @@
                   "type": "string"
                 },
                 "voiceKey": {
-                  "description": "The audience choice this is about — the same value\n`transcript.voice.voiceKey` carries, empty for the engine's\ndefault.",
+                  "description": "The reading this is about — the same value\n`transcript.voice.voiceKey` carries, empty for the language's\ndefault.",
                   "type": "string"
                 }
               },
@@ -7032,7 +7032,7 @@
               "type": "array"
             },
             "voice": {
-              "description": "What to speak: each definitive translated sentence in one of these\nlanguages (or the original sentence when its own language is\nlisted) is synthesised and delivered as a `transcript.voice`\nframe.  Requires `sentences`.  Empty = no speech.\n\nAn entry is `\"<lang>\"` — speak it in whatever voice the engine\npicks (`voiceByLang`, else its default) — or `\"<lang>:<voice>\"`,\nnaming the voice outright.  The same language may appear several\ntimes with different voices, and each is synthesised once, however\nmany listeners asked for it: this list is the union of what the\naudience chose, and it is what keeps a clip from being rendered\nper listener.  `\"es\"` and `\"es:F3\"` are different entries and cost\ntwo syntheses, so a caller that means the default says only `\"es\"`.",
+              "description": "What to speak: each definitive translated sentence in one of these\nlanguages (or the original sentence when its own language is\nlisted) is synthesised and delivered as a `transcript.voice`\nframe.  Requires `sentences`.  Empty = no speech.\n\nAn entry is a language, `\"es\"`.  VocalStack picks the voice that\nreads each speaker: a distinct stock voice of their gender, or the\nspeaker's own consented cloned voice when `voiceCloning` is on.\nThe only choice is cloned or not (`voiceCloning`).  An entry\nwritten `\"<lang>:<voice>\"` is accepted for compatibility and read\nas `\"<lang>\"`: the voice named is never used.",
               "items": {
                 "type": "string"
               },
@@ -7042,17 +7042,17 @@
               "additionalProperties": {
                 "type": "string"
               },
-              "description": "Which voice speaks each language in `voice` (`{\"es\": \"F3\"}`), by\nthe engine's own voice name.  A language absent from the map gets\nthe engine's default for it — and the clip says which that was.",
+              "description": "Accepted for compatibility and ignored: VocalStack picks the voice\n(see `voice`).  Each clip names the voice it was read in.",
               "type": "object"
             },
             "voiceCast": {
               "default": true,
-              "description": "Cast a distinct, gender-matched voice to each diarized speaker\n(default **on**).\n\nThe listener still picks one voice per language; with this on it\nbecomes the voice of the first speaker of its own gender, and\neverybody else in the room is cast around it from the same\nengine's catalogue — so two men are read in two male voices and a\nwoman in a female one, without anyone configuring anything.\n\nOff means the listener's pick reads every speaker, which is what\nhappened before this existed.  It is also what a caller wants when\nthe choice is editorial rather than practical: a single narrator\nfor the whole room.\n\nNeeds `speakerLabels` on to do anything — with one speaker there is\nnothing to cast — and never delays a clip: a speaker whose gender\nhas not settled yet is read in the listener's pick and moves to\ntheir own voice once it does (see `casting`).",
+              "description": "Accepted for compatibility and ignored (always on): each diarized\nspeaker is read in a distinct voice of their gender, picked by\nVocalStack, so two men are read in two male voices and a woman in\na female one.  Needs `speakerLabels` on to tell speakers apart; a\nspeaker whose gender has not settled yet is read in the\nlanguage's default voice and moves to their own once it does.",
               "type": "boolean"
             },
             "voiceCloning": {
               "default": false,
-              "description": "Read a speaker identified as one of the account's cloned voices\nin that clone (default **off**, design 118: nobody is\nread in a cloned voice until the host turns voice cloning on).  Off,\nthey are cast like anyone else, by gender.  A listener's explicit\npick of a clone (`cast:0=clone:<id>`) is not affected.",
+              "description": "Read a speaker identified as one of the account's saved speakers\nin their own cloned voice (default **off**, design 118: nobody is\nread in a cloned voice until the host turns voice cloning on).\nOff, they are read in a stock voice of their gender like anyone\nelse.  This is the only choice of voice a caller has: cloned or\nnot; VocalStack picks which voice.",
               "type": "boolean"
             }
           },
@@ -7246,7 +7246,7 @@
               "additionalProperties": {
                 "type": "string"
               },
-              "description": "Which voice speaks each audience language (`{\"es\": \"F3\"}`), by the\nengine's own voice name or `clone:<id>`.  A language that is not\nlisted gets the engine's default for it.\n\nThis is the host's setting, not a listener's: a clip is\nsynthesised once per language and fanned out to everyone\nlistening in it (`relay.rs` filters by language alone), so a\nper-listener choice could not be honoured without synthesising\nper listener.  The listener's picker therefore offers what is\npinned here — usually the one voice actually being rendered.",
+              "description": "Accepted for compatibility and ignored: VocalStack picks the voice\nthat reads each speaker, and the only choice is whether cloned\nvoices are used (`voiceCloning`).  A map sent here is not kept, a\nmap stored before is not read, and responses carry none.",
               "type": "object"
             },
             "voiceCloning": {
@@ -7368,7 +7368,7 @@
                 "type": "string"
               },
               "default": null,
-              "description": "Replaces the whole map; `{}` clears every pin.",
+              "description": "Accepted for compatibility and ignored: VocalStack picks the\nvoice (see `Settings.voiceByLang`).",
               "type": [
                 "object",
                 "null"
@@ -8243,7 +8243,7 @@
               "type": "object"
             },
             {
-              "description": "A speaker's gender, once the pitch band settles on it\n(`casting::roster`).  Engine → control; the voice sheet marks a\nspeaker's chip with it and opens the group of voices that suits\nthem.  Never used to pick a voice — `voice_cast` does that, on the\nengine, where the verdict is made.",
+              "description": "A speaker's gender, once the pitch band settles on it\n(`casting::roster`).  Engine → control; a client may mark a\nspeaker's chip with it.  The voice that reads the speaker is picked\nby VocalStack's own casting, on the engine, where the verdict is\nmade.",
               "properties": {
                 "confidence": {
                   "format": "double",
@@ -9975,6 +9975,13 @@
         },
         "VoiceTrack": {
           "properties": {
+            "chosenFor": {
+              "description": "The kinds of voice (`cloned`, `synthetic`) this track is VocalStack's current reading for, on an ended recording: the track `POST /v1/recordings/{id}/voice` reads for that kind, and the one `GET /v1/recordings/{id}/voice/{sentence}?voices=<kind>` serves. Find your track by it and fetch its clips with `voice=<voiceKey>`. VocalStack picks the voices; when the recording has no cloned voice to use, one track is both. Absent on every other track.",
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
             "clipDur": {
               "additionalProperties": false,
               "patternProperties": {
@@ -10233,9 +10240,9 @@
       }
     },
     "info": {
-      "description": "Speech to text, live translation and spoken translations, as one API.\n\n## What is what\n\n- **Realtime session**: a stateless token for one WebSocket. `POST /v1/realtime/sessions` returns a signed `streamUrl`; nothing is stored. Audio goes in as binary frames and transcript events come out (`x-websocket.realtimeSession`). The API uses the word for nothing else.\n- **Transcription**: a stored transcript of a file, a link, or something captured as it is spoken (a microphone, a stream, an RTMP encoder: `live: true`). `POST /v1/transcriptions` (a file or a link) and `POST /v1/transcriptions/live`.\n- **Broadcast**: the link listeners open (`code`). It is fed by the live transcriptions attached to it, or records one of its own audio sources. `POST /v1/broadcasts`.\n- **Recording**: one take, always inside a transcription (`transcriptionId`); a recording started on a broadcast is made in a live transcription attached to it. Its transcript, audio, translations, voice and summary hang off `/v1/recordings/{id}`.\n- **Job**: the server's work on a file or link recording: `GET /v1/recordings/{id}/job`.\n\nHosts authenticate with an API key (`vs_key_…`) or a signed-in person's access token: `Authorization: Bearer …`. Listeners authenticate with nothing (a public broadcast), a share link's code (`shareCode=`, from `transcriptions.createShareLink` or `broadcasts.createShareLink`), or the listener token VocalStack's own listener page holds for a private broadcast (`listenerToken=`). Each operation names its auth mode and key scopes in `x-vocalstack-auth` and `x-vocalstack-scopes`. Every operation is open to every plan: a transcription spends the account's credit per second of audio, and at least the plan's minimum once (`rates.minimumSeconds` on `GET /v1/billing`: a file shorter than the minimum is billed the minimum, a longer one its length; a live transcription stopped and started again is still one transcription; a realtime session is one of its own), and a creation without that much credit is refused `402 insufficient_credit`.\n\n## Streaming in 30 seconds\n\n1. `POST /v1/realtime/sessions` → `{ sessionId, streamUrl, expiresAt }`. `streamUrl` embeds a signed token; `expiresAt` is a connect-by deadline only.\n2. Open a WebSocket to `streamUrl`. You may receive `session.loading` heartbeats while a cold machine spins up; wait for `session.ready`.\n3. Send binary frames of raw PCM (`pcm_f32le`, 16 kHz, mono — exactly `capabilities.audio`). To transcribe a **file** instead, create the realtime session with `input: { kind: \"file\" }` and send the file's own bytes (mp3, wav, flac, ogg, m4a…) — the server decodes it and transcribes at full speed, reporting `transcript.progress` as it goes.\n4. Receive `transcript.committed` (immutable, gapless `seq`, always includes word timings), `transcript.draft` (**full replacement** of the live tail — never append drafts), and `transcript.words` frames.\n5. At any time, send `{\"type\":\"session.update\", ...}` to change the `latencyMode`, `spokenLanguage`, `speakerLabels` and/or `translate` languages mid-stream; omitted fields are unchanged and already-delivered transcript is not re-translated.\n6. Send `{\"type\":\"eof\"}` at end of source; the server flushes final commits, sends `session.done`, and closes.\n\nThere is no resume: a dropped connection ends the realtime session — reconnect = create a new one. A saturated fleet surfaces as a hanging connect or a bare 503, not an error envelope; clients synthesize `capacity_exceeded` from a connect/ready deadline (the SDKs default to 30 s).\n\n## Stored transcriptions and broadcasts\n\n**Publishing:** `POST /v1/transcriptions/{id}/recordings` (or `/v1/broadcasts/{id}/recordings`) → a `streamUrl`; connect and send PCM exactly as on a realtime session. Control (pause/resume/stop/settings) is HTTP, never in-band. A live transcription whose source is a stream URL has no microphone behind it: the server opens the URL when recording starts and publishes it itself; the grant then has no `streamUrl`, and `recording.ingest` and the `stream.ingest` frame report `connecting` → `streaming` → `reconnecting` → `stopped` | `failed`.\n\n**Listening:** `WS /v1/recordings/{id}/subscribe?lang=es[&voice=F3][&listenerToken=…]` → first frame `subscribe.ready {lastSeq}`; then `GET /v1/recordings/{id}/transcript?lang=es` and discard buffered frames with `seq <= lastSeq`. Every durable frame carries a gapless `seq`; on a jump, re-snapshot with `after=<cursor>` (`x-websocket.subscribe`). `WS /v1/broadcasts/{id}/events` tells a waiting listener when the broadcast goes live, and `WS /v1/events` tells an owner's dashboard when its lists changed.\n\n## Headers\n\nEvery response carries `X-Request-Id` (also `requestId` in an error body): what support asks for. Send your own and it is kept. Rate-limited operations answer with `RateLimit-Limit`, `RateLimit-Remaining` and `RateLimit-Reset`: slow down before the `429`. A `429 rate_limited` and a `503 unavailable` carry `Retry-After`, the seconds to wait before sending the request again. What to retry and how: [Errors, retries and limits](/docs/guides/errors-and-limits.md).",
+      "description": "Speech to text, live translation and spoken translations, as one API.\n\n## What is what\n\n- **Realtime session**: a stateless token for one WebSocket. `POST /v1/realtime/sessions` returns a signed `streamUrl`; nothing is stored. Audio goes in as binary frames and transcript events come out (`x-websocket.realtimeSession`). The API uses the word for nothing else.\n- **Transcription**: a stored transcript of a file, a link, or something captured as it is spoken (a microphone, a stream, an RTMP encoder: `live: true`). `POST /v1/transcriptions` (a file or a link) and `POST /v1/transcriptions/live`.\n- **Broadcast**: the link listeners open (`code`). It is fed by the live transcriptions attached to it, or records one of its own audio sources. `POST /v1/broadcasts`.\n- **Recording**: one take, always inside a transcription (`transcriptionId`); a recording started on a broadcast is made in a live transcription attached to it. Its transcript, audio, translations, voice and summary hang off `/v1/recordings/{id}`.\n- **Job**: the server's work on a file or link recording: `GET /v1/recordings/{id}/job`.\n\nHosts authenticate with an API key (`vs_key_…`) or a signed-in person's access token: `Authorization: Bearer …`. Listeners authenticate with nothing (a public broadcast), a share link's code (`shareCode=`, from `transcriptions.createShareLink` or `broadcasts.createShareLink`), or the listener token VocalStack's own listener page holds for a private broadcast (`listenerToken=`). Each operation names its auth mode and key scopes in `x-vocalstack-auth` and `x-vocalstack-scopes`. Every operation is open to every plan: a transcription spends the account's credit per second of audio, and at least the plan's minimum once (`rates.minimumSeconds` on `GET /v1/billing`: a file shorter than the minimum is billed the minimum, a longer one its length; a live transcription stopped and started again is still one transcription; a realtime session is one of its own), and a creation without that much credit is refused `402 insufficient_credit`.\n\n## Streaming in 30 seconds\n\n1. `POST /v1/realtime/sessions` → `{ sessionId, streamUrl, expiresAt }`. `streamUrl` embeds a signed token; `expiresAt` is a connect-by deadline only.\n2. Open a WebSocket to `streamUrl`. You may receive `session.loading` heartbeats while a cold machine spins up; wait for `session.ready`.\n3. Send binary frames of raw PCM (`pcm_f32le`, 16 kHz, mono — exactly `capabilities.audio`). To transcribe a **file** instead, create the realtime session with `input: { kind: \"file\" }` and send the file's own bytes (mp3, wav, flac, ogg, m4a…) — the server decodes it and transcribes at full speed, reporting `transcript.progress` as it goes.\n4. Receive `transcript.committed` (immutable, gapless `seq`, always includes word timings), `transcript.draft` (**full replacement** of the live tail — never append drafts), and `transcript.words` frames.\n5. At any time, send `{\"type\":\"session.update\", ...}` to change the `latencyMode`, `spokenLanguage`, `speakerLabels` and/or `translate` languages mid-stream; omitted fields are unchanged and already-delivered transcript is not re-translated.\n6. Send `{\"type\":\"eof\"}` at end of source; the server flushes final commits, sends `session.done`, and closes.\n\nThere is no resume: a dropped connection ends the realtime session — reconnect = create a new one. A saturated fleet surfaces as a hanging connect or a bare 503, not an error envelope; clients synthesize `capacity_exceeded` from a connect/ready deadline (the SDKs default to 30 s).\n\n## Stored transcriptions and broadcasts\n\n**Publishing:** `POST /v1/transcriptions/{id}/recordings` (or `/v1/broadcasts/{id}/recordings`) → a `streamUrl`; connect and send PCM exactly as on a realtime session. Control (pause/resume/stop/settings) is HTTP, never in-band. A live transcription whose source is a stream URL has no microphone behind it: the server opens the URL when recording starts and publishes it itself; the grant then has no `streamUrl`, and `recording.ingest` and the `stream.ingest` frame report `connecting` → `streaming` → `reconnecting` → `stopped` | `failed`.\n\n**Listening:** `WS /v1/recordings/{id}/subscribe?lang=es[&listenerToken=…]` → first frame `subscribe.ready {lastSeq}`; then `GET /v1/recordings/{id}/transcript?lang=es` and discard buffered frames with `seq <= lastSeq`. Every durable frame carries a gapless `seq`; on a jump, re-snapshot with `after=<cursor>` (`x-websocket.subscribe`). `WS /v1/broadcasts/{id}/events` tells a waiting listener when the broadcast goes live, and `WS /v1/events` tells an owner's dashboard when its lists changed.\n\n## Headers\n\nEvery response carries `X-Request-Id` (also `requestId` in an error body): what support asks for. Send your own and it is kept. Rate-limited operations answer with `RateLimit-Limit`, `RateLimit-Remaining` and `RateLimit-Reset`: slow down before the `429`. A `429 rate_limited` and a `503 unavailable` carry `Retry-After`, the seconds to wait before sending the request again. What to retry and how: [Errors, retries and limits](/docs/guides/errors-and-limits.md).",
       "title": "VocalStack API",
-      "version": "1.0.0-alpha.9"
+      "version": "1.0.0-alpha.10"
     },
     "jsonSchemaDialect": "https://json-schema.org/draft/2020-12/schema",
     "openapi": "3.1.0",
@@ -14110,7 +14117,7 @@
       },
       "/v1/recordings/{id}/audio": {
         "get": {
-          "description": "302 to a freshly signed URL. kind=delivery (owner + listeners, 1 h), voice (a rendered spoken track, needs lang=, owner + listeners, 1 h; through a share link a language other than the spoken one needs the link's `allowTranslate`; a track not made yet is queued, from the clips already spoken where there are any, and answers 503 engine_unavailable with `retryAfterS` until it is ready, or 429 rate_limited when the recording already has as many readings being made as it may), background (the recording's sound with the voices taken out, music and ambience, to play under a spoken track; owner + listeners, 1 h; format=ogg or caf), speech (the recording's sound with the background taken out: the speech alone, without music, ambience or noise, aligned with the original to play in its place; same access; format=ogg or caf). Both are made for every recording while it is transcribed, piece by piece (a live recording once it ends; earlier recordings are queued once); asking for them never starts the work. Until the whole track is ready they answer 503 engine_unavailable with `retryAfterS`, `readyUntilS` (the media seconds already separated, from 0) and `parts`: `[{startS, endS, url}]`, consecutive pieces covering 0 to `readyUntilS`, each a signed URL (1 h) in the asked format, to play in place of the original up to `readyUntilS`. The other kinds: source (owner or a link that allows downloads), video (the source's video as it came, kept beside its audio on a plan that stores source video, Job.hasVideo; owner or a link that allows downloads) or master (owner, 5 min). Through a share link EVERY kind needs the link's `allowDownload` — streaming a file and saving it are the same request, so a link with audio off plays nothing either. The delivery is Opus in two containers: format=ogg (default) and format=caf, the one Safari/iOS plays (WebKit rejects or mis-times Ogg); pick by canPlayType('audio/x-caf; codecs=opus'). format=mp3 is for SAVING (delivery and voice): the one container every player opens, encoded on first request and kept (kinds delivery_mp3, voice_mp3:<lang>). The recording's `media` lists which renditions are sealed (kinds delivery, delivery_caf, delivery_mp3); the CAF is remuxed on first request when it is not there yet.",
+          "description": "302 to a freshly signed URL. kind=delivery (owner + listeners, 1 h), voice (a rendered spoken track, needs lang=, owner + listeners, 1 h; VocalStack picks its voices, and `voices=cloned|synthetic` is the only choice; `voice=` is accepted for compatibility and serves a track already made under that `voiceKey`, else only says cloned or synthetic; through a share link a language other than the spoken one needs the link's `allowTranslate`; a track not made yet is queued, from the clips already spoken where there are any, and answers 503 engine_unavailable with `retryAfterS` until it is ready, or 429 rate_limited when the recording already has as many readings being made as it may), background (the recording's sound with the voices taken out, music and ambience, to play under a spoken track; owner + listeners, 1 h; format=ogg or caf), speech (the recording's sound with the background taken out: the speech alone, without music, ambience or noise, aligned with the original to play in its place; same access; format=ogg or caf). Both are made for every recording while it is transcribed, piece by piece (a live recording once it ends; earlier recordings are queued once); asking for them never starts the work. Until the whole track is ready they answer 503 engine_unavailable with `retryAfterS`, `readyUntilS` (the media seconds already separated, from 0) and `parts`: `[{startS, endS, url}]`, consecutive pieces covering 0 to `readyUntilS`, each a signed URL (1 h) in the asked format, to play in place of the original up to `readyUntilS`. The other kinds: source (owner or a link that allows downloads), video (the source's video as it came, kept beside its audio on a plan that stores source video, Job.hasVideo; owner or a link that allows downloads) or master (owner, 5 min). Through a share link EVERY kind needs the link's `allowDownload` — streaming a file and saving it are the same request, so a link with audio off plays nothing either. The delivery is Opus in two containers: format=ogg (default) and format=caf, the one Safari/iOS plays (WebKit rejects or mis-times Ogg); pick by canPlayType('audio/x-caf; codecs=opus'). format=mp3 is for SAVING (delivery and voice): the one container every player opens, encoded on first request and kept (kinds delivery_mp3, voice_mp3:<lang>). The recording's `media` lists which renditions are sealed (kinds delivery, delivery_caf, delivery_mp3); the CAF is remuxed on first request when it is not there yet.",
           "operationId": "recordings.audio",
           "parameters": [
             {
@@ -14161,7 +14168,7 @@
               }
             },
             {
-              "description": "`cloned`: each speaker in their own cloned voice where one can be used, else a stock voice of their gender; `synthetic`: stock voices only. Omit for the recording's default cast. Not with `voice`.",
+              "description": "The only choice of voice; VocalStack picks the voices. `cloned`: each speaker in their own cloned voice where one can be used, else a stock voice of their gender; `synthetic`: stock voices only. Omit for the recording's default cast.",
               "in": "query",
               "name": "voices",
               "schema": {
@@ -14173,7 +14180,7 @@
               }
             },
             {
-              "description": "Prefer `voices`. The voice, or the per-speaker cast (a `voiceKey` from `GET /v1/recordings/{id}/voice`), it is read in; omit for the recording's default cast.",
+              "description": "A `voiceKey` from `GET /v1/recordings/{id}/voice`: what is already made in that reading is served as it is. Anything not made yet is read in VocalStack's own voices for the kind the key names (cloned or synthetic); a voice named here is never used to read. Ignored with `voices`.",
               "in": "query",
               "name": "voice",
               "schema": {
@@ -15980,7 +15987,7 @@
       },
       "/v1/recordings/{id}/voice": {
         "get": {
-          "description": "What this recording can be heard speaking, one row per language: rendered tracks (`sealed`) and their jobs, and the per-sentence clips a live audience left behind (`clips`, with the sentence ids and the voice that spoke them). An ended recording has only clips — this is how a listener finds them again and plays its spoken translation back a line at a time. The owner, or any listener who can reach its broadcast or transcription; `lang` narrows it to one. A spoken translation needs the link's `allowTranslate` when reading through a share link — without it the listing carries only the spoken language, and asking for another is `forbidden`.",
+          "description": "What this recording can be heard speaking, one row per language and reading: rendered tracks (`sealed`) and their jobs, and the per-sentence clips a live audience left behind (`clips`, with the sentence ids and the voice that spoke them). An ended recording has only clips — this is how a listener finds them again and plays its spoken translation back a line at a time. VocalStack picks the voices; on an ended recording the rows that are its current reading for a kind of voice carry `chosenFor` (`cloned`, `synthetic`): play that row's clips with `voice=<voiceKey>`. The owner, or any listener who can reach its broadcast or transcription; `lang` narrows it to one. A spoken translation needs the link's `allowTranslate` when reading through a share link — without it the listing carries only the spoken language, and asking for another is `forbidden`.",
           "operationId": "recordings.voice",
           "parameters": [
             {
@@ -16068,7 +16075,7 @@
           ]
         },
         "post": {
-          "description": "An 11th language besides the one spoken is 409 `language_limit_reached` (a recording has at most 10; one it already has, in any voice, is never refused). Render spoken tracks for a finished recording, one job per language (1–10 codes, each one /v1/languages says has a voice). The owner, or any listener who can reach its broadcast or transcription (`listenerToken`, `shareCode`, or a bearer token in `access_token`); through a share link a language other than the spoken one needs the link's `allowTranslate`. `voice` reads every speaker in one voice and `voiceBySpeaker` gives each speaker their own; with neither, the recording's default cast speaks (each speaker's granted clone when `voiceCloning` is on, else distinct stock voices of their gender). Every voice named must be one `GET /v1/voices/available?lang=…&recording={id}` offers for each language.",
+          "description": "An 11th language besides the one spoken is 409 `language_limit_reached` (a recording has at most 10; one it already has, in any voice, is never refused). Render spoken tracks for a finished recording, one job per language (1–10 codes, each one /v1/languages says has a voice). The owner, or any listener who can reach its broadcast or transcription (`listenerToken`, `shareCode`, or a bearer token in `access_token`); through a share link a language other than the spoken one needs the link's `allowTranslate`. VocalStack picks the voice that reads each speaker; the only choice is cloned or synthetic (`voices`). With neither `voices` nor a named voice, the recording's default cast speaks: each speaker's own consented clone when `voiceCloning` is on, else a distinct stock voice of their gender. `voice` and `voiceBySpeaker` are accepted for compatibility and only say which kind: any cloned voice named (`clone:…`) means `voices: cloned` and needs `consent: true`, stock voices only mean `voices: synthetic`; the voices named are never used. The answer lists every track; the one this call reads for each language carries `chosenFor` with its kind.",
           "operationId": "recordings.renderVoice",
           "parameters": [
             {
@@ -16121,7 +16128,7 @@
                 "schema": {
                   "properties": {
                     "consent": {
-                      "description": "Confirms the speakers agreed to have their voices cloned. Required (`true`) when `voice` or `voiceBySpeaker` names a cloned voice (`clone:…`), or the call is refused; without it the default cast reads in stock voices only.",
+                      "description": "Confirms the speakers agreed to have their voices cloned. Required (`true`) when `voice` or `voiceBySpeaker` names a cloned voice (`clone:…`), or the call is refused (400 `invalid_options`).",
                       "type": "boolean"
                     },
                     "langs": {
@@ -16135,18 +16142,18 @@
                       "type": "integer"
                     },
                     "voice": {
-                      "description": "Prefer `voices`. One voice id for every speaker, from `GET /v1/voices/available`.",
+                      "description": "Use `voices`. Accepted for compatibility: the voice named is never used, it only says which kind (a `clone:…` voice means `cloned`, any other `synthetic`).",
                       "type": "string"
                     },
                     "voiceBySpeaker": {
                       "additionalProperties": {
                         "type": "string"
                       },
-                      "description": "Prefer `voices`. A voice id per speaker, keyed by the speaker's number (`\"0\"`, `\"1\"`…); it wins over `voice`. A speaker left out is read in the default cast.",
+                      "description": "Use `voices`. Accepted for compatibility: the voices named are never used, they only say which kind (any `clone:…` voice means `cloned`, only stock voices `synthetic`).",
                       "type": "object"
                     },
                     "voices": {
-                      "description": "Which kind of voice reads the recording. `cloned`: each speaker in their own cloned voice where one can be used (the recording has `voiceCloning` on, or the speaker has a saved voice, and the speaker's consent is granted); a speaker with no usable clone is read in a stock voice of their gender, so the track may be `mixed` or `synthetic` (see `voices` on each returned track). `synthetic`: every speaker in a distinct stock voice of their gender. Not with `voice` or `voiceBySpeaker`.",
+                      "description": "The only choice of voice: which kind reads the recording; VocalStack picks the voices. `cloned`: each speaker in their own cloned voice where one can be used (the recording has `voiceCloning` on and the speaker's consent is granted); a speaker with no usable clone is read in a stock voice of their gender, so the track may be `mixed` or `synthetic` (see `voices` on each returned track). `synthetic`: every speaker in a distinct stock voice of their gender. When given, `voice` and `voiceBySpeaker` are ignored.",
                       "enum": [
                         "cloned",
                         "synthetic"
@@ -16215,7 +16222,7 @@
       },
       "/v1/recordings/{id}/voice/{sentence}": {
         "get": {
-          "description": "One spoken sentence, Ogg/Opus (`format=caf` for Apple's media stack). `sentence` is a sentence's `sentenceId` from the transcript (`sentences[].sentenceId`), not a segment's position; one the recording does not have is a 404. With no `voice`, each speaker is read in their own cloned voice when its consent is granted and the recording has `voiceCloning` on, else in a stock voice of their gender, a different one for each speaker. `voices=cloned` or `voices=synthetic` picks the kind of voice as on `POST /v1/recordings/{id}/voice`; cloned falls back to a stock voice for a speaker with no usable clone. The `X-Voice-Key` response header names the voice, or the per-speaker cast, the clip was read in, and `X-Voices` says whether that was `cloned`, `synthetic` or `mixed`. The owner, or any listener who can reach its broadcast or transcription. A clip in a language the recording was not spoken in is a spoken translation: through a share link it needs `allowTranslate`.",
+          "description": "One spoken sentence, Ogg/Opus (`format=caf` for Apple's media stack). `sentence` is a sentence's `sentenceId` from the transcript (`sentences[].sentenceId`), not a segment's position; one the recording does not have is a 404. VocalStack picks the voice: by default each speaker is read in their own cloned voice when its consent is granted and the recording has `voiceCloning` on, else in a stock voice of their gender, a different one for each speaker. The only choice is `voices=cloned` or `voices=synthetic`, as on `POST /v1/recordings/{id}/voice`; cloned falls back to a stock voice for a speaker with no usable clone. `voice=<voiceKey>` (a row of `GET /v1/recordings/{id}/voice`) serves a clip already made in that reading as it is; a clip not made yet is read in VocalStack's own cast for the kind the key names (cloned when it names a `clone:…` voice, else synthetic), never in the voice named. The `X-Voice-Key` response header names the reading the clip was read in, and `X-Voices` says whether that was `cloned`, `synthetic` or `mixed`. The owner, or any listener who can reach its broadcast or transcription. A clip in a language the recording was not spoken in is a spoken translation: through a share link it needs `allowTranslate`.",
           "operationId": "recordings.voiceClip",
           "parameters": [
             {
@@ -16255,7 +16262,7 @@
               }
             },
             {
-              "description": "`cloned`: each speaker in their own cloned voice where one can be used, else a stock voice of their gender; `synthetic`: stock voices only. Omit for the recording's default cast. Not with `voice`.",
+              "description": "The only choice of voice; VocalStack picks the voices. `cloned`: each speaker in their own cloned voice where one can be used, else a stock voice of their gender; `synthetic`: stock voices only. Omit for the recording's default cast.",
               "in": "query",
               "name": "voices",
               "schema": {
@@ -16267,7 +16274,7 @@
               }
             },
             {
-              "description": "Prefer `voices`. The voice, or the per-speaker cast (a `voiceKey` from `GET /v1/recordings/{id}/voice`), it is read in; omit for the recording's default cast.",
+              "description": "A `voiceKey` from `GET /v1/recordings/{id}/voice`: what is already made in that reading is served as it is. Anything not made yet is read in VocalStack's own voices for the kind the key names (cloned or synthetic); a voice named here is never used to read. Ignored with `voices`.",
               "in": "query",
               "name": "voice",
               "schema": {
@@ -20421,7 +20428,7 @@
       },
       "/v1/voices/available": {
         "get": {
-          "description": "The voices that can speak a language, best first (`default` marks the one a recording that pins none gets). Open to listeners; a bearer token also returns that account's saved cloned voices (not automatic clones). Cloned entries carry `consent`, `auto` and, with `recording`, `speaker`. A clip is synthesised once per language and fanned out, so this is the set a host may pin in `settings.voiceByLang` — and all a listener can ever be offered.",
+          "description": "The voices that can speak a language, best first (`default` marks the language's default voice). For information only: VocalStack picks the voice that reads each speaker, a distinct stock voice of their gender or, with `voiceCloning` on, the speaker's own consented clone; the only choice a caller has is cloned or synthetic (`voices`, `voiceCloning`). Open to listeners; a bearer token also returns that account's saved cloned voices (not automatic clones). Cloned entries carry `consent`, `auto` and, with `recording`, `speaker`.",
           "operationId": "voices.available",
           "parameters": [
             {
@@ -20756,16 +20763,16 @@
       "clientFrames": [
         "SubscriberClientFrame"
       ],
-      "description": "Follow a recording: first frame `subscribe.ready {lastSeq}`, then `GET /v1/recordings/{id}/transcript` and discard buffered frames with `seq <= lastSeq`. `voice` picks which voice speaks the language for this listener; two listeners on the same (lang, voice) share one synthesis, so changing voice means reopening the socket. Send `{\"type\":\"subscribe.update\",\"lang\":\"ja\"}` to switch language, `{\"type\":\"subscribe.update\",\"audio\":true}` to receive live Opus.",
+      "description": "Follow a recording: first frame `subscribe.ready {lastSeq}`, then `GET /v1/recordings/{id}/transcript` and discard buffered frames with `seq <= lastSeq`. VocalStack picks the voice that speaks each language (the host's `voiceCloning` says whether cloned voices are used); every listener on a language hears the same reading, synthesised once. Send `{\"type\":\"subscribe.update\",\"lang\":\"ja\"}` to switch language, `{\"type\":\"subscribe.update\",\"audio\":true}` to receive live Opus.",
       "path": "/v1/recordings/{id}/subscribe",
-      "query": "lang (translation target — through a share link it needs the link's allowTranslate, else the upgrade is refused 403 and a mid-socket subscribe.update{lang} closes the socket with 1008), voice (which voice speaks it — a voice id from GET /v1/voices/available?lang=…; omit for the recording's settings.voiceByLang pin, else the engine's default), listenerToken / shareCode / access_token, role, device",
+      "query": "lang (translation target — through a share link it needs the link's allowTranslate, else the upgrade is refused 403 and a mid-socket subscribe.update{lang} closes the socket with 1008), voice (accepted for compatibility and ignored: VocalStack picks the voice; a listener hears the language's own reading), listenerToken / shareCode / access_token, role, device",
       "rules": [
         "durable frames carry seq (gapless per recording); ephemeral frames (transcript.words, audio.chunk) carry none; recordings emit no transcript.draft",
         "a frame withheld from a role still consumes its seq: listeners receive {type:'noop', seq} in its place, so a real jump always means a missed frame",
         "listeners receive translations filtered to their lang; suppressed lines arrive with text='' and suppressed=true",
-        "transcript.voice is filtered to the listener's (lang, voice): a clip reaches only subscribers whose voice= matches its voiceKey (both empty = the engine's default), and one clip serves every listener on that pair — the voice is chosen per listener, the synthesis is paid once",
+        "transcript.voice is filtered to the listener's lang and the language's reading (voiceKey): one clip serves every listener of that language, the synthesis is paid once. VocalStack picks the voice; a voice= in the URL is ignored",
         "a long line is spoken in pieces (part, parts): the engine cuts it at its clause boundaries so the first piece can be heard while the rest are still being made. The pieces share the sentence id, arrive in order, and are played back to back — one line on screen, with one translation and one place in the reading. part=0/parts=1 is a line spoken whole",
-        "transcript.voiceStatus is filtered to the same (lang, voice) pair as transcript.voice: state 'preparing' means that voice's assets are downloading and the sentences spoken meanwhile are held and will arrive as clips; 'unavailable' means it cannot be spoken here and detail says why. A listener never hears a different voice than the one asked for",
+        "transcript.voiceStatus is filtered like transcript.voice: state 'preparing' means the voice's assets are downloading and the sentences spoken meanwhile are held and will arrive as clips; 'unavailable' means it cannot be spoken here and detail says why",
         "admin subscribers (owning-principal members) receive the full frame set plus audience aggregates",
         "recording.state announces LIVE ⇄ PAUSED → ENDED → FINALIZED; listeners are not disconnected at ENDED",
         "transcript.corrected is a human edit; transcript.amended is an engine rewrite — clients clear uncertainty marks only on the former"

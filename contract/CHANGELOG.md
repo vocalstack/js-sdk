@@ -20,6 +20,18 @@ One line per change, naming the operation (`METHOD /path`, its
 
 ## [Unreleased]
 
+### VocalStack picks the voice (2026-11-10, `1.0.0-alpha.10`)
+
+Owner's rule (Alex, 2026-11-10): callers do not pick which voice reads a speaker; the only choice is whether cloned voices are used. Nothing is removed and nothing that worked is refused: a voice named is accepted and only says cloned or synthetic.
+
+- **Added**: `VoiceTrack.chosenFor` (`GET`/`POST /v1/recordings/{id}/voice`, `recordings.voice` / `recordings.renderVoice`): the kinds of voice (`cloned`, `synthetic`) a track is VocalStack's current reading for, on an ended recording; `POST` always lists the track it reads for each asked language, with its kind. Play that row's clips with `voice=<voiceKey>`.
+- **Changed**: `POST /v1/recordings/{id}/voice` (`recordings.renderVoice`): `voice` and `voiceBySpeaker` no longer pick voices. Any `clone:…` voice named means `voices: cloned` (still 400 `invalid_options` without `consent: true`); only stock voices named mean `voices: synthetic`; VocalStack's own cast for that kind reads. With `voices`, both are ignored (no longer 400). A voice the catalogue does not offer is no longer refused, and naming another speaker's clone is no longer refused: it reads nobody.
+- **Changed**: `GET /v1/recordings/{id}/voice/{sentence}` (`recordings.voiceClip`) and `GET /v1/recordings/{id}/audio?kind=voice` (`recordings.audio`): `voice=<voiceKey>` serves a clip or track already made in that reading as it is; anything not made yet is read in VocalStack's own cast for the kind the key names, never in the voice named. `voices` with `voice` is no longer 400: `voices` wins.
+- **Changed**: `WS /v1/recordings/{id}/subscribe` (`subscribe`): `voice=` is ignored; every listener of a language hears the language's one reading.
+- **Changed**: `SessionOptions.voice` and `session.update` `voice` (`POST /v1/realtime/sessions`): an entry `"<lang>:<voice>"` is read as `"<lang>"`. `SessionOptions.voiceByLang`, `session.update` `voiceByLang` and `SessionOptions.voiceCast: false` are accepted and ignored (each speaker always gets their own voice).
+- **Changed**: `Settings.voiceByLang` / `SettingsPatch.voiceByLang` (broadcasts, transcriptions, `PATCH /v1/recordings/{id}/settings`): accepted and ignored; a map sent is not kept, one stored before is not read, and responses carry none. A pin naming an unknown or unready voice is no longer 400.
+- **Changed**: `GET /v1/voices/available` (`voices.available`) is for information: VocalStack picks the voice. `GET /v1/voices/preview` is unchanged. MCP `list_voices` says the same.
+
 ### A listener searches one broadcast (2026-11-10, `1.0.0-alpha.9`)
 
 - **Changed**: `GET /v1/search` (`search.query`) no longer searches every account's public broadcasts when no broadcast is named: a search with no `broadcasts` and no `recording` covers only the caller's own transcriptions and broadcasts, and gives no hits without a key. Of the broadcasts named in `broadcasts` that the caller does not own, only the first is searched; an owner may still list several of their own. `listenerTokens` is the token for that one broadcast when it is private.

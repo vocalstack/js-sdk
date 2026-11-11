@@ -2129,6 +2129,7 @@ export const VoiceCatalogueSchema = z.object({
 export type VoiceCatalogue = z.infer<typeof VoiceCatalogueSchema>;
 
 export const VoiceTrackSchema = z.object({
+  "chosenFor": z.array(z.string()).optional(),
   "clipDur": z.object({
 
 }).optional(),
