@@ -20,6 +20,11 @@ One line per change, naming the operation (`METHOD /path`, its
 
 ## [Unreleased]
 
+### A speaker's gender comes from their voice, not only its pitch (2026-11-11)
+
+- **Changed**: `AppearanceView.gender` and the speaker gender frame are judged by a voice model
+  (pitch only where the model is missing). Documentation only; the shape is unchanged.
+
 ### `voiceCast` removed (2026-11-11, `1.0.0-alpha.11`)
 
 - **Removed**: `SessionOptions.voiceCast` (`POST /v1/realtime/sessions`, `realtime.createSession`). It has been ignored since `1.0.0-alpha.10` (each speaker is always read in a voice VocalStack picks). A request that still sends it is accepted and the field is ignored, so no caller breaks.

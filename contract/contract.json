@@ -305,7 +305,7 @@
         "AppearanceView": {
           "properties": {
             "gender": {
-              "description": "`\"male\"` / `\"female\"` once the pitch band settles on this speaker,\nabsent while it has not or when it refused to judge (§casting).\nAbsent is \"not known\" and never \"neither\": nothing may infer a\ngender from its absence.",
+              "description": "`\"male\"` / `\"female\"` once this speaker's voice has been judged,\nabsent while it has not or when it refused to judge (§casting).\nAbsent is \"not known\" and never \"neither\": nothing may infer a\ngender from its absence.",
               "type": [
                 "string",
                 "null"
@@ -8238,7 +8238,7 @@
               "type": "object"
             },
             {
-              "description": "A speaker's gender, once the pitch band settles on it\n(`casting::roster`).  Engine → control; a client may mark a\nspeaker's chip with it.  The voice that reads the speaker is picked\nby VocalStack's own casting, on the engine, where the verdict is\nmade.",
+              "description": "A speaker's gender, once their voice has been judged\n(`casting::roster`).  Engine → control; a client may mark a\nspeaker's chip with it.  The voice that reads the speaker is picked\nby VocalStack's own casting, on the engine, where the verdict is\nmade.",
               "properties": {
                 "confidence": {
                   "format": "double",
