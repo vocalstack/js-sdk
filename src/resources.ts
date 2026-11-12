@@ -751,6 +751,13 @@ export class Search {
 
 export type VectorSearchOptions = Omit<SearchOptions, 'broadcasts' | 'listenerTokens' | 'lang' | 'limit'>;
 
+export interface WorkspaceInfo {
+  id: string;
+  name: string;
+  personal: boolean;
+  iconUrl: string | null;
+}
+
 export interface Me {
   userId?: string | null;
   apiKeyId?: string | null;
@@ -758,6 +765,8 @@ export interface Me {
   principalId: string;
   principals: unknown[];
   scopes: string[];
+  reach: 'own' | 'account';
+  workspace: WorkspaceInfo;
 }
 
 export class MeApi {
@@ -781,7 +790,9 @@ export interface ConnectToken {
   token_type: 'api_key';
   key_id: string;
   scope: string;
+  reach: 'own' | 'account';
   account: { name: string };
+  workspace: WorkspaceInfo;
 }
 
 export class Connect {

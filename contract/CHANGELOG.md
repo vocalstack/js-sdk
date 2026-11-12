@@ -20,6 +20,18 @@ One line per change, naming the operation (`METHOD /path`, its
 
 ## [Unreleased]
 
+### A key says which workspace it works in (2026-11-12, `1.0.0-alpha.12`)
+
+A key belongs to one workspace; an app that signs in with Connect, or is given a key, can now show which one, with its icon.
+
+- **Added**: `workspace` (`id`, `name`, `personal`, `iconUrl`) on `GET /v1/me` (`me.get`) and on the answer of `POST /v1/connect/token` (`connect.token`): the workspace the credential acts in. `name` is the workspace's name as the Dashboard shows it (`Personal workspace` for an unnamed personal one). `iconUrl` is the workspace's own icon (PNG) as a link relative to the API's address; it needs no credential, stays the same until the icon changes or the link is re-signed (monthly), and is null when the workspace has no icon. `account.name` on the token answer is unchanged.
+- **Changed**: `info.version` in `contract.json` (and `GET /v1/openapi.json`) reads `1.0.0-alpha.12`.
+
+### A speaker's gender comes from their voice, not only its pitch (2026-11-11)
+
+- **Changed**: `AppearanceView.gender` and the speaker gender frame are judged by a voice model
+  (pitch only where the model is missing). Documentation only; the shape is unchanged.
+
 ### `voiceCast` removed (2026-11-11, `1.0.0-alpha.11`)
 
 - **Removed**: `SessionOptions.voiceCast` (`POST /v1/realtime/sessions`, `realtime.createSession`). It has been ignored since `1.0.0-alpha.10` (each speaker is always read in a voice VocalStack picks). A request that still sends it is accepted and the field is ignored, so no caller breaks.

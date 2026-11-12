@@ -230,15 +230,35 @@ for (const [answers, upgrades, why] of [
   });
 }
 
-test('a socket lost with no close frame soon after it opened is engine_lost at once, with no try', async () => {
+test('a socket lost with no close frame soon after it opened is opened again once, and the session goes on', async () => {
   const s = await lostServer(['serve']);
   try {
     const session = await RealtimeSession.connect({ sessionId: 's', streamUrl: s.url });
     const done = drain(session);
     session.sendAudio(new Uint8Array(64));
+    await new Promise((r) => setTimeout(r, 30));
+    session.sendAudio(new Uint8Array(1600));
+    session.eof();
+    const { err } = await done;
+    assert.equal(err, null, `the server died in the session's first seconds; it went on: ${err?.message}`);
+    assert.equal(s.seen.upgrades, 2, 'one try for a young socket');
+    assert.equal(session.doneReason, 'eof');
+  } finally {
+    await s.close();
+  }
+});
+
+test('a second socket lost soon after it opened is engine_lost, so a server that lets it in and drops it cannot loop the client', async () => {
+  const s = await lostServer(['drop']);
+  try {
+    const session = await RealtimeSession.connect({ sessionId: 's', streamUrl: s.url });
+    const done = drain(session);
+    session.sendAudio(new Uint8Array(64));
+    await new Promise((r) => setTimeout(r, 30));
+    session.sendAudio(new Uint8Array(64));
     const { err } = await done;
     assert.equal(err?.code, 'engine_lost');
-    assert.equal(s.seen.upgrades, 1, 'no reconnect for a socket that never stayed up');
+    assert.equal(s.seen.upgrades, 2, 'one early try, then no more');
   } finally {
     await s.close();
   }

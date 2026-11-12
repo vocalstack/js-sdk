@@ -14,10 +14,10 @@ If your app runs on your users' own servers (a CMS plugin, a self-hosted tool), 
 It is OAuth 2.0's authorization code flow with PKCE (RFC 7636, `S256` only), and the access token it issues is an ordinary API key. There is nothing to register: the consent screen shows the person the host of your `redirect_uri`, so they can tell whose server will hold the key.
 
 1. You → VocalStack: `open {dashboard}/connect?response_type=code&client_name=…&redirect_uri=…&state=…&code_challenge=…&code_challenge_method=S256&scope=read write` (in a new tab)
-2. VocalStack → you: `the consent screen: sign in, pick the account, Authenticate` (owners and admins only)
+2. VocalStack → you: `the consent screen: sign in, pick the workspace, Authenticate` (owners and admins only)
 3. VocalStack → you: `redirect_uri?code=…&state=…` (or ?error=access_denied&state=… on Cancel)
 4. You → VocalStack: `POST /v1/connect/token  grant_type=authorization_code, code, code_verifier, redirect_uri` (from your server)
-5. VocalStack → you: `{ access_token: "vs_key_…", token_type: "api_key", key_id, scope, reach, account: { name } }`
+5. VocalStack → you: `{ access_token: "vs_key_…", token_type: "api_key", key_id, scope, reach, account: { name }, workspace: { id, name, personal, iconUrl } }`
 
 ## 1. Send the person to the consent screen
 
@@ -33,6 +33,7 @@ Make a random `state` and a PKCE verifier (43 to 128 characters of `A-Z a-z 0-9 
 | `code_challenge_method` | `S256` |
 | `scope` | `read`, `write` or `read write`. An app on the person's computer (a `localhost` / `127.0.0.1` redirect) may add `recordings:publish`, with `write`, to start and stop recordings. Keys with full access, or a web app's key with `recordings:publish`, are made by hand in the dashboard. |
 | `reach` | Optional. `own` (the default with `write`): the key reaches only what your app creates with it, its transcriptions and broadcasts and everything in them; the account's other ones answer `404`. `account`: everything on the account, whoever made it (the default, and the only reach, without `write`). |
+| `workspace` | Optional. The `id` of the workspace your app is connected to now (`workspace.id` from the token answer or `GET /v1/me`): the consent screen starts on it when the person connects again to change workspace. Anything else is ignored, and the person can still pick another. |
 
 A link that breaks a rule gets an error page and never redirects, so check it while you build.
 
@@ -44,13 +45,13 @@ The dashboard asks the person to sign in if they are not, then shows your `redir
 
 ## 3. Redeem the code on your server
 
-Within two minutes, post the code with the verifier and the same `redirect_uri` to `POST /v1/connect/token`, form-encoded, from your server. No API key is needed: the code and its verifier are the proof. The answer carries the key (`access_token`), its id, the granted `scope`, its `reach` and the account's name; store the key as you would one your user pasted. It is shown once, in this answer.
+Within two minutes, post the code with the verifier and the same `redirect_uri` to `POST /v1/connect/token`, form-encoded, from your server. No API key is needed: the code and its verifier are the proof. The answer carries the key (`access_token`), its id, the granted `scope`, its `reach` and the `workspace` the person picked (its `id`, `name`, whether it is their `personal` one, and `iconUrl`); store the key as you would one your user pasted. It is shown once, in this answer.
 
 A code works once. A second redemption, a wrong verifier, a different `redirect_uri` or an expired code answers `400` with `{"error": "invalid_grant", "error_description": "…"}` (and spends the code); a missing or repeated parameter is `invalid_request`, any `grant_type` but `authorization_code` is `unsupported_grant_type`. A request from a web page is refused: keys are for servers.
 
 ## 4. Afterwards
 
-The key is listed in Developers → API keys under your `client_name`, marked as a connected app, where the person can revoke it. Use it like any key: `GET /v1/me` says who it is. Connecting again makes a new key and leaves the old one working until it is revoked, so revoke the key you replace, or let the person do it. An app that streams to the account over RTMP makes a stream key of its own with `POST /v1/rtmp/keys`; it works while the app's key does, so revoking the app stops its stream too.
+The key is listed in Developers → API keys under your `client_name`, marked as a connected app, where the person can revoke it. Use it like any key: `GET /v1/me` says who it is and names its `workspace` again, so a rename or a new icon reaches your app. A key belongs to one workspace: everything it makes lands there and is billed there, and to work in another workspace the person connects again and picks it. `workspace.iconUrl` is the workspace's own icon (a PNG), a link relative to the API's address that needs no key; it is null when the workspace has none. Connecting again makes a new key and leaves the old one working until it is revoked, so revoke the key you replace, or let the person do it. An app that streams to the account over RTMP makes a stream key of its own with `POST /v1/rtmp/keys`; it works while the app's key does, so revoking the app stops its stream too.
 
 ## Complete code
 
@@ -92,7 +93,7 @@ export async function callback(query: URLSearchParams): Promise<string> {
 
   const vs = new VocalStack({ baseUrl: 'https://api.vocalstack.com' });
   const token = await vs.connect.token({ code: query.get('code') ?? '', codeVerifier: verifier, redirectUri: REDIRECT_URI });
-  console.log(`connected to ${token.account.name} (${token.scope})`);
+  console.log(`connected to ${token.workspace.name} (${token.scope})`);
 
   const me = await new VocalStack({ baseUrl: 'https://api.vocalstack.com', apiKey: token.access_token }).me.get();
   console.log(me.apiKeyId === token.key_id);
