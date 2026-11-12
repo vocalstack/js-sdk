@@ -54,6 +54,7 @@ export {
   playableFormat,
 } from './resources.js';
 export type { AudioKind, MediaAuth, MediaFormat, RenderVoice, VoicesChoice } from './resources.js';
+export type { WorkspaceInfo } from './resources.js';
 export type { ConnectToken, ConnectTokenInput, CreateTranscriptionInput, LifecycleFilter, Me, PageOptions, RecordingPageOptions, SearchOptions, SendUploadOptions, TranscriptionFilters, Upload, UsageChargesOptions, UsageOptions } from './resources.js';
 export type * from '@vocalstack/contract';
 
