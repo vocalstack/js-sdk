@@ -12,37 +12,37 @@ function fakeFetch(body = []) {
   return { fetch, calls };
 }
 
-const R = 'rec-1';
+const R = 'tx-1';
 
 test('media src builders match the URLs the dashboard builds', () => {
   const vs = new VocalStack({ baseUrl: 'https://api.test/' });
   const o = 'https://api.test';
-  assert.equal(vs.recordings.audioSrc(R, { format: 'caf', shareCode: 'abc' }), `${o}/v1/recordings/${R}/audio?kind=delivery&format=caf&shareCode=abc`);
+  assert.equal(vs.transcriptions.audioSrc(R, { format: 'caf', shareCode: 'abc' }), `${o}/v1/transcriptions/${R}/audio?kind=delivery&format=caf&shareCode=abc`);
   assert.equal(
-    vs.recordings.audioSrc(R, { kind: 'voice', lang: 'es', voice: 'v 1', format: 'ogg', token: 'tok', listenerToken: 'lt' }),
-    `${o}/v1/recordings/${R}/audio?kind=voice&lang=es&format=ogg&voice=v%201&access_token=tok&listenerToken=lt`,
+    vs.transcriptions.audioSrc(R, { kind: 'voice', lang: 'es', voice: 'v 1', format: 'ogg', token: 'tok', listenerToken: 'lt' }),
+    `${o}/v1/transcriptions/${R}/audio?kind=voice&lang=es&format=ogg&voice=v%201&access_token=tok&listenerToken=lt`,
   );
-  assert.equal(vs.recordings.audioSrc(R, { kind: 'background', format: 'ogg', media: 'm', token: 'tok' }), `${o}/v1/recordings/${R}/audio?kind=background&format=ogg&media=m`);
-  assert.equal(vs.recordings.clipSrc(R, 1, 2.345, { shareCode: 'abc' }), `${o}/v1/recordings/${R}/audio/clip?startS=1.00&endS=2.35&shareCode=abc`);
-  assert.equal(vs.recordings.clipSrc(R, 0, 3, { clean: true, media: 'm' }), `${o}/v1/recordings/${R}/audio/clip?startS=0.00&endS=3.00&clean=true&media=m`);
+  assert.equal(vs.transcriptions.audioSrc(R, { kind: 'background', format: 'ogg', media: 'm', token: 'tok' }), `${o}/v1/transcriptions/${R}/audio?kind=background&format=ogg&media=m`);
+  assert.equal(vs.transcriptions.audioClipSrc(R, 1, 2.345, { shareCode: 'abc' }), `${o}/v1/transcriptions/${R}/audio/clip?startS=1.00&endS=2.35&shareCode=abc`);
+  assert.equal(vs.transcriptions.audioClipSrc(R, 0, 3, { clean: true, media: 'm' }), `${o}/v1/transcriptions/${R}/audio/clip?startS=0.00&endS=3.00&clean=true&media=m`);
   assert.equal(
-    vs.recordings.voiceClipSrc(R, 7, 'fr', { voice: '0=a;1=b', format: 'caf', part: 1, v: 'r2', shareCode: 'abc' }),
-    `${o}/v1/recordings/${R}/voice/7?lang=fr&voice=0%3Da%3B1%3Db&format=caf&part=1&v=r2&shareCode=abc`,
+    vs.transcriptions.voiceClipSrc(R, 7, 'fr', { voice: '0=a;1=b', format: 'caf', part: 1, v: 'r2', shareCode: 'abc' }),
+    `${o}/v1/transcriptions/${R}/voice/7?lang=fr&voice=0%3Da%3B1%3Db&format=caf&part=1&v=r2&shareCode=abc`,
   );
-  assert.equal(vs.recordings.voiceClipSrc(R, 7, 'fr', { format: 'ogg', part: 0, token: 't' }), `${o}/v1/recordings/${R}/voice/7?lang=fr&format=ogg&access_token=t`);
+  assert.equal(vs.transcriptions.voiceClipSrc(R, 7, 'fr', { format: 'ogg', part: 0, token: 't' }), `${o}/v1/transcriptions/${R}/voice/7?lang=fr&format=ogg&access_token=t`);
 });
 
-test('renderVoice takes the old langs array and the full request with a share code', async () => {
+test('requestVoice takes the old langs array and the full request with a share code', async () => {
   const { fetch, calls } = fakeFetch([]);
   const vs = new VocalStack({ baseUrl: 'https://api.test', fetch });
-  await vs.recordings.renderVoice(R, ['es']);
-  assert.equal(calls[0].url, `https://api.test/v1/recordings/${R}/voice`);
+  await vs.transcriptions.requestVoice(R, ['es']);
+  assert.equal(calls[0].url, `https://api.test/v1/transcriptions/${R}/voice`);
   assert.deepEqual(JSON.parse(calls[0].body), { langs: ['es'] });
-  await vs.recordings.renderVoice(R, { langs: ['es', 'fr'], voiceBySpeaker: { 0: 'stock-a' }, near: 12, shareCode: 'abc' }, { idempotencyKey: 'k' });
-  assert.equal(calls[1].url, `https://api.test/v1/recordings/${R}/voice?shareCode=abc`);
+  await vs.transcriptions.requestVoice(R, { langs: ['es', 'fr'], voiceBySpeaker: { 0: 'stock-a' }, near: 12, shareCode: 'abc' }, { idempotencyKey: 'k' });
+  assert.equal(calls[1].url, `https://api.test/v1/transcriptions/${R}/voice?shareCode=abc`);
   assert.deepEqual(JSON.parse(calls[1].body), { langs: ['es', 'fr'], voiceBySpeaker: { 0: 'stock-a' }, near: 12 });
   assert.equal(calls[1].headers['idempotency-key'], 'k');
-  await vs.recordings.renderVoice(R, { langs: ['es'], voiceBySpeaker: { 0: 'clone:abc' }, consent: true });
+  await vs.transcriptions.requestVoice(R, { langs: ['es'], voiceBySpeaker: { 0: 'clone:abc' }, consent: true });
   assert.deepEqual(JSON.parse(calls[2].body), { langs: ['es'], voiceBySpeaker: { 0: 'clone:abc' }, consent: true });
 });
 
@@ -80,4 +80,27 @@ test('speakers.create and createFromAppearance send consent only when the caller
   assert.equal(calls[3].url, 'https://api.test/v1/transcriptions/tx-1/appearances/2');
   assert.equal(calls[3].method, 'PUT');
   assert.deepEqual(JSON.parse(calls[3].body), { name: 'Host' });
+});
+
+test('live control and the job are keyed by the transcription', async () => {
+  const { fetch, calls } = fakeFetch({ transcription: { id: R } });
+  const vs = new VocalStack({ baseUrl: 'https://api.test', apiKey: 'vs_key_x', fetch });
+  await vs.transcriptions.start(R, { deviceId: 'd1' });
+  await vs.broadcasts.record('b-1');
+  await vs.transcriptions.pause(R);
+  await vs.transcriptions.stop(R, 'done');
+  await vs.transcriptions.job(R);
+  await vs.transcriptions.get(R, { shareCode: 'abc' });
+  assert.deepEqual(
+    calls.map((c) => `${c.method} ${c.url}`),
+    [
+      `POST https://api.test/v1/transcriptions/${R}/start`,
+      'POST https://api.test/v1/broadcasts/b-1/record',
+      `POST https://api.test/v1/transcriptions/${R}/pause`,
+      `POST https://api.test/v1/transcriptions/${R}/stop`,
+      `GET https://api.test/v1/transcriptions/${R}/job`,
+      `GET https://api.test/v1/transcriptions/${R}?shareCode=abc`,
+    ],
+  );
+  assert.deepEqual(JSON.parse(calls[3].body), { reason: 'done' });
 });

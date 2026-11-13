@@ -6,14 +6,13 @@ import {
   Connect,
   Corrections,
   Events,
-  Jobs,
   Languages,
   MeApi,
   Meta,
-  Recordings,
   Rtmp,
   Search,
   ShareLinks,
+  SpeakerInvites,
   Speakers,
   Tags,
   Transcriptions,
@@ -38,14 +37,13 @@ export {
   Connect,
   Corrections,
   Events,
-  Jobs,
   Languages,
   MeApi,
   Meta,
-  Recordings,
   Rtmp,
   Search,
   ShareLinks,
+  SpeakerInvites,
   Speakers,
   Tags,
   Transcriptions,
@@ -53,9 +51,9 @@ export {
   Voices,
   playableFormat,
 } from './resources.js';
-export type { AudioKind, MediaAuth, MediaFormat, RenderVoice, VoicesChoice } from './resources.js';
+export type { AudioKind, MediaAuth, MediaFormat, RequestVoice, VoicesChoice } from './resources.js';
 export type { WorkspaceInfo } from './resources.js';
-export type { ConnectToken, ConnectTokenInput, CreateTranscriptionInput, LifecycleFilter, Me, PageOptions, RecordingPageOptions, SearchOptions, SendUploadOptions, TranscriptionFilters, Upload, UsageChargesOptions, UsageOptions } from './resources.js';
+export type { ConnectToken, ConnectTokenInput, CreateTranscriptionInput, LifecycleFilter, Me, PageOptions, SearchOptions, SendUploadOptions, TranscriptionFilters, Upload, UsageChargesOptions, UsageOptions } from './resources.js';
 export type * from '@vocalstack/contract';
 
 export type VocalStackOptions = ClientOptions;
@@ -66,12 +64,11 @@ export class VocalStack {
   readonly broadcasts: Broadcasts;
   readonly transcriptions: Transcriptions;
   readonly uploads: Uploads;
-  readonly recordings: Recordings;
-  readonly jobs: Jobs;
   readonly corrections: Corrections;
   readonly shareLinks: ShareLinks;
   readonly tags: Tags;
   readonly speakers: Speakers;
+  readonly speakerInvites: SpeakerInvites;
   readonly voices: Voices;
   readonly search: Search;
   readonly me: MeApi;
@@ -89,12 +86,11 @@ export class VocalStack {
     this.broadcasts = new Broadcasts(t);
     this.transcriptions = new Transcriptions(t);
     this.uploads = new Uploads(t);
-    this.recordings = new Recordings(t);
-    this.jobs = new Jobs(t);
     this.corrections = new Corrections(t);
     this.shareLinks = new ShareLinks(t);
     this.tags = new Tags(t);
     this.speakers = new Speakers(t);
+    this.speakerInvites = new SpeakerInvites(t);
     this.voices = new Voices(t);
     this.search = new Search(t);
     this.me = new MeApi(t);

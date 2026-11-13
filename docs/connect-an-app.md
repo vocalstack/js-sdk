@@ -31,7 +31,7 @@ Make a random `state` and a PKCE verifier (43 to 128 characters of `A-Z a-z 0-9 
 | `state` | Your random value; it comes back unchanged. |
 | `code_challenge` | `BASE64URL(SHA256(verifier))`, without padding (43 characters). |
 | `code_challenge_method` | `S256` |
-| `scope` | `read`, `write` or `read write`. An app on the person's computer (a `localhost` / `127.0.0.1` redirect) may add `recordings:publish`, with `write`, to start and stop recordings. Keys with full access, or a web app's key with `recordings:publish`, are made by hand in the dashboard. |
+| `scope` | `read`, `write` or `read write`. An app on the person's computer (a `localhost` / `127.0.0.1` redirect) may add `recordings:publish`, with `write`, to start and stop live transcriptions. Keys with full access, or a web app's key with `recordings:publish`, are made by hand in the dashboard. |
 | `reach` | Optional. `own` (the default with `write`): the key reaches only what your app creates with it, its transcriptions and broadcasts and everything in them; the account's other ones answer `404`. `account`: everything on the account, whoever made it (the default, and the only reach, without `write`). |
 | `workspace` | Optional. The `id` of the workspace your app is connected to now (`workspace.id` from the token answer or `GET /v1/me`): the consent screen starts on it when the person connects again to change workspace. Anything else is ignored, and the person can still pick another. |
 

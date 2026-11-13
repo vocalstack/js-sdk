@@ -4,17 +4,17 @@ import { WebSocketServer } from 'ws';
 
 import { RealtimeSession, VocalStack } from '../dist/index.js';
 
-test('jobs.wait hands every job read to onProgress, the last one included', async () => {
+test('transcriptions.waitForJob hands every job read to onProgress, the last one included', async () => {
   const states = [
     { state: 'queued', progress: { pct: 0 } },
     { state: 'transcribing', progress: { pct: 40 } },
     { state: 'done', progress: { pct: 100 } },
   ];
   let n = 0;
-  const fetch = async () => new Response(JSON.stringify({ recordingId: 'r1', ...states[Math.min(n++, states.length - 1)] }), { status: 200 });
+  const fetch = async () => new Response(JSON.stringify({ transcriptionId: 't1', ...states[Math.min(n++, states.length - 1)] }), { status: 200 });
   const vs = new VocalStack({ baseUrl: 'http://api.test', apiKey: 'vs_key_x', fetch });
   const seen = [];
-  const job = await vs.jobs.wait('r1', { intervalMs: 1, onProgress: (j) => seen.push(`${j.state}:${j.progress.pct}`) });
+  const job = await vs.transcriptions.waitForJob('t1', { intervalMs: 1, onProgress: (j) => seen.push(`${j.state}:${j.progress.pct}`) });
   assert.equal(job.state, 'done');
   assert.deepEqual(seen, ['queued:0', 'transcribing:40', 'done:100']);
 });

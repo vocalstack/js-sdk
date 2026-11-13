@@ -34,21 +34,19 @@ test('transcriptions.listPage asks for one page with cursor and limit', async ()
   assert.equal(urls[0].searchParams.get('limit'), '100');
 });
 
-test('corrections.list and listRecordings read every page', async () => {
+test('transcriptions.corrections reads every page', async () => {
   const { fetch, urls } = fakeFetch([{ corrections: [{ id: 'k1' }], nextCursor: 'a' }, { corrections: [{ id: 'k2' }] }]);
   const vs = new VocalStack({ baseUrl: 'http://api.test', apiKey: 'vs_key_x', fetch });
-  assert.deepEqual((await vs.corrections.list('r1')).map((c) => c.id), ['k1', 'k2']);
-  assert.equal(urls[1].pathname, '/v1/recordings/r1/corrections');
-  const r = fakeFetch([{ recordings: [{ id: 'r1' }], nextCursor: 'b' }, { recordings: [{ id: 'r2' }] }]);
-  const vs2 = new VocalStack({ baseUrl: 'http://api.test', apiKey: 'vs_key_x', fetch: r.fetch });
-  assert.deepEqual((await vs2.broadcasts.listRecordings('b1')).map((x) => x.id), ['r1', 'r2']);
-  assert.equal(r.urls[1].searchParams.get('cursor'), 'b');
+  assert.deepEqual((await vs.transcriptions.corrections('t1')).map((c) => c.id), ['k1', 'k2']);
+  assert.equal(urls[1].pathname, '/v1/transcriptions/t1/corrections');
+  assert.equal(urls[1].searchParams.get('cursor'), 'a');
 });
 
-test('recordings.events starts after a seq, then follows the cursor', async () => {
+test('transcriptions.history starts after a seq, then follows the cursor', async () => {
   const { fetch, urls } = fakeFetch([{ events: [{ seq: 4 }, { seq: 5 }], nextCursor: '5' }, { events: [{ seq: 6 }] }]);
   const vs = new VocalStack({ baseUrl: 'http://api.test', apiKey: 'vs_key_x', fetch });
-  assert.deepEqual((await vs.recordings.events('r1', { after: 3, limit: 2 })).map((e) => e.seq), [4, 5, 6]);
+  assert.deepEqual((await vs.transcriptions.history('t1', { after: 3, limit: 2 })).map((e) => e.seq), [4, 5, 6]);
+  assert.equal(urls[0].pathname, '/v1/transcriptions/t1/history');
   assert.equal(urls[0].searchParams.get('after'), '3');
   assert.equal(urls[0].searchParams.get('cursor'), null);
   assert.equal(urls[1].searchParams.get('after'), null, 'never cursor and after together');

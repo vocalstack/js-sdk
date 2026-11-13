@@ -7,19 +7,19 @@ description: Use when writing Node or TypeScript code that calls the VocalStack 
 
 The VocalStack API transcribes speech (files, links, live audio), with speaker
 labels and translation. `@vocalstack/js-sdk` has one client, `VocalStack`, with
-one group per resource: `vs.transcriptions`, `vs.jobs`, `vs.recordings`,
-`vs.broadcasts`, `vs.search`, `vs.realtime` and a few more (listed at the end).
+one group per resource: `vs.transcriptions`, `vs.broadcasts`, `vs.search`, `vs.realtime` and a few more (listed at the end).
 
 ## What is what
 
 - A **transcription** is a file, a link, a microphone or a stream, transcribed
   and stored. Create one with `vs.transcriptions.create(...)`.
-- A **recording** is one take inside it. Its id (`recordingId`) is what you
-  read the transcript and exports with: `vs.recordings.transcript(recordingId)`.
-- A **job** is a file or link recording's transcription work:
-  `vs.jobs.wait(recordingId)` polls it until it is `done` or `failed`
+  Its id is all you need: `vs.transcriptions.transcript(id)` reads the
+  transcript, however often a live one was paused and resumed.
+- A **job** is a file or link transcription's work:
+  `vs.transcriptions.waitForJob(id)` polls it until it is `done` or `failed`
   (`{ onProgress: (job) => … }` sees each read: `job.state`, `job.progress.pct`).
-- A **broadcast** is a link listeners open to follow a live recording.
+- A **broadcast** is a link listeners open to follow live transcriptions. Each
+  `vs.broadcasts.record(id)` starts a new live transcription.
 - A **realtime session** (`vs.realtime`) is a socket you stream audio into and
   read the transcript from. Nothing is stored. "Session" means only this.
 
@@ -80,15 +80,14 @@ const tx = await vs.transcriptions.create({
   url: 'https://raw.githubusercontent.com/openai/whisper/main/tests/jfk.flac',
   name: 'JFK sample',
 });
-const recordingId = tx.job.recordingId;
 
 // queued -> fetching -> transcribing -> done | failed
-const job = await vs.jobs.wait(recordingId);
+const job = await vs.transcriptions.waitForJob(tx.id);
 if (job.state !== 'done') throw new Error(`transcription ${job.state}: ${job.error}`);
 
-const { sentences } = await vs.recordings.transcript(recordingId);
+const { sentences } = await vs.transcriptions.transcript(tx.id);
 for (const s of sentences) console.log(s.speaker >= 0 ? `[speaker ${s.speaker}] ${s.text}` : s.text);
-console.log('recordingId', recordingId);
+console.log('transcription', tx.id);
 ```
 
 ## 2. Transcribe a local file
@@ -103,36 +102,36 @@ const tx = await vs.transcriptions.create({
   // Off unless asked for: settings.summary, settings.title, settings.summaryTranslations,
   // settings.translationTts (text-to-speech of translations), and shareLink: true (a public share link).
 });
-const job = await vs.jobs.wait(tx.job.recordingId);
+const job = await vs.transcriptions.waitForJob(tx.id);
 if (job.state !== 'done') throw new Error(`transcription ${job.state}: ${job.error}`);
 
-const { sentences } = await vs.recordings.transcript(job.recordingId);
+const { sentences } = await vs.transcriptions.transcript(tx.id);
 console.log(sentences.map((s) => s.text).join(' '));
 ```
 
 ## 3. Fetch a transcript or an export file
 
-`recordings.transcript` returns segments (with word timings), sentences and
-speakers. `recordings.export` returns the file as a `Response`: formats `json`,
+`transcriptions.transcript` returns segments (with word timings), sentences and
+speakers. `transcriptions.export` returns the file as a `Response`: formats `json`,
 `srt`, `xlsx`, `pdf`; add `{ lang: '<code>' }` for a translated file.
 
 ```js
 import { writeFile } from 'node:fs/promises';
 import { VocalStack } from '@vocalstack/js-sdk';
 const vs = new VocalStack({ baseUrl: process.env.VOCALSTACK_BASE_URL, apiKey: process.env.VOCALSTACK_API_KEY });
-const recordingId = process.argv[2];
+const id = process.argv[2];
 
-const snap = await vs.recordings.transcript(recordingId);
+const snap = await vs.transcriptions.transcript(id);
 console.log(`${snap.segments.length} segments, ${snap.sentences.length} sentences, state ${snap.state}`);
 
-const res = await vs.recordings.export(recordingId, 'srt');
+const res = await vs.transcriptions.export(id, 'srt');
 await writeFile('transcript.srt', Buffer.from(await res.arrayBuffer()));
 ```
 
 ## 4. Live transcription from a microphone or a file
 
 A live transcription takes raw PCM: 32-bit float little-endian, 16 kHz, mono.
-Create it, start a recording, and open the publisher socket the grant names.
+Create it, start it, and open the publisher socket the grant names.
 Here ffmpeg decodes a file at realtime speed (`-re`). For a microphone, swap
 the input: `-f avfoundation -i :0` on macOS, `-f pulse -i default` on Linux.
 (`@vocalstack/js-sdk/mic` is for browsers, and browsers must not hold API keys.)
@@ -143,21 +142,21 @@ import { VocalStack } from '@vocalstack/js-sdk';
 const vs = new VocalStack({ baseUrl: process.env.VOCALSTACK_BASE_URL, apiKey: process.env.VOCALSTACK_API_KEY });
 
 const tx = await vs.transcriptions.createLive({ name: 'Live demo', settings: { spokenLanguage: 'en' } });
-const grant = await vs.transcriptions.startRecording(tx.id);
-const stream = await vs.recordings.publish(grant, { readyDeadlineMs: 180_000 }); // a cold engine can take a while
+const grant = await vs.transcriptions.start(tx.id);
+const stream = await vs.transcriptions.publish(grant, { readyDeadlineMs: 180_000 }); // a cold engine can take a while
 
 const ff = spawn('ffmpeg', ['-loglevel', 'error', '-re', '-i', process.argv[2],
   '-f', 'f32le', '-ac', '1', '-ar', '16000', '-']);
 ff.stdout.on('data', (chunk) => stream.sendAudio(new Uint8Array(chunk)));
-ff.on('close', () => stream.eof()); // eof() ends the recording
+ff.on('close', () => stream.eof()); // eof() ends the transcription
 
 for await (const ev of stream) {
   if (ev.type === 'transcript.committed') console.log(`[speaker ${ev.segment.speaker}] ${ev.segment.text}`);
   // also: 'transcript.draft' (replaces the live tail), 'transcript.sentence', 'transcript.translated'
 }
 
-// To end a recording without eof(): vs.recordings.pause(id), then vs.recordings.stop(id).
-const { sentences } = await vs.recordings.transcript(grant.recording.id);
+// vs.transcriptions.pause(tx.id) and resume(tx.id) keep it one transcript; stop(tx.id) ends it without eof().
+const { sentences } = await vs.transcriptions.transcript(tx.id);
 console.log('final:', sentences.map((s) => s.text).join(' '));
 ```
 
@@ -172,7 +171,7 @@ const vs = new VocalStack({ baseUrl: process.env.VOCALSTACK_BASE_URL, apiKey: pr
 
 const { hits } = await vs.search.query(process.argv[2] ?? 'country', { limit: 5 }); // q: 2+ characters
 for (const h of hits) {
-  console.log(`${h.linkName} @ ${h.mediaStart.toFixed(1)}s [speaker ${h.speaker}]: ${h.text} (recording ${h.recordingId})`);
+  console.log(`${h.linkName} @ ${h.mediaStart.toFixed(1)}s [speaker ${h.speaker}]: ${h.text} (transcription ${h.transcriptionId})`);
 }
 ```
 
@@ -221,9 +220,11 @@ try {
 ## More
 
 - The other groups: `vs.transcriptions` (`list`, `get`, `update`, `archive`,
-  `restore`, `purge`, `listShareLinks`, `createShareLink`, `listScripts`), `vs.recordings`
-  (`get`, `summarize`, `summary`, `translation`, `audioUrl`, `subscribe` for a
-  live transcript feed), `vs.corrections`, `vs.shareLinks`, `vs.speakers`, `vs.voices`,
+  `restore`, `purge`, `listShareLinks`, `createShareLink`, `listScripts`,
+  `pause`, `resume`, `stop`, `job`, `summarize`, `summary`, `translation`,
+  `corrections`, `audio`, `voice`, `history`, `subscribe` for a live transcript
+  feed), `vs.corrections` (`revert`), `vs.shareLinks`, `vs.speakers` (with `invite`, `listInvites`, `renewInvite`,
+  `cancelInvite`), `vs.speakerInvites` (the invited person's link, no key), `vs.voices`,
   `vs.broadcasts`, `vs.me` (`get`, `usage`), `vs.languages`,
   `vs.rtmp`, `vs.events`, `vs.meta`. Each method is named after its operation
   in the OpenAPI document (`transcriptions.create` is `POST /v1/transcriptions`).

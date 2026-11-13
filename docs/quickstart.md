@@ -7,8 +7,8 @@
 | Endpoint | What it does |
 |---|---|
 | `POST /v1/transcriptions` | Create a transcription |
-| `GET /v1/recordings/{id}/job` | Get a job |
-| `GET /v1/recordings/{id}/transcript` | Get a transcript |
+| `GET /v1/transcriptions/{id}/job` | Get a job |
+| `GET /v1/transcriptions/{id}/transcript` | Get a transcript |
 
 Three steps: create an API key, install an SDK, transcribe a file. The program at the end uploads `talk.mp3` (any mp3, wav, flac, ogg, m4a or mp4 works), waits for its job and prints the transcript.
 
@@ -20,7 +20,7 @@ A key is for servers and scripts. The API refuses one sent from a web page or in
 
 ## 2. Install an SDK
 
-Three SDKs, one client each (`VocalStack`), grouped by resource: `vs.transcriptions`, `vs.jobs`, `vs.recordings`, `vs.realtime` and a few more (`$vs->transcriptions` and so on in PHP). TypeScript runs on Node 20 or newer and in browsers; Python is asyncio, 3.10 or newer; PHP is synchronous, 8.1 or newer, installed with Composer.
+Three SDKs, one client each (`VocalStack`), grouped by resource: `vs.transcriptions`, `vs.broadcasts`, `vs.realtime` and a few more (`$vs->transcriptions` and so on in PHP). TypeScript runs on Node 20 or newer and in browsers; Python is asyncio, 3.10 or newer; PHP is synchronous, 8.1 or newer, installed with Composer.
 
 ```sh
 npm install @vocalstack/js-sdk
@@ -30,13 +30,13 @@ Each SDK installs from its registry: npm, PyPI or Packagist. With HTTP + WebSock
 
 ## 3. Transcribe a file
 
-Transcribing a file is asynchronous: the upload answers at once with a transcription and its job, the job runs on the server, and the transcript is read when the job is done. There are no webhooks: `vs.jobs.wait` polls the job for you (every 2 s by default).
+Transcribing a file is asynchronous: the upload answers at once with a transcription and its job, the job runs on the server, and the transcript is read when the job is done. There are no webhooks: `vs.transcriptions.waitForJob` polls the job for you (every 2 s by default).
 
 Every transcription is real usage: its audio spends the account's credit at the plan's rate per hour, billed per second with at least the plan's minimum per transcription (`rates.minimumSeconds` on `GET /v1/billing`), and when the credit does not cover a new one the API answers `402 insufficient_credit` ([Errors, retries and limits](errors-and-limits.md)). [Transcribe a file](transcribe-a-file.md) covers the job's states, progress and exports.
 
 ## 4. Next
 
-- [Transcribe a link](transcribe-a-link.md): the server fetches a public URL, a YouTube video, or a recording on Vimeo, SoundCloud, TikTok, X and other sites.
+- [Transcribe a link](transcribe-a-link.md): the server fetches a public URL, a YouTube video, or a video on Vimeo, SoundCloud, TikTok, X and other sites.
 - [Stream a microphone](stream-a-microphone.md): live audio in, transcript events out, over one WebSocket.
 - [Errors, retries and limits](errors-and-limits.md): what to do with a 402, a 429 or a 503.
 
@@ -63,10 +63,10 @@ import { VocalStack } from '@vocalstack/js-sdk';
 const vs = new VocalStack({ baseUrl: 'https://api.vocalstack.com', apiKey: process.env.VOCALSTACK_API_KEY });
 
 const tx = await vs.transcriptions.create({ file: './talk.mp3' });
-const job = await vs.jobs.wait(tx.job!.recordingId); // queued → transcribing → done
+const job = await vs.transcriptions.waitForJob(tx.id); // queued → transcribing → done
 if (job.state !== 'done') throw new Error(`transcription ${job.state}: ${job.error ?? ''}`);
 
-const { sentences } = await vs.recordings.transcript(job.recordingId);
+const { sentences } = await vs.transcriptions.transcript(tx.id);
 for (const s of sentences) console.log(s.text);
 ```
 

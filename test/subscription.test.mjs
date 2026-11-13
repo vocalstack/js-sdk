@@ -17,7 +17,7 @@ async function server({ ready = true } = {}) {
   });
   const say = (seq) => socks[0].send(JSON.stringify({ type: 'transcript.committed', cursor: seq, segment: { seq, text: `line ${seq}` } }));
   return {
-    url: `ws://127.0.0.1:${wss.address().port}/v1/recordings/r/subscribe`,
+    url: `ws://127.0.0.1:${wss.address().port}/v1/transcriptions/r/subscribe`,
     socks,
     closed,
     say,
@@ -29,7 +29,7 @@ async function server({ ready = true } = {}) {
 }
 
 const snapshot = (lastSeq, from = 0) => ({
-  recordingId: 'r',
+  transcriptionId: 'r',
   state: 'live',
   lastSeq,
   segments: Array.from({ length: Math.max(0, lastSeq - from + 1) }, (_, i) => ({ seq: from + i, text: `line ${from + i}` })),

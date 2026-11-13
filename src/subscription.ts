@@ -34,7 +34,7 @@ const MOST_HELD = 5_000;
 export const CATCH_UP_FAILED = 'catch-up failed';
 
 export class Subscription implements AsyncIterable<SubscriptionEvent> {
-  readonly recordingId: string;
+  readonly transcriptionId: string;
   cursor = -1;
   snapshot: TranscriptSnapshot | null = null;
 
@@ -49,8 +49,8 @@ export class Subscription implements AsyncIterable<SubscriptionEvent> {
   #limits: Required<CatchUpLimits>;
   #stopWaiting: (() => void) | null = null;
 
-  private constructor(recordingId: string, ws: WsLike, opts: SubscribeOptions, snap: Snapshotter, limits: CatchUpLimits) {
-    this.recordingId = recordingId;
+  private constructor(transcriptionId: string, ws: WsLike, opts: SubscribeOptions, snap: Snapshotter, limits: CatchUpLimits) {
+    this.transcriptionId = transcriptionId;
     this.#ws = ws;
     this.#opts = opts;
     this.#snap = snap;
@@ -61,10 +61,10 @@ export class Subscription implements AsyncIterable<SubscriptionEvent> {
     };
   }
 
-  static async open(recordingId: string, url: string, bearer: string | undefined, opts: SubscribeOptions, snap: Snapshotter, limits: CatchUpLimits = {}): Promise<Subscription> {
+  static async open(transcriptionId: string, url: string, bearer: string | undefined, opts: SubscribeOptions, snap: Snapshotter, limits: CatchUpLimits = {}): Promise<Subscription> {
     const ws = await openWebSocket(url, bearer);
     ws.binaryType = 'arraybuffer';
-    const sub = new Subscription(recordingId, ws, opts, snap, limits);
+    const sub = new Subscription(transcriptionId, ws, opts, snap, limits);
     try {
       await sub.#ready(ws);
       if (opts.audio) sub.setAudio(true);

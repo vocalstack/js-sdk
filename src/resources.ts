@@ -37,6 +37,7 @@ import type {
   FileUpload,
   CreateSpeaker,
   CreateSpeakerFromAppearance,
+  CreateSpeakerInvite,
   CreatedAppStreamKey,
   ChargePage,
   ExportFormat,
@@ -49,19 +50,16 @@ import type {
   PatchSpeaker,
   PlanList,
   PublishGrant,
-  Recording,
-  RecordingEvent,
-  RecordingEvents,
-  RecordingPage,
   RetranscribeLine,
   RtmpStatus,
   SearchResults,
   VectorResults,
-  SettingsPatch,
   Script,
   ShareLink,
   SharedTranscript,
-  StartRecording,
+  StartLiveTranscription,
+  TranscriptionHistory,
+  HistoryEvent,
   StartJob,
   SummaryStatus,
   Tag,
@@ -75,8 +73,12 @@ import type {
   UpdateTag,
   UpdateTranscription,
   UpdateShareLink,
-  UploadRecording,
   Speaker,
+  SpeakerConsentWithdrawal,
+  SpeakerInvite,
+  SpeakerInviteList,
+  OpenSpeakerInvite,
+  SubmitSpeakerInvite,
   VoiceCatalogue,
   VoiceTrack,
   ManyResult,
@@ -134,10 +136,6 @@ async function allPages<T>(page: (cursor: string | undefined) => Promise<{ items
   }
 }
 
-export interface RecordingPageOptions extends PageOptions {
-  lifecycle?: 'active' | 'archived';
-}
-
 abstract class ParentResource<T, U> {
   protected readonly t: Transport;
   protected abstract readonly base: '/v1/broadcasts' | '/v1/transcriptions';
@@ -181,18 +179,6 @@ abstract class ParentResource<T, U> {
   purgeMany(ids: string[]): Promise<ManyResult> {
     return this.t.json('POST', `${this.base}/purge`, { body: { ids } });
   }
-  listRecordings(id: string, lifecycle: 'active' | 'archived' = 'active'): Promise<Recording[]> {
-    return allPages(async (cursor) => {
-      const r = await this.listRecordingsPage(id, { lifecycle, cursor });
-      return { items: r.recordings, nextCursor: r.nextCursor };
-    });
-  }
-  listRecordingsPage(id: string, opts: RecordingPageOptions = {}): Promise<RecordingPage> {
-    return this.t.json('GET', this.p(id, '/recordings'), { query: { lifecycle: opts.lifecycle, cursor: opts.cursor, limit: opts.limit } });
-  }
-  startRecording(id: string, req: StartRecording = {}, call: CallOptions = {}): Promise<PublishGrant> {
-    return this.t.json('POST', this.p(id, '/recordings'), { body: req, ...call });
-  }
   async listShareLinks(id: string): Promise<ShareLink[]> {
     const r = await this.t.json<{ links?: ShareLink[] }>('GET', this.p(id, '/share-links'));
     return r.links ?? [];
@@ -226,7 +212,12 @@ export class Broadcasts extends ParentResource<Broadcast, UpdateBroadcast> {
   checkAudioSource(id: string, sourceId: string, opts: { fresh?: boolean } = {}): Promise<AudioSourceCheck> {
     return this.t.json('GET', this.p(id, `/audio-sources/${seg(sourceId)}/check`), { query: { fresh: opts.fresh || undefined } });
   }
+  record(id: string, req: StartLiveTranscription = {}, call: CallOptions = {}): Promise<PublishGrant> {
+    return this.t.json('POST', this.p(id, '/record'), { body: req, ...call });
+  }
 }
+
+const TERMINAL: ReadonlySet<string> = new Set(['done', 'failed', 'stopped', 'cropping']);
 
 export type CreateTranscriptionInput = CreateTranscription & {
   file?: Upload;
@@ -247,10 +238,6 @@ export class Transcriptions extends ParentResource<Transcription, UpdateTranscri
   listPage(opts: PageOptions & TranscriptionFilters = {}): Promise<TranscriptionPage> {
     return this.t.json('GET', this.base, { query: { ...filterQuery(opts), cursor: opts.cursor, limit: opts.limit } });
   }
-  uploadRecording(id: string, req: UploadRecording = {}, call: CallOptions = {}): Promise<PublishGrant> {
-    return this.t.json('POST', this.p(id, '/recordings/upload'), { body: req, ...call });
-  }
-
   async create(req: CreateTranscriptionInput, call: CallOptions = {}): Promise<Transcription> {
     const { file, fileName, ...options } = req;
     if (file === undefined) return this.t.json('POST', this.base, { body: options, ...call });
@@ -281,6 +268,177 @@ export class Transcriptions extends ParentResource<Transcription, UpdateTranscri
   }
   async nameAppearance(id: string, appearance: number, name: string | null): Promise<void> {
     await this.t.json('PUT', this.p(id, `/appearances/${seg(appearance)}`), { body: { name } });
+  }
+  override get(id: string, as?: ReadAs): Promise<Transcription> {
+    return this.t.json('GET', this.p(id), { query: listenerQuery(as) });
+  }
+  start(id: string, req: StartLiveTranscription = {}, call: CallOptions = {}): Promise<PublishGrant> {
+    return this.t.json('POST', this.p(id, '/start'), { body: req, ...call });
+  }
+  pause(id: string): Promise<Transcription> {
+    return this.t.json('POST', this.p(id, '/pause'));
+  }
+  resume(id: string): Promise<Transcription> {
+    return this.t.json('POST', this.p(id, '/resume'));
+  }
+  stop(id: string, reason?: string): Promise<Transcription> {
+    return this.t.json('POST', this.p(id, '/stop'), { body: { reason } });
+  }
+  publishToken(id: string, opts: { takeover?: boolean } = {}): Promise<PublishGrant> {
+    return this.t.json('POST', this.p(id, '/publish-token'), { body: { takeover: opts.takeover ?? false } });
+  }
+  publish(grant: PublishGrant, opts: ConnectOptions = {}): Promise<RealtimeSession> {
+    if (!grant.streamUrl) throw new VocalStackError('invalid_state', 'this grant has no streamUrl (the server pulls this transcription\'s audio itself)');
+    return RealtimeSession.connect({
+      sessionId: grant.sessionId ?? grant.transcription.id,
+      streamUrl: grant.streamUrl,
+      readyDeadlineMs: opts.readyDeadlineMs ?? this.t.opts.readyDeadlineMs,
+      onLoading: opts.onLoading,
+      onQueued: opts.onQueued,
+      onFrame: opts.onFrame,
+    });
+  }
+  job(id: string): Promise<TranscriptionJob> {
+    return this.t.json('GET', this.p(id, '/job'));
+  }
+  jobPreview(id: string): Promise<Response> {
+    return this.t.raw('GET', this.p(id, '/job/preview'), { headers: { accept: '*/*' } });
+  }
+  retryJob(id: string): Promise<TranscriptionJob> {
+    return this.t.json('POST', this.p(id, '/job/retry'));
+  }
+  startJob(id: string, window: StartJob = {}): Promise<TranscriptionJob> {
+    return this.t.json('POST', this.p(id, '/job/start'), { body: window });
+  }
+  async waitForJob(
+    id: string,
+    opts: { intervalMs?: number; timeoutMs?: number; signal?: AbortSignal; onProgress?(job: TranscriptionJob): void } = {},
+  ): Promise<TranscriptionJob> {
+    const interval = opts.intervalMs ?? 2000;
+    const deadline = opts.timeoutMs ? Date.now() + opts.timeoutMs : Infinity;
+    for (;;) {
+      const job = await this.job(id);
+      opts.onProgress?.(job);
+      if (TERMINAL.has(job.state)) return job;
+      if (Date.now() + interval > deadline) throw new VocalStackError('timeout', `job still ${job.state} after ${opts.timeoutMs} ms`, { retryable: true });
+      if (opts.signal?.aborted) throw opts.signal.reason ?? new Error('aborted');
+      await new Promise((r) => setTimeout(r, interval));
+    }
+  }
+  corrections(id: string): Promise<Correction[]> {
+    return allPages(async (cursor) => {
+      const r = await this.correctionsPage(id, { cursor });
+      return { items: r.corrections, nextCursor: r.nextCursor };
+    });
+  }
+  correctionsPage(id: string, opts: PageOptions = {}): Promise<CorrectionPage> {
+    return this.t.json('GET', this.p(id, '/corrections'), { query: { cursor: opts.cursor, limit: opts.limit } });
+  }
+  async applyCorrections(id: string, batch: CorrectionBatch): Promise<Correction[]> {
+    const r = await this.t.json<{ corrections?: Correction[] }>('POST', this.p(id, '/corrections'), { body: batch });
+    return r.corrections ?? [];
+  }
+  async retranscribe(id: string, req: RetranscribeLine): Promise<Correction[]> {
+    const r = await this.t.json<{ corrections?: Correction[] }>('POST', this.p(id, '/retranscribe'), { body: req });
+    return r.corrections ?? [];
+  }
+  transcript(id: string, opts: { after?: number; lang?: string; asListener?: boolean } & ReadAs = {}): Promise<TranscriptSnapshot> {
+    return this.t.json('GET', this.p(id, '/transcript'), {
+      query: { ...listenerQuery(opts), after: opts.after, lang: opts.lang, role: opts.asListener ? 'listener' : undefined },
+    });
+  }
+  translation(id: string, lang: string, sentences: number[] = [], as?: ReadAs): Promise<{ lang: string; translations: Record<string, string> }> {
+    return this.t.json('GET', this.p(id, '/translation'), {
+      query: { ...listenerQuery(as), lang, sentences: sentences.length ? sentences.join(',') : undefined },
+    });
+  }
+  summarize(id: string, call: CallOptions = {}): Promise<SummaryStatus> {
+    return this.t.json('POST', this.p(id, '/summarize'), call);
+  }
+  summary(id: string, opts: { lang?: string } & ReadAs = {}): Promise<SummaryStatus> {
+    return this.t.json('GET', this.p(id, '/summary'), { query: { ...listenerQuery(opts), lang: opts.lang } });
+  }
+  export(id: string, format: ExportFormat, opts: { lang?: string } & ReadAs = {}): Promise<Response> {
+    return this.t.raw('GET', this.p(id, '/export'), { headers: { accept: '*/*' }, query: { ...listenerQuery(opts), format, lang: opts.lang } });
+  }
+  async exportUrl(id: string, format: ExportFormat, opts: { lang?: string; shareCode?: string; listenerToken?: string } = {}): Promise<string> {
+    const token = opts.shareCode || opts.listenerToken ? undefined : await this.t.bearer();
+    return this.t.url(this.p(id, '/export'), { format, lang: opts.lang, shareCode: opts.shareCode, listenerToken: opts.listenerToken, access_token: token });
+  }
+  async audio(id: string, opts: { kind?: 'delivery' | 'background' | 'speech' | 'master' | 'source' | 'video'; lang?: string; format?: string } & ReadAs = {}): Promise<string> {
+    const res = await this.t.raw('GET', this.p(id, '/audio'), {
+      query: { ...listenerQuery(opts), kind: opts.kind, lang: opts.lang, format: opts.format },
+    });
+    const location = res.headers.get('location');
+    if (!location) throw new VocalStackError('not_found', 'no signed URL in the redirect');
+    return location;
+  }
+  audioSrc(id: string, opts: { kind?: AudioKind; lang?: string; voices?: VoicesChoice; voice?: string; format?: MediaFormat } & MediaAuth = {}): string {
+    return this.t.url(this.p(id, '/audio'), { kind: opts.kind ?? 'delivery', lang: opts.lang, format: opts.format, voices: opts.voices, voice: opts.voice, ...mediaQuery(opts) });
+  }
+  audioClipSrc(id: string, startS: number, endS: number, opts: { clean?: boolean } & MediaAuth = {}): string {
+    return this.t.url(this.p(id, '/audio/clip'), { startS: startS.toFixed(2), endS: endS.toFixed(2), clean: opts.clean ? 'true' : undefined, ...mediaQuery(opts) });
+  }
+  voiceClipSrc(id: string, sentence: number, lang: string, opts: { voices?: VoicesChoice; voice?: string; format?: 'ogg' | 'caf'; part?: number; v?: string } & MediaAuth = {}): string {
+    return this.t.url(this.p(id, `/voice/${seg(sentence)}`), {
+      lang,
+      voices: opts.voices,
+      voice: opts.voice,
+      format: opts.format,
+      part: opts.part ? opts.part : undefined,
+      v: opts.v,
+      ...mediaQuery(opts),
+    });
+  }
+  audioClip(id: string, startS: number, endS: number, as?: ReadAs): Promise<Response> {
+    return this.t.raw('GET', this.p(id, '/audio/clip'), { headers: { accept: '*/*' }, query: { ...listenerQuery(as), startS, endS } });
+  }
+  voice(id: string, lang?: string, as?: ReadAs): Promise<VoiceTrack[]> {
+    return this.t.json('GET', this.p(id, '/voice'), { query: { ...listenerQuery(as), lang } });
+  }
+  requestVoice(id: string, langs: string[], call?: CallOptions): Promise<VoiceTrack[]>;
+  requestVoice(id: string, req: RequestVoice & ReadAs, call?: CallOptions): Promise<VoiceTrack[]>;
+  requestVoice(id: string, req: string[] | (RequestVoice & ReadAs), call: CallOptions = {}): Promise<VoiceTrack[]> {
+    const r: RequestVoice & ReadAs = Array.isArray(req) ? { langs: req } : req;
+    return this.t.json('POST', this.p(id, '/voice'), {
+      query: listenerQuery(r),
+      body: { langs: r.langs, voices: r.voices, voice: r.voice, voiceBySpeaker: r.voiceBySpeaker, near: r.near, consent: r.consent },
+      ...call,
+    });
+  }
+  voiceClip(id: string, sentence: number, lang: string, opts: { format?: 'ogg' | 'caf'; voices?: VoicesChoice } & ReadAs = {}): Promise<Response> {
+    return this.t.raw('GET', this.p(id, `/voice/${seg(sentence)}`), { headers: { accept: '*/*' }, query: { ...listenerQuery(opts), lang, format: opts.format, voices: opts.voices } });
+  }
+  mediaToken(id: string): Promise<{ token: string; expiresAt: string }> {
+    return this.t.json('GET', this.p(id, '/media-token'));
+  }
+  history(id: string, opts: { after?: number; limit?: number } = {}): Promise<HistoryEvent[]> {
+    return allPages(async (cursor) => {
+      const r = await this.historyPage(id, cursor ? { cursor, limit: opts.limit } : { after: opts.after, limit: opts.limit });
+      return { items: r.events, nextCursor: r.nextCursor };
+    });
+  }
+  historyPage(id: string, opts: { cursor?: string; after?: number; limit?: number } = {}): Promise<TranscriptionHistory> {
+    return this.t.json('GET', this.p(id, '/history'), { query: { cursor: opts.cursor, after: opts.after, limit: opts.limit } });
+  }
+  async subscribe(id: string, opts: SubscribeOptions = {}): Promise<Subscription> {
+    const token = opts.asOwner === false ? undefined : await this.t.bearer();
+    const url = this.t.wsUrl(this.p(id, '/subscribe'), {
+      lang: opts.lang,
+      voice: opts.voice,
+      ...listenerQuery(opts),
+      role: opts.asOwner === false ? 'listener' : undefined,
+      device: this.t.opts.deviceId,
+    });
+    return Subscription.open(id, url, token, opts, (after) =>
+      this.transcript(id, {
+        after,
+        lang: opts.lang,
+        listenerToken: opts.listenerToken,
+        shareCode: opts.shareCode,
+        asListener: opts.asOwner === false,
+      }),
+    );
   }
 }
 
@@ -340,168 +498,12 @@ export class Uploads {
   }
 }
 
-export class Recordings {
-  readonly #t: Transport;
-  constructor(t: Transport) {
-    this.#t = t;
-  }
-  #p(id: string, rest = '') {
-    return `/v1/recordings/${seg(id)}${rest}`;
-  }
-
-  get(id: string, as?: ReadAs): Promise<Recording> {
-    return this.#t.json('GET', this.#p(id), { query: listenerQuery(as) });
-  }
-  pause(id: string): Promise<Recording> {
-    return this.#t.json('POST', this.#p(id, '/pause'));
-  }
-  resume(id: string): Promise<Recording> {
-    return this.#t.json('POST', this.#p(id, '/resume'));
-  }
-  stop(id: string, reason?: string): Promise<Recording> {
-    return this.#t.json('POST', this.#p(id, '/stop'), { body: { reason } });
-  }
-  settings(id: string, patch: SettingsPatch): Promise<Recording> {
-    return this.#t.json('PATCH', this.#p(id, '/settings'), { body: patch });
-  }
-  publishToken(id: string, opts: { takeover?: boolean } = {}): Promise<PublishGrant> {
-    return this.#t.json('POST', this.#p(id, '/publish-token'), { body: { takeover: opts.takeover ?? false } });
-  }
-  publish(grant: PublishGrant, opts: ConnectOptions = {}): Promise<RealtimeSession> {
-    if (!grant.streamUrl) throw new VocalStackError('invalid_state', 'this grant has no streamUrl (an upload recording has no publisher socket)');
-    return RealtimeSession.connect({
-      sessionId: grant.sessionId ?? grant.recording.id,
-      streamUrl: grant.streamUrl,
-      readyDeadlineMs: opts.readyDeadlineMs ?? this.#t.opts.readyDeadlineMs,
-      onLoading: opts.onLoading,
-      onQueued: opts.onQueued,
-      onFrame: opts.onFrame,
-    });
-  }
-  archive(id: string): Promise<Recording> {
-    return this.#t.json('POST', this.#p(id, '/archive'));
-  }
-  restore(id: string): Promise<Recording> {
-    return this.#t.json('POST', this.#p(id, '/restore'));
-  }
-  async purge(id: string): Promise<void> {
-    await this.#t.json('POST', this.#p(id, '/purge'));
-  }
-  archiveMany(ids: string[]): Promise<ManyResult> {
-    return this.#t.json('POST', '/v1/recordings/archive', { body: { ids } });
-  }
-  restoreMany(ids: string[]): Promise<ManyResult> {
-    return this.#t.json('POST', '/v1/recordings/restore', { body: { ids } });
-  }
-  purgeMany(ids: string[]): Promise<ManyResult> {
-    return this.#t.json('POST', '/v1/recordings/purge', { body: { ids } });
-  }
-  transcript(id: string, opts: { after?: number; lang?: string; asListener?: boolean } & ReadAs = {}): Promise<TranscriptSnapshot> {
-    return this.#t.json('GET', this.#p(id, '/transcript'), {
-      query: { ...listenerQuery(opts), after: opts.after, lang: opts.lang, role: opts.asListener ? 'listener' : undefined },
-    });
-  }
-  translation(id: string, lang: string, sentences: number[] = [], as?: ReadAs): Promise<{ lang: string; translations: Record<string, string> }> {
-    return this.#t.json('GET', this.#p(id, '/translation'), {
-      query: { ...listenerQuery(as), lang, sentences: sentences.length ? sentences.join(',') : undefined },
-    });
-  }
-  summarize(id: string, call: CallOptions = {}): Promise<SummaryStatus> {
-    return this.#t.json('POST', this.#p(id, '/summarize'), call);
-  }
-  summary(id: string, opts: { lang?: string } & ReadAs = {}): Promise<SummaryStatus> {
-    return this.#t.json('GET', this.#p(id, '/summary'), { query: { ...listenerQuery(opts), lang: opts.lang } });
-  }
-  export(id: string, format: ExportFormat, opts: { lang?: string } & ReadAs = {}): Promise<Response> {
-    return this.#t.raw('GET', this.#p(id, '/export'), { headers: { accept: '*/*' }, query: { ...listenerQuery(opts), format, lang: opts.lang } });
-  }
-  async exportUrl(id: string, format: ExportFormat, opts: { lang?: string; shareCode?: string; listenerToken?: string } = {}): Promise<string> {
-    const token = opts.shareCode || opts.listenerToken ? undefined : await this.#t.bearer();
-    return this.#t.url(this.#p(id, '/export'), { format, lang: opts.lang, shareCode: opts.shareCode, listenerToken: opts.listenerToken, access_token: token });
-  }
-  async audioUrl(id: string, opts: { kind?: 'delivery' | 'background' | 'speech' | 'master' | 'source' | 'video'; lang?: string; format?: string } & ReadAs = {}): Promise<string> {
-    const res = await this.#t.raw('GET', this.#p(id, '/audio'), {
-      query: { ...listenerQuery(opts), kind: opts.kind, lang: opts.lang, format: opts.format },
-    });
-    const location = res.headers.get('location');
-    if (!location) throw new VocalStackError('not_found', 'no signed URL in the redirect');
-    return location;
-  }
-  audioSrc(id: string, opts: { kind?: AudioKind; lang?: string; voices?: VoicesChoice; voice?: string; format?: MediaFormat } & MediaAuth = {}): string {
-    return this.#t.url(this.#p(id, '/audio'), { kind: opts.kind ?? 'delivery', lang: opts.lang, format: opts.format, voices: opts.voices, voice: opts.voice, ...mediaQuery(opts) });
-  }
-  clipSrc(id: string, startS: number, endS: number, opts: { clean?: boolean } & MediaAuth = {}): string {
-    return this.#t.url(this.#p(id, '/audio/clip'), { startS: startS.toFixed(2), endS: endS.toFixed(2), clean: opts.clean ? 'true' : undefined, ...mediaQuery(opts) });
-  }
-  voiceClipSrc(id: string, sentence: number, lang: string, opts: { voices?: VoicesChoice; voice?: string; format?: 'ogg' | 'caf'; part?: number; v?: string } & MediaAuth = {}): string {
-    return this.#t.url(this.#p(id, `/voice/${seg(sentence)}`), {
-      lang,
-      voices: opts.voices,
-      voice: opts.voice,
-      format: opts.format,
-      part: opts.part ? opts.part : undefined,
-      v: opts.v,
-      ...mediaQuery(opts),
-    });
-  }
-  clip(id: string, startS: number, endS: number, as?: ReadAs): Promise<Response> {
-    return this.#t.raw('GET', this.#p(id, '/audio/clip'), { headers: { accept: '*/*' }, query: { ...listenerQuery(as), startS, endS } });
-  }
-  voice(id: string, lang?: string, as?: ReadAs): Promise<VoiceTrack[]> {
-    return this.#t.json('GET', this.#p(id, '/voice'), { query: { ...listenerQuery(as), lang } });
-  }
-  renderVoice(id: string, langs: string[], call?: CallOptions): Promise<VoiceTrack[]>;
-  renderVoice(id: string, req: RenderVoice & ReadAs, call?: CallOptions): Promise<VoiceTrack[]>;
-  renderVoice(id: string, req: string[] | (RenderVoice & ReadAs), call: CallOptions = {}): Promise<VoiceTrack[]> {
-    const r: RenderVoice & ReadAs = Array.isArray(req) ? { langs: req } : req;
-    return this.#t.json('POST', this.#p(id, '/voice'), {
-      query: listenerQuery(r),
-      body: { langs: r.langs, voices: r.voices, voice: r.voice, voiceBySpeaker: r.voiceBySpeaker, near: r.near, consent: r.consent },
-      ...call,
-    });
-  }
-  voiceClip(id: string, sentence: number, lang: string, opts: { format?: 'ogg' | 'caf'; voices?: VoicesChoice } & ReadAs = {}): Promise<Response> {
-    return this.#t.raw('GET', this.#p(id, `/voice/${seg(sentence)}`), { headers: { accept: '*/*' }, query: { ...listenerQuery(opts), lang, format: opts.format, voices: opts.voices } });
-  }
-  mediaToken(id: string): Promise<{ token: string; expiresAt: string }> {
-    return this.#t.json('GET', this.#p(id, '/media-token'));
-  }
-  events(id: string, opts: { after?: number; limit?: number } = {}): Promise<RecordingEvent[]> {
-    return allPages(async (cursor) => {
-      const r = await this.eventsPage(id, cursor ? { cursor, limit: opts.limit } : { after: opts.after, limit: opts.limit });
-      return { items: r.events, nextCursor: r.nextCursor };
-    });
-  }
-  eventsPage(id: string, opts: { cursor?: string; after?: number; limit?: number } = {}): Promise<RecordingEvents> {
-    return this.#t.json('GET', this.#p(id, '/events'), { query: { cursor: opts.cursor, after: opts.after, limit: opts.limit } });
-  }
-  async subscribe(id: string, opts: SubscribeOptions = {}): Promise<Subscription> {
-    const token = opts.asOwner === false ? undefined : await this.#t.bearer();
-    const url = this.#t.wsUrl(this.#p(id, '/subscribe'), {
-      lang: opts.lang,
-      voice: opts.voice,
-      ...listenerQuery(opts),
-      role: opts.asOwner === false ? 'listener' : undefined,
-      device: this.#t.opts.deviceId,
-    });
-    return Subscription.open(id, url, token, opts, (after) =>
-      this.transcript(id, {
-        after,
-        lang: opts.lang,
-        listenerToken: opts.listenerToken,
-        shareCode: opts.shareCode,
-        asListener: opts.asOwner === false,
-      }),
-    );
-  }
-}
-
 export type AudioKind = 'delivery' | 'voice' | 'background' | 'speech' | 'master' | 'source' | 'video';
 export type MediaFormat = 'ogg' | 'caf' | 'mp3';
 
 export type VoicesChoice = 'cloned' | 'synthetic';
 
-export interface RenderVoice {
+export interface RequestVoice {
   langs: string[];
   voices?: VoicesChoice;
   voice?: string;
@@ -528,63 +530,10 @@ export function playableFormat(): 'ogg' | 'caf' {
   }
 }
 
-const TERMINAL: ReadonlySet<string> = new Set(['done', 'failed', 'stopped', 'cropping']);
-
-export class Jobs {
-  readonly #t: Transport;
-  constructor(t: Transport) {
-    this.#t = t;
-  }
-  get(recordingId: string): Promise<TranscriptionJob> {
-    return this.#t.json('GET', `/v1/recordings/${seg(recordingId)}/job`);
-  }
-  start(recordingId: string, window: StartJob = {}): Promise<TranscriptionJob> {
-    return this.#t.json('POST', `/v1/recordings/${seg(recordingId)}/job/start`, { body: window });
-  }
-  retry(recordingId: string): Promise<TranscriptionJob> {
-    return this.#t.json('POST', `/v1/recordings/${seg(recordingId)}/job/retry`);
-  }
-  preview(recordingId: string): Promise<Response> {
-    return this.#t.raw('GET', `/v1/recordings/${seg(recordingId)}/job/preview`, { headers: { accept: '*/*' } });
-  }
-  async wait(
-    recordingId: string,
-    opts: { intervalMs?: number; timeoutMs?: number; signal?: AbortSignal; onProgress?(job: TranscriptionJob): void } = {},
-  ): Promise<TranscriptionJob> {
-    const interval = opts.intervalMs ?? 2000;
-    const deadline = opts.timeoutMs ? Date.now() + opts.timeoutMs : Infinity;
-    for (;;) {
-      const job = await this.get(recordingId);
-      opts.onProgress?.(job);
-      if (TERMINAL.has(job.state)) return job;
-      if (Date.now() + interval > deadline) throw new VocalStackError('timeout', `job still ${job.state} after ${opts.timeoutMs} ms`, { retryable: true });
-      if (opts.signal?.aborted) throw opts.signal.reason ?? new Error('aborted');
-      await new Promise((r) => setTimeout(r, interval));
-    }
-  }
-}
-
 export class Corrections {
   readonly #t: Transport;
   constructor(t: Transport) {
     this.#t = t;
-  }
-  list(recordingId: string): Promise<Correction[]> {
-    return allPages(async (cursor) => {
-      const r = await this.listPage(recordingId, { cursor });
-      return { items: r.corrections, nextCursor: r.nextCursor };
-    });
-  }
-  listPage(recordingId: string, opts: PageOptions = {}): Promise<CorrectionPage> {
-    return this.#t.json('GET', `/v1/recordings/${seg(recordingId)}/corrections`, { query: { cursor: opts.cursor, limit: opts.limit } });
-  }
-  async apply(recordingId: string, batch: CorrectionBatch): Promise<Correction[]> {
-    const r = await this.#t.json<{ corrections?: Correction[] }>('POST', `/v1/recordings/${seg(recordingId)}/corrections`, { body: batch });
-    return r.corrections ?? [];
-  }
-  async retranscribe(recordingId: string, req: RetranscribeLine): Promise<Correction[]> {
-    const r = await this.#t.json<{ corrections?: Correction[] }>('POST', `/v1/recordings/${seg(recordingId)}/retranscribe`, { body: req });
-    return r.corrections ?? [];
   }
   revert(correctionId: string): Promise<Correction> {
     return this.#t.json('POST', `/v1/corrections/${seg(correctionId)}/revert`);
@@ -670,9 +619,9 @@ export class Speakers {
   createFromAppearance(req: CreateSpeakerFromAppearance, call: CallOptions = {}): Promise<Speaker> {
     return this.#t.json('POST', '/v1/speakers/from-appearance', { body: req, ...call });
   }
-  appearanceSamples(req: { transcriptionId: string; appearance: number; recordingId?: string | null; spans?: { start: number; end: number }[] }): Promise<AppearanceSamples> {
+  appearanceSamples(req: { transcriptionId: string; appearance: number; spans?: { start: number; end: number }[] }): Promise<AppearanceSamples> {
     const spans = req.spans?.length ? req.spans.map((s) => `${s.start}-${s.end}`).join(',') : undefined;
-    return this.#t.json('GET', '/v1/speakers/from-appearance/samples', { query: { transcriptionId: req.transcriptionId, recordingId: req.recordingId ?? undefined, appearance: req.appearance, spans } });
+    return this.#t.json('GET', '/v1/speakers/from-appearance/samples', { query: { transcriptionId: req.transcriptionId, appearance: req.appearance, spans } });
   }
   setConsent(id: string, consent: 'granted' | 'refused', opts: { name?: string } = {}): Promise<Speaker> {
     return this.#t.json('POST', `/v1/speakers/${seg(id)}/consent`, { body: { consent, ...opts } });
@@ -683,15 +632,52 @@ export class Speakers {
   async delete(id: string): Promise<void> {
     await this.#t.json('DELETE', `/v1/speakers/${seg(id)}`);
   }
-  voicePreview(id: string, opts: { lang?: string; format?: 'ogg' | 'caf'; recording?: string; asOwner?: boolean } & ReadAs = {}): Promise<Response> {
+  voicePreview(id: string, opts: { lang?: string; format?: 'ogg' | 'caf'; transcription?: string; asOwner?: boolean } & ReadAs = {}): Promise<Response> {
     return this.#t.raw('GET', `/v1/speakers/${seg(id)}/preview`, {
       headers: { accept: '*/*' },
-      query: { ...listenerQuery(opts), lang: opts.lang, format: opts.format, recording: opts.recording },
+      query: { ...listenerQuery(opts), lang: opts.lang, format: opts.format, transcription: opts.transcription },
       anonymous: opts.asOwner === false,
     });
   }
   sample(id: string): Promise<Response> {
     return this.#t.raw('GET', `/v1/speakers/${seg(id)}/sample`, { headers: { accept: '*/*' } });
+  }
+  async listInvites(): Promise<SpeakerInvite[]> {
+    const r = await this.#t.json<SpeakerInviteList>('GET', '/v1/speakers/invites');
+    return r.invites ?? [];
+  }
+  invite(req: CreateSpeakerInvite): Promise<SpeakerInvite> {
+    return this.#t.json('POST', '/v1/speakers/invites', { body: req });
+  }
+  async cancelInvite(id: string): Promise<void> {
+    await this.#t.json('DELETE', `/v1/speakers/invites/${seg(id)}`);
+  }
+  renewInvite(id: string): Promise<SpeakerInvite> {
+    return this.#t.json('POST', `/v1/speakers/invites/${seg(id)}/renew`);
+  }
+}
+
+export class SpeakerInvites {
+  readonly #t: Transport;
+  constructor(t: Transport) {
+    this.#t = t;
+  }
+  get(token: string): Promise<OpenSpeakerInvite> {
+    return this.#t.json('GET', `/v1/speaker-invites/${seg(token)}`, { anonymous: true });
+  }
+  async submit(token: string, req: SubmitSpeakerInvite & { sample: Upload; fileName?: string }): Promise<{ ok: boolean }> {
+    const { sample, fileName, ...meta } = req;
+    const form = new FormData();
+    form.append('meta', JSON.stringify(meta));
+    const { blob, name } = await toBlob(sample);
+    form.append('sample', blob, fileName ?? name ?? 'sample.webm');
+    return this.#t.json('POST', `/v1/speaker-invites/${seg(token)}`, { body: form, anonymous: true });
+  }
+  withdrawal(token: string): Promise<SpeakerConsentWithdrawal> {
+    return this.#t.json('GET', `/v1/speaker-invites/withdraw/${seg(token)}`, { anonymous: true });
+  }
+  withdraw(token: string): Promise<SpeakerConsentWithdrawal> {
+    return this.#t.json('POST', `/v1/speaker-invites/withdraw/${seg(token)}`, { anonymous: true });
   }
 }
 
@@ -700,9 +686,9 @@ export class Voices {
   constructor(t: Transport) {
     this.#t = t;
   }
-  available(lang: string, opts: { recording?: string; asOwner?: boolean } & ReadAs = {}): Promise<VoiceCatalogue> {
+  available(lang: string, opts: { transcription?: string; asOwner?: boolean } & ReadAs = {}): Promise<VoiceCatalogue> {
     return this.#t.json('GET', '/v1/voices/available', {
-      query: { ...listenerQuery(opts), lang, recording: opts.recording },
+      query: { ...listenerQuery(opts), lang, transcription: opts.transcription },
       anonymous: opts.asOwner === false,
     });
   }
@@ -714,7 +700,6 @@ export class Voices {
 export interface SearchOptions extends Omit<TranscriptionFilters, 'lifecycle' | 'q' | 'broadcast'> {
   broadcasts?: string[];
   listenerTokens?: string[];
-  recording?: string;
   transcription?: string;
   lang?: string;
   limit?: number;
@@ -731,7 +716,6 @@ export class Search {
       q,
       broadcasts: opts.broadcasts?.join(','),
       listenerTokens: opts.listenerTokens?.join(','),
-      recording: opts.recording,
       transcription: opts.transcription,
       lang: opts.lang,
       limit: opts.limit,
@@ -742,7 +726,6 @@ export class Search {
     const query: Query = {
       ...filterQuery({ site: opts.site, language: opts.language, kind: opts.kind, origin: opts.origin, tag: opts.tag, createdAfter: opts.createdAfter, createdBefore: opts.createdBefore, shared: opts.shared }),
       q,
-      recording: opts.recording,
       transcription: opts.transcription,
     };
     return this.#t.json('GET', '/v1/search/vector', { query });

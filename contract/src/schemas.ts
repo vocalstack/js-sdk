@@ -104,8 +104,8 @@ export const AppearanceSamplesSchema = z.object({
   "chosenS": z.number(),
   "chosenSpeechS": z.number(),
   "picked": z.union([PickedSamplesSchema, z.null()]).optional(),
-  "recordingId": z.string(),
   "samples": z.array(SampleCandidateSchema),
+  "transcriptionId": z.string(),
 });
 export type AppearanceSamples = z.infer<typeof AppearanceSamplesSchema>;
 
@@ -429,26 +429,24 @@ export const BlockedSchema = z.object({
 });
 export type Blocked = z.infer<typeof BlockedSchema>;
 
-export const RecordingStateSchema = z.enum(['pending', 'live', 'paused', 'processing', 'ended', 'finalized']);
-export type RecordingState = z.infer<typeof RecordingStateSchema>;
+export const TranscriptionStateSchema = z.enum(['idle', 'pending', 'live', 'paused', 'processing', 'ended', 'finalized']);
+export type TranscriptionState = z.infer<typeof TranscriptionStateSchema>;
 
-export const CurrentRecordingSchema = z.object({
-  "recordingId": z.string(),
+export const CurrentTranscriptionSchema = z.object({
   "startedAt": z.union([z.string(), z.null()]).optional(),
-  "state": RecordingStateSchema,
-  "transcriptionId": z.union([z.string(), z.null()]).optional(),
+  "state": TranscriptionStateSchema,
+  "transcriptionId": z.string(),
 });
-export type CurrentRecording = z.infer<typeof CurrentRecordingSchema>;
+export type CurrentTranscription = z.infer<typeof CurrentTranscriptionSchema>;
 
-export const LastRecordingSchema = z.object({
+export const LastTranscriptionSchema = z.object({
   "durationS": z.union([z.number(), z.null()]).optional(),
-  "recordingId": z.string(),
   "startedAt": z.union([z.string(), z.null()]).optional(),
-  "state": RecordingStateSchema,
+  "state": TranscriptionStateSchema,
   "title": z.union([z.string(), z.null()]).optional(),
-  "transcriptionId": z.union([z.string(), z.null()]).optional(),
+  "transcriptionId": z.string(),
 });
-export type LastRecording = z.infer<typeof LastRecordingSchema>;
+export type LastTranscription = z.infer<typeof LastTranscriptionSchema>;
 
 export const LifecycleSchema = z.enum(['active', 'archived', 'purged']);
 export type Lifecycle = z.infer<typeof LifecycleSchema>;
@@ -508,20 +506,20 @@ export const BroadcastSchema = z.object({
   "audioSources": z.array(AudioSourceSchema).optional(),
   "code": z.string(),
   "createdAt": z.string(),
-  "currentRecording": z.union([CurrentRecordingSchema, z.null()]).optional(),
+  "currentTranscription": z.union([CurrentTranscriptionSchema, z.null()]).optional(),
   "id": z.string(),
   "kind": z.literal("broadcast"),
   "lastRecordedAt": z.union([z.string(), z.null()]).optional(),
-  "lastRecording": z.union([LastRecordingSchema, z.null()]).optional(),
+  "lastTranscription": z.union([LastTranscriptionSchema, z.null()]).optional(),
   "lifecycle": LifecycleSchema,
   "listenersNow": z.union([z.number().int(), z.null()]).optional(),
   "name": z.string(),
   "ownerPrincipalId": z.string(),
   "purgeAfter": z.union([z.string(), z.null()]).optional(),
-  "recordingCount": z.number().int(),
   "settings": SettingsSchema,
   "shareUrl": z.string(),
   "source": CaptureSourceSchema,
+  "transcriptionCount": z.number().int(),
   "transcriptions": z.array(TranscriptionRefSchema).optional(),
   "updatedAt": z.string(),
 });
@@ -531,6 +529,7 @@ export const BroadcastRefSchema = z.object({
   "access": AccessSchema,
   "code": z.string(),
   "id": z.string(),
+  "made": z.boolean().optional(),
   "name": z.string(),
   "shareUrl": z.string(),
 });
@@ -564,7 +563,7 @@ export const CaptureSpanSchema = z.object({
 });
 export type CaptureSpan = z.infer<typeof CaptureSpanSchema>;
 
-export const RecordingChargeSchema = z.object({
+export const TranscriptionChargeSchema = z.object({
   "amount": z.number(),
   "audioSeconds": z.number(),
   "coveredSeconds": z.number(),
@@ -573,16 +572,15 @@ export const RecordingChargeSchema = z.object({
   "name": z.union([z.string(), z.null()]).optional(),
   "openedAt": z.string(),
   "ratePerHour": z.number(),
-  "recordingId": z.string(),
   "secondsBilled": z.number(),
   "settledAt": z.union([z.string(), z.null()]).optional(),
   "state": z.string(),
   "transcriptionId": z.union([z.string(), z.null()]).optional(),
 });
-export type RecordingCharge = z.infer<typeof RecordingChargeSchema>;
+export type TranscriptionCharge = z.infer<typeof TranscriptionChargeSchema>;
 
 export const ChargePageSchema = z.object({
-  "charges": z.array(RecordingChargeSchema),
+  "charges": z.array(TranscriptionChargeSchema),
   "nextCursor": z.union([z.string(), z.null()]).optional(),
 });
 export type ChargePage = z.infer<typeof ChargePageSchema>;
@@ -841,11 +839,18 @@ export const CreateSpeakerFromAppearanceSchema = z.object({
   "draft": z.boolean().optional(),
   "library": z.boolean().optional(),
   "name": z.string(),
-  "recordingId": z.union([z.string(), z.null()]).optional(),
   "spans": z.union([z.array(SampleSpanSchema), z.null()]).optional(),
   "transcriptionId": z.string(),
 });
 export type CreateSpeakerFromAppearance = z.infer<typeof CreateSpeakerFromAppearanceSchema>;
+
+export const CreateSpeakerInviteSchema = z.object({
+  "color": z.union([z.string(), z.null()]).optional(),
+  "email": z.union([z.string(), z.null()]).optional(),
+  "gender": z.union([z.string(), z.null()]).optional(),
+  "name": z.string(),
+});
+export type CreateSpeakerInvite = z.infer<typeof CreateSpeakerInviteSchema>;
 
 export const CreateTagSchema = z.object({
   "color": z.enum(['coral', 'amber', 'lime', 'green', 'teal', 'blue', 'violet', 'pink']).optional(),
@@ -964,6 +969,14 @@ export const HealthSchema = z.object({
 });
 export type Health = z.infer<typeof HealthSchema>;
 
+export const HistoryEventSchema = z.object({
+  "at": z.string(),
+  "kind": z.string(),
+  "payload": z.unknown(),
+  "seq": z.number().int(),
+});
+export type HistoryEvent = z.infer<typeof HistoryEventSchema>;
+
 export const IngestStateSchema = z.union([z.literal("connecting"), z.literal("streaming"), z.literal("reconnecting"), z.literal("stopped"), z.literal("failed")]);
 export type IngestState = z.infer<typeof IngestStateSchema>;
 
@@ -977,6 +990,9 @@ export const InputOptionsSchema = z.object({
   "url": z.union([z.string(), z.null()]).optional(),
 });
 export type InputOptions = z.infer<typeof InputOptionsSchema>;
+
+export const InviteStateSchema = z.enum(['pending', 'expired']);
+export type InviteState = z.infer<typeof InviteStateSchema>;
 
 export const JobProgressSchema = z.object({
   "fetchTotalBytes": z.union([z.number().int(), z.null()]).optional(),
@@ -1052,9 +1068,9 @@ export const LedgerEntrySchema = z.object({
   "metadata": z.unknown(),
   "providerOrderId": z.union([z.string(), z.null()]).optional(),
   "realtimeSessionId": z.union([z.string(), z.null()]).optional(),
-  "recordingId": z.union([z.string(), z.null()]).optional(),
   "staffUser": z.union([z.string(), z.null()]).optional(),
   "subscriptionId": z.union([z.string(), z.null()]).optional(),
+  "transcriptionId": z.union([z.string(), z.null()]).optional(),
 });
 export type LedgerEntry = z.infer<typeof LedgerEntrySchema>;
 
@@ -1140,6 +1156,18 @@ export const NameSpeakerSchema = z.object({
   "name": z.union([z.string(), z.null()]).optional(),
 });
 export type NameSpeaker = z.infer<typeof NameSpeakerSchema>;
+
+export const OpenSpeakerInviteSchema = z.object({
+  "email": z.union([z.string(), z.null()]).optional(),
+  "expired": z.boolean(),
+  "expiresAt": z.string(),
+  "inviterName": z.string(),
+  "maxSeconds": z.number(),
+  "minSeconds": z.number(),
+  "readText": z.string(),
+  "speakerName": z.string(),
+});
+export type OpenSpeakerInvite = z.infer<typeof OpenSpeakerInviteSchema>;
 
 export const PassageSchema = z.object({
   "mediaEnd": z.number(),
@@ -1260,25 +1288,6 @@ export const StreamIngestSchema = z.object({
 });
 export type StreamIngest = z.infer<typeof StreamIngestSchema>;
 
-export const RecordingKindSchema = z.enum(['live', 'upload']);
-export type RecordingKind = z.infer<typeof RecordingKindSchema>;
-
-export const RecordingMetricsSchema = z.object({
-  "settleP50S": z.union([z.number(), z.null()]).optional(),
-  "settleP95S": z.union([z.number(), z.null()]).optional(),
-  "silencePaused": z.number().int(),
-  "suppressedSegments": z.union([z.number().int(), z.null()]).optional(),
-  "translationLatencyP50S": z.union([z.number(), z.null()]).optional(),
-});
-export type RecordingMetrics = z.infer<typeof RecordingMetricsSchema>;
-
-export const PublisherInfoSchema = z.object({
-  "attached": z.boolean(),
-  "leaseExpiresAt": z.union([z.string(), z.null()]).optional(),
-  "machineId": z.union([z.string(), z.null()]).optional(),
-});
-export type PublisherInfo = z.infer<typeof PublisherInfoSchema>;
-
 export const SourceKindSchema = z.enum(['file', 'url']);
 export type SourceKind = z.infer<typeof SourceKindSchema>;
 
@@ -1296,73 +1305,114 @@ export const SourceInfoSchema = z.object({
 });
 export type SourceInfo = z.infer<typeof SourceInfoSchema>;
 
-export const RecordingSchema = z.object({
+export const TranscriptionJobSchema = z.object({
+  "attempts": z.number().int(),
   "createdAt": z.string(),
+  "crop": z.union([CropWindowSchema, z.null()]).optional(),
+  "error": z.union([z.string(), z.null()]).optional(),
+  "errorCode": z.union([z.string(), z.null()]).optional(),
+  "finishedAt": z.union([z.string(), z.null()]).optional(),
+  "hasAudio": z.boolean(),
+  "hasVideo": z.boolean().optional(),
+  "peaks": z.union([z.array(z.number()), z.null()]).optional(),
+  "preview": z.boolean().optional(),
+  "progress": JobProgressSchema,
+  "queue": z.union([JobQueueSchema, z.null()]).optional(),
+  "source": z.union([SourceInfoSchema, z.null()]).optional(),
+  "startedAt": z.union([z.string(), z.null()]).optional(),
+  "state": JobStateSchema,
+  "transcriptionId": z.string(),
+});
+export type TranscriptionJob = z.infer<typeof TranscriptionJobSchema>;
+
+export const TranscriptionMetricsSchema = z.object({
+  "settleP50S": z.union([z.number(), z.null()]).optional(),
+  "settleP95S": z.union([z.number(), z.null()]).optional(),
+  "silencePaused": z.number().int(),
+  "suppressedSegments": z.union([z.number().int(), z.null()]).optional(),
+  "translationLatencyP50S": z.union([z.number(), z.null()]).optional(),
+});
+export type TranscriptionMetrics = z.infer<typeof TranscriptionMetricsSchema>;
+
+export const PublisherInfoSchema = z.object({
+  "attached": z.boolean(),
+  "leaseExpiresAt": z.union([z.string(), z.null()]).optional(),
+  "machineId": z.union([z.string(), z.null()]).optional(),
+});
+export type PublisherInfo = z.infer<typeof PublisherInfoSchema>;
+
+export const TagRefSchema = z.object({
+  "color": z.enum(['coral', 'amber', 'lime', 'green', 'teal', 'blue', 'violet', 'pink']),
+  "id": z.string(),
+  "name": z.string(),
+});
+export type TagRef = z.infer<typeof TagRefSchema>;
+
+export const TranscriptionSchema = z.object({
+  "archivedAt": z.union([z.string(), z.null()]).optional(),
+  "blocked": z.union([BlockedSchema, z.null()]).optional(),
+  "broadcasts": z.array(BroadcastRefSchema).optional(),
+  "code": z.string(),
+  "createdAt": z.string(),
+  "createdByApiKeyId": z.union([z.string(), z.null()]).optional(),
+  "durationS": z.union([z.number(), z.null()]).optional(),
   "endReason": z.union([z.string(), z.null()]).optional(),
   "endedAt": z.union([z.string(), z.null()]).optional(),
   "finalizedAt": z.union([z.string(), z.null()]).optional(),
   "id": z.string(),
   "ingest": z.union([StreamIngestSchema, z.null()]).optional(),
-  "kind": RecordingKindSchema,
-  "languageMismatches": z.array(LanguageMismatchSchema).optional(),
-  "lastSeq": z.number().int(),
+  "job": z.union([TranscriptionJobSchema, z.null()]).optional(),
+  "kind": z.literal("transcription"),
+  "languageMismatches": z.union([z.array(LanguageMismatchSchema), z.null()]).optional(),
+  "lastSeq": z.union([z.number().int(), z.null()]).optional(),
   "lifecycle": LifecycleSchema,
-  "maxDurationS": z.number().int(),
-  "maxPauseS": z.number().int(),
-  "media": z.array(MediaSummarySchema),
-  "mediaDurationS": z.union([z.number(), z.null()]).optional(),
-  "metrics": z.union([RecordingMetricsSchema, z.null()]).optional(),
+  "live": z.boolean().optional(),
+  "locked": z.boolean().optional(),
+  "maxDurationS": z.union([z.number().int(), z.null()]).optional(),
+  "maxPauseS": z.union([z.number().int(), z.null()]).optional(),
+  "media": z.union([z.array(MediaSummarySchema), z.null()]).optional(),
+  "metrics": z.union([TranscriptionMetricsSchema, z.null()]).optional(),
+  "name": z.string(),
+  "origin": z.enum(['dashboard', 'api', 'extension', 'desktop_app', 'obs', 'wordpress', 'payload', 'strapi', 'sanity', 'contentful', 'mcp', 'broadcast', 'unknown']),
+  "ownerPrincipalId": z.string(),
   "peakLatencyS": z.union([z.number(), z.null()]).optional(),
   "peakListeners": z.union([z.number().int(), z.null()]).optional(),
-  "publisher": PublisherInfoSchema,
+  "publisher": z.union([PublisherInfoSchema, z.null()]).optional(),
+  "purgeAfter": z.union([z.string(), z.null()]).optional(),
   "scriptId": z.union([z.string(), z.null()]).optional(),
   "scriptText": z.union([z.string(), z.null()]).optional(),
   "settings": SettingsSchema,
-  "source": z.union([SourceInfoSchema, z.null()]).optional(),
-  "spans": z.array(CaptureSpanSchema),
+  "shareCode": z.union([z.string(), z.null()]).optional(),
+  "shareUrl": z.string(),
+  "source": CaptureSourceSchema,
+  "spans": z.union([z.array(CaptureSpanSchema), z.null()]).optional(),
   "speakerCount": z.union([z.number().int(), z.null()]).optional(),
   "spokenLanguage": z.union([z.string(), z.null()]).optional(),
   "startedAt": z.union([z.string(), z.null()]).optional(),
-  "state": RecordingStateSchema,
+  "state": TranscriptionStateSchema,
   "summarizedAt": z.union([z.string(), z.null()]).optional(),
   "summary": z.union([z.string(), z.null()]).optional(),
   "summaryLanguage": z.union([z.string(), z.null()]).optional(),
+  "tags": z.array(TagRefSchema).optional(),
   "title": z.union([z.string(), z.null()]).optional(),
-  "transcriptionId": z.string(),
+  "updatedAt": z.string(),
   "wallDurationS": z.union([z.number(), z.null()]).optional(),
 });
-export type Recording = z.infer<typeof RecordingSchema>;
+export type Transcription = z.infer<typeof TranscriptionSchema>;
 
 export const PublishGrantSchema = z.object({
   "expiresAt": z.union([z.string(), z.null()]).optional(),
-  "recording": RecordingSchema,
   "sessionId": z.union([z.string(), z.null()]).optional(),
   "streamUrl": z.union([z.string(), z.null()]).optional(),
+  "transcription": TranscriptionSchema,
 });
 export type PublishGrant = z.infer<typeof PublishGrantSchema>;
 
 export const PullStateSchema = z.union([z.literal("connecting"), z.literal("streaming"), z.literal("reconnecting"), z.literal("failed")]);
 export type PullState = z.infer<typeof PullStateSchema>;
 
-export const RecordingEventSchema = z.object({
-  "at": z.string(),
-  "kind": z.string(),
-  "payload": z.unknown(),
-  "seq": z.number().int(),
-});
-export type RecordingEvent = z.infer<typeof RecordingEventSchema>;
-
-export const RecordingEventsSchema = z.object({
-  "events": z.array(RecordingEventSchema),
-  "nextCursor": z.union([z.string(), z.null()]).optional(),
-});
-export type RecordingEvents = z.infer<typeof RecordingEventsSchema>;
-
-export const RecordingPageSchema = z.object({
-  "nextCursor": z.union([z.string(), z.null()]).optional(),
-  "recordings": z.array(RecordingSchema),
-});
-export type RecordingPage = z.infer<typeof RecordingPageSchema>;
+export const RecordingStateSchema = z.enum(['pending', 'live', 'paused', 'processing', 'ended', 'finalized']);
+export type RecordingState = z.infer<typeof RecordingStateSchema>;
 
 export const RetranscribeLineSchema = z.object({
   "lang": z.string(),
@@ -1386,8 +1436,8 @@ export const ScriptSchema = z.object({
   "createdAt": z.string(),
   "id": z.string(),
   "locked": z.boolean(),
-  "recordingId": z.union([z.string(), z.null()]).optional(),
   "scheduledAt": z.union([z.string(), z.null()]).optional(),
+  "startedTranscriptionId": z.union([z.string(), z.null()]).optional(),
   "text": z.string(),
   "transcriptionId": z.union([z.string(), z.null()]).optional(),
   "updatedAt": z.string(),
@@ -1401,7 +1451,6 @@ export const SearchHitSchema = z.object({
   "live": z.boolean(),
   "mediaStart": z.number(),
   "recordedAt": z.union([z.string(), z.null()]).optional(),
-  "recordingId": z.string(),
   "rendered": z.union([z.string(), z.null()]).optional(),
   "score": z.number(),
   "sentenceId": z.number().int(),
@@ -1703,27 +1752,6 @@ export const ShareLinkSchema = z.object({
 });
 export type ShareLink = z.infer<typeof ShareLinkSchema>;
 
-export const TranscriptionJobSchema = z.object({
-  "attempts": z.number().int(),
-  "createdAt": z.string(),
-  "crop": z.union([CropWindowSchema, z.null()]).optional(),
-  "error": z.union([z.string(), z.null()]).optional(),
-  "errorCode": z.union([z.string(), z.null()]).optional(),
-  "finishedAt": z.union([z.string(), z.null()]).optional(),
-  "hasAudio": z.boolean(),
-  "hasVideo": z.boolean().optional(),
-  "peaks": z.union([z.array(z.number()), z.null()]).optional(),
-  "preview": z.boolean().optional(),
-  "progress": JobProgressSchema,
-  "queue": z.union([JobQueueSchema, z.null()]).optional(),
-  "recordingId": z.string(),
-  "source": z.union([SourceInfoSchema, z.null()]).optional(),
-  "startedAt": z.union([z.string(), z.null()]).optional(),
-  "state": JobStateSchema,
-  "transcriptionId": z.string(),
-});
-export type TranscriptionJob = z.infer<typeof TranscriptionJobSchema>;
-
 export const SharedTranscriptSchema = z.object({
   "allowDownload": z.boolean(),
   "allowExport": z.boolean(),
@@ -1733,8 +1761,8 @@ export const SharedTranscriptSchema = z.object({
   "createdAt": z.string(),
   "job": z.union([TranscriptionJobSchema, z.null()]).optional(),
   "name": z.string(),
-  "recording": RecordingSchema,
   "sharedBy": z.string(),
+  "transcription": TranscriptionSchema,
   "transcriptionId": z.union([z.string(), z.null()]).optional(),
 });
 export type SharedTranscript = z.infer<typeof SharedTranscriptSchema>;
@@ -1750,11 +1778,34 @@ export const SpeakerSchema = z.object({
   "id": z.string(),
   "library": z.boolean().optional(),
   "name": z.string(),
-  "recordingId": z.union([z.string(), z.null()]).optional(),
+  "transcriptionId": z.union([z.string(), z.null()]).optional(),
   "updatedAt": z.string(),
   "voice": z.union([CloneSchema, z.null()]).optional(),
 });
 export type Speaker = z.infer<typeof SpeakerSchema>;
+
+export const SpeakerConsentWithdrawalSchema = z.object({
+  "inviterName": z.string(),
+  "speakerName": z.string(),
+  "withdrawn": z.boolean(),
+});
+export type SpeakerConsentWithdrawal = z.infer<typeof SpeakerConsentWithdrawalSchema>;
+
+export const SpeakerInviteSchema = z.object({
+  "createdAt": z.string(),
+  "email": z.union([z.string(), z.null()]).optional(),
+  "expiresAt": z.string(),
+  "id": z.string(),
+  "speakerId": z.string(),
+  "state": InviteStateSchema,
+  "url": z.union([z.string(), z.null()]).optional(),
+});
+export type SpeakerInvite = z.infer<typeof SpeakerInviteSchema>;
+
+export const SpeakerInviteListSchema = z.object({
+  "invites": z.array(SpeakerInviteSchema),
+});
+export type SpeakerInviteList = z.infer<typeof SpeakerInviteListSchema>;
 
 export const StartJobSchema = z.object({
   "endS": z.union([z.number(), z.null()]).optional(),
@@ -1762,7 +1813,7 @@ export const StartJobSchema = z.object({
 });
 export type StartJob = z.infer<typeof StartJobSchema>;
 
-export const StartRecordingSchema = z.object({
+export const StartLiveTranscriptionSchema = z.object({
   "audioSource": z.union([z.string(), z.null()]).optional(),
   "deviceId": z.union([z.string(), z.null()]).optional(),
   "scriptId": z.union([z.string(), z.null()]).optional(),
@@ -1770,12 +1821,18 @@ export const StartRecordingSchema = z.object({
   "settings": z.union([SettingsPatchSchema, z.null()]).optional(),
   "takeover": z.boolean().optional(),
 });
-export type StartRecording = z.infer<typeof StartRecordingSchema>;
+export type StartLiveTranscription = z.infer<typeof StartLiveTranscriptionSchema>;
 
 export const StopRequestSchema = z.object({
   "reason": z.union([z.string(), z.null()]).optional(),
 });
 export type StopRequest = z.infer<typeof StopRequestSchema>;
+
+export const SubmitSpeakerInviteSchema = z.object({
+  "consent": z.boolean(),
+  "email": z.union([z.string(), z.null()]).optional(),
+});
+export type SubmitSpeakerInvite = z.infer<typeof SubmitSpeakerInviteSchema>;
 
 export const SubscriberClientFrameSchema = z.discriminatedUnion('type', [z.object({
   "audio": z.union([z.boolean(), z.null()]).optional(),
@@ -1789,27 +1846,27 @@ export type SubscriberClientFrame = z.infer<typeof SubscriberClientFrameSchema>;
 export const SubscriberFrameSchema = z.discriminatedUnion('type', [z.object({
   "instance": z.string(),
   "lastSeq": z.number().int(),
-  "recordingId": z.string(),
   "state": RecordingStateSchema,
+  "transcriptionId": z.string(),
   "type": z.literal("subscribe.ready"),
 }), z.object({
   "mediaS": z.union([z.number(), z.null()]).optional(),
   "reason": z.union([z.string(), z.null()]).optional(),
-  "recordingId": z.string(),
   "state": RecordingStateSchema,
+  "transcriptionId": z.string(),
   "type": z.literal("recording.state"),
 }), z.object({
-  "recordingId": z.string(),
   "settings": z.unknown(),
+  "transcriptionId": z.string(),
   "type": z.literal("recording.settings"),
 }), z.object({
   "pausesInS": z.number(),
-  "recordingId": z.string(),
   "silentS": z.number(),
+  "transcriptionId": z.string(),
   "type": z.literal("recording.silence"),
 }), z.object({
   "endsInS": z.number(),
-  "recordingId": z.string(),
+  "transcriptionId": z.string(),
   "type": z.literal("recording.expiring"),
 }), z.object({
   "actor": z.union([ActorSchema, z.null()]).optional(),
@@ -1843,9 +1900,8 @@ export const SubscriberFrameSchema = z.discriminatedUnion('type', [z.object({
   "speakers": z.array(SpeakerNumberSchema),
   "type": z.literal("transcript.speakerNumbers"),
 }), z.object({
-  "recordingId": z.string(),
   "transcriptionId": z.string(),
-  "type": z.literal("recording.started"),
+  "type": z.literal("transcription.started"),
 }), z.object({
   "error": z.union([z.string(), z.null()]).optional(),
   "fetchTotalBytes": z.union([z.number().int(), z.null()]).optional(),
@@ -1855,7 +1911,6 @@ export const SubscriberFrameSchema = z.discriminatedUnion('type', [z.object({
   "phasePct": z.union([z.number().int(), z.null()]).optional(),
   "preview": z.boolean().optional(),
   "processedS": z.number(),
-  "recordingId": z.string(),
   "segmentsDone": z.number().int(),
   "segmentsTotal": z.union([z.number().int(), z.null()]).optional(),
   "state": JobStateSchema,
@@ -1865,25 +1920,23 @@ export const SubscriberFrameSchema = z.discriminatedUnion('type', [z.object({
 }), z.object({
   "error": z.union([z.string(), z.null()]).optional(),
   "progress": z.number().int(),
-  "recordingId": z.string(),
   "speaker": z.number().int(),
   "speakerId": z.union([z.string(), z.null()]).optional(),
   "state": z.string(),
+  "transcriptionId": z.string(),
   "type": z.literal("speaker.voice"),
 }), z.object({
   "detected": z.union([z.string(), z.null()]).optional(),
   "error": z.union([z.string(), z.null()]).optional(),
   "failures": z.number().int().optional(),
   "lastAudioAt": z.union([z.string(), z.null()]).optional(),
-  "recordingId": z.string(),
   "state": IngestStateSchema,
   "transcriptionId": z.string(),
   "type": z.literal("stream.ingest"),
   "url": z.string(),
 }), z.object({
-  "recordingId": z.string(),
   "transcriptionId": z.string(),
-  "type": z.literal("recording.ended"),
+  "type": z.literal("transcription.ended"),
 }), z.object({
   "languages": z.unknown(),
   "listeners": z.number().int(),
@@ -1916,13 +1969,6 @@ export const TagListSchema = z.object({
 });
 export type TagList = z.infer<typeof TagListSchema>;
 
-export const TagRefSchema = z.object({
-  "color": z.enum(['coral', 'amber', 'lime', 'green', 'teal', 'blue', 'violet', 'pink']),
-  "id": z.string(),
-  "name": z.string(),
-});
-export type TagRef = z.infer<typeof TagRefSchema>;
-
 export const TagTranscriptionsSchema = z.object({
   "add": z.array(z.string()).optional(),
   "remove": z.array(z.string()).optional(),
@@ -1932,46 +1978,22 @@ export type TagTranscriptions = z.infer<typeof TagTranscriptionsSchema>;
 export const TranscriptSnapshotSchema = z.object({
   "lang": z.union([z.string(), z.null()]).optional(),
   "lastSeq": z.number().int(),
-  "recordingId": z.string(),
   "segments": z.array(SegmentViewSchema),
   "sentences": z.array(SentenceViewSchema),
   "spans": z.array(CaptureSpanSchema),
   "speakerLabels": z.union([SpeakerLabelsSchema, z.null()]).optional(),
   "speakers": z.array(AppearanceViewSchema),
   "state": RecordingStateSchema,
+  "transcriptionId": z.string(),
   "translationPending": z.boolean().optional(),
 });
 export type TranscriptSnapshot = z.infer<typeof TranscriptSnapshotSchema>;
 
-export const TranscriptionSchema = z.object({
-  "archivedAt": z.union([z.string(), z.null()]).optional(),
-  "blocked": z.union([BlockedSchema, z.null()]).optional(),
-  "broadcasts": z.array(BroadcastRefSchema).optional(),
-  "code": z.string(),
-  "createdAt": z.string(),
-  "createdByApiKeyId": z.union([z.string(), z.null()]).optional(),
-  "currentRecording": z.union([CurrentRecordingSchema, z.null()]).optional(),
-  "id": z.string(),
-  "job": z.union([TranscriptionJobSchema, z.null()]).optional(),
-  "kind": z.literal("transcription"),
-  "lastRecordedAt": z.union([z.string(), z.null()]).optional(),
-  "lastRecording": z.union([LastRecordingSchema, z.null()]).optional(),
-  "lifecycle": LifecycleSchema,
-  "live": z.boolean().optional(),
-  "locked": z.boolean().optional(),
-  "name": z.string(),
-  "origin": z.enum(['dashboard', 'api', 'extension', 'desktop_app', 'obs', 'wordpress', 'payload', 'strapi', 'sanity', 'contentful', 'mcp', 'broadcast', 'unknown']),
-  "ownerPrincipalId": z.string(),
-  "purgeAfter": z.union([z.string(), z.null()]).optional(),
-  "recordingCount": z.number().int(),
-  "settings": SettingsSchema,
-  "shareCode": z.union([z.string(), z.null()]).optional(),
-  "shareUrl": z.string(),
-  "source": CaptureSourceSchema,
-  "tags": z.array(TagRefSchema).optional(),
-  "updatedAt": z.string(),
+export const TranscriptionHistorySchema = z.object({
+  "events": z.array(HistoryEventSchema),
+  "nextCursor": z.union([z.string(), z.null()]).optional(),
 });
-export type Transcription = z.infer<typeof TranscriptionSchema>;
+export type TranscriptionHistory = z.infer<typeof TranscriptionHistorySchema>;
 
 export const TranscriptionLookupSchema = z.object({
   "transcription": z.union([TranscriptionSchema, z.null()]).optional(),
@@ -2015,12 +2037,6 @@ export const UpdateTranscriptionSchema = z.object({
 });
 export type UpdateTranscription = z.infer<typeof UpdateTranscriptionSchema>;
 
-export const UploadRecordingSchema = z.object({
-  "settings": z.union([SettingsPatchSchema, z.null()]).optional(),
-  "url": z.union([z.string(), z.null()]).optional(),
-});
-export type UploadRecording = z.infer<typeof UploadRecordingSchema>;
-
 export const UsageChargeSchema = z.object({
   "amount": z.number(),
   "correction": z.boolean(),
@@ -2030,7 +2046,6 @@ export const UsageChargeSchema = z.object({
   "openedAt": z.string(),
   "ratePerHour": z.number(),
   "realtimeSessionId": z.union([z.string(), z.null()]).optional(),
-  "recordingId": z.union([z.string(), z.null()]).optional(),
   "seconds": z.number(),
   "source": z.string(),
   "state": z.string(),
@@ -2080,7 +2095,6 @@ export const VectorHitSchema = z.object({
   "mediaStart": z.number(),
   "passage": PassageSchema,
   "recordedAt": z.union([z.string(), z.null()]).optional(),
-  "recordingId": z.string(),
   "rendered": z.union([z.string(), z.null()]).optional(),
   "score": z.number(),
   "sentenceId": z.number().int(),
